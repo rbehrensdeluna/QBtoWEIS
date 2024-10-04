@@ -54,7 +54,7 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
                 data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
                 output_dict[channel].append(data)
 
-    print(f"Simulation Progress: 100% completed")
+    print(f"QBlade Simulation Progress: 100% completed")
 
     sim_out_name = sim.strip('.sim')
     

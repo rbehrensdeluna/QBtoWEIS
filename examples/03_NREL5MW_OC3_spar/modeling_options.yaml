@@ -20,7 +20,7 @@ WISDEM:
         flag: True
         rank_and_file: True
     BOS:
-        flag: True
+        flag: False
 
 Level1:
     flag: False
@@ -55,7 +55,7 @@ Level3: # Options for WEIS fidelity level 3 = nonlinear time domain
         GenDOF: True
         YawDOF: False  
         TwFADOF1 : True
-        TwFADOF2 : True
+        TwFADOF2 : False # crashes OF if True
         TwSSDOF1 : True
         TwSSDOF2 : True
         PtfmSgDOF: True
