@@ -26,6 +26,7 @@ from rosco.toolbox.inputs.validation import load_rosco_yaml
 from wisdem.inputs import load_yaml
 from wisdem.commonse.cylinder_member import get_nfull
 
+from weis.aeroelasticse.openmdao_qblade import QBLADELoadCases
 
 weis_dir = os.path.realpath(os.path.join(os.path.dirname(__file__),'../../'))
 
@@ -950,3 +951,323 @@ class WindPark(om.Group):
                 self.connect('dac_ivc.te_flap_end',            'outputs_2_screen_weis.te_flap_end')
                 if modeling_options['OL2CL']['flag']:
                     self.connect('aeroelastic.OL2CL_pitch',      'outputs_2_screen_weis.OL2CL_pitch')
+        
+        # Make relevant connections between WISDEM/WEIS and QBlade relevant components (mainly aeroelastic_qblade)
+        if modeling_options['Level4']['flag']:
+            
+            self.add_subsystem('aeroelastic_qblade',       QBLADELoadCases(modeling_options = modeling_options, opt_options = opt_options))
+            self.add_subsystem('stall_check_of',           NoStallConstraint(modeling_options = modeling_options))
+
+            if modeling_options['WISDEM']['RotorSE']['flag']: 
+                self.add_subsystem('rlds_post',      RotorLoadsDeflStrainsWEIS(modeling_options = modeling_options, opt_options = opt_options))
+
+                # self.connect('blade.opt_var.s_opt_spar_cap_ss',   'rlds_post.constr.s_opt_spar_cap_ss')
+                # self.connect('blade.opt_var.s_opt_spar_cap_ps',   'rlds_post.constr.s_opt_spar_cap_ps')
+                # Connections from blade struct parametrization to rotor load anlysis
+                spars_tereinf = modeling_options["WISDEM"]["RotorSE"]["spars_tereinf"]
+                self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[0], "rotorse.rs.constr.s_opt_spar_cap_ss")
+                self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[1], "rotorse.rs.constr.s_opt_spar_cap_ps")
+
+                # Connections to the stall check 
+                self.connect('blade.outer_shape_bem.s',        'stall_check_of.s')
+                self.connect('airfoils.aoa',                   'stall_check_of.airfoils_aoa')
+                self.connect('xf.cl_interp_flaps',             'stall_check_of.airfoils_cl')
+                self.connect('xf.cd_interp_flaps',             'stall_check_of.airfoils_cd')
+                self.connect('xf.cm_interp_flaps',             'stall_check_of.airfoils_cm')
+                self.connect('aeroelastic_qblade.max_aoa',     'stall_check_of.aoa_along_span')
+            
+            if modeling_options["flags"]["monopile"]:
+                n_height = modeling_options['WISDEM']['FixedBottomSE']["n_height"]
+                n_refine = modeling_options['WISDEM']['FixedBottomSE']["n_refine"]
+                n_full = get_nfull(n_height, nref=n_refine)
+                
+                self.add_subsystem('fixedse_post',   CylinderPostFrame(modeling_options=modeling_options["WISDEM"]["FixedBottomSE"], n_dlc=1, n_full = n_full))
+                
+
+            if not modeling_options['Level4']['from_qblade']:
+                self.add_subsystem('tcons_post',     TurbineConstraints(modeling_options = modeling_options))
+                self.add_subsystem('financese_post', PlantFinance(verbosity=modeling_options['General']['verbosity']))
+
+            # Post-processing
+            self.add_subsystem('outputs_2_screen_weis',  Outputs_2_Screen(modeling_options = modeling_options, opt_options = opt_options))
+            if opt_options['opt_flag']:
+                self.add_subsystem('conv_plots_weis',    Convergence_Trends_Opt(opt_options = opt_options))
+
+            self.connect('control.V_in',                    'aeroelastic_qblade.V_cutin')
+            self.connect('control.V_out',                   'aeroelastic_qblade.V_cutout')
+            self.connect('env.shear_exp',                   'aeroelastic_qblade.shearExp')
+            self.connect('rotorse.rp.powercurve.rated_V',   'aeroelastic_qblade.Vrated')
+            
+            # Connections to aeroelasticse
+            self.connect('configuration.turb_class',        'aeroelastic_qblade.turbulence_class')
+            self.connect('configuration.ws_class' ,         'aeroelastic_qblade.turbine_class')
+
+            if not modeling_options['Level4']['from_qblade'] and modeling_options['Level4']['flag']:           # should be elif eventually
+                # Simulation set-up connections
+                self.connect('env.rho_air',                     'aeroelastic_qblade.rho')
+                self.connect('env.mu_air',                      'aeroelastic_qblade.mu')
+                self.connect('env.water_depth',                 'aeroelastic_qblade.water_depth')
+                self.connect('env.rho_water',                   'aeroelastic_qblade.rho_water')
+                self.connect('env.mu_water',                    'aeroelastic_qblade.mu_water')
+
+                # Main file connections
+                self.connect('hub.cone',                                'aeroelastic_qblade.cone')
+                self.connect('nacelle.uptilt',                          'aeroelastic_qblade.tilt')
+                self.connect('nacelle.overhang',                        'aeroelastic_qblade.overhang')
+                self.connect('drivese.above_yaw_mass',                  'aeroelastic_qblade.above_yaw_mass')
+                self.connect('drivese.yaw_mass',                        'aeroelastic_qblade.yaw_mass')
+                self.connect('drivese.above_yaw_cm',                    'aeroelastic_qblade.nacelle_cm')
+                self.connect('drivese.hub_system_mass',                 'aeroelastic_qblade.hub_system_mass')
+                self.connect('drivese.hub_system_I',                    'aeroelastic_qblade.hub_system_I')
+                self.connect('nacelle.gear_ratio',                      'aeroelastic_qblade.gearbox_ratio')
+                self.connect('nacelle.gearbox_efficiency',              'aeroelastic_qblade.gearbox_efficiency')
+                # drtdof
+                self.connect('drivese.generator_rotor_I',               'aeroelastic_qblade.GenIner', src_indices=[0])
+                self.connect('drivese.drivetrain_spring_constant',      'aeroelastic_qblade.drivetrain_spring_constant')
+                self.connect('drivese.drivetrain_damping_coefficient',  'aeroelastic_qblade.drivetrain_damping_coefficient')
+                self.connect('blade.outer_shape_bem.pitch_axis',        'aeroelastic_qblade.le_location')
+
+                # Blade file connections
+                self.connect('blade.pa.chord_param',                        'aeroelastic_qblade.chord')
+                self.connect('blade.pa.twist_param',                        'aeroelastic_qblade.theta')
+                self.connect('blade.outer_shape_bem.ref_axis',              'aeroelastic_qblade.ref_axis_blade')
+                self.connect('blade.high_level_blade_props.r_blade',        'aeroelastic_qblade.r')
+                self.connect('hub.radius',                                  'aeroelastic_qblade.Rhub')
+                self.connect('blade.high_level_blade_props.rotor_radius',   'aeroelastic_qblade.Rtip')
+                self.connect('blade.interp_airfoils.ac_interp',             'aeroelastic_qblade.ac')
+
+                self.connect('blade.interp_airfoils.coord_xy_interp',       'aeroelastic_qblade.coord_xy_interp')
+                self.connect('blade.interp_airfoils.r_thick_interp',        'aeroelastic_qblade.rthick')
+                self.connect('airfoils.Re',                                 'aeroelastic_qblade.airfoils_Re')
+                self.connect('airfoils.aoa',                                'aeroelastic_qblade.airfoils_aoa')
+                self.connect('xf.cl_interp_flaps',                          'aeroelastic_qblade.airfoils_cl')
+                self.connect('xf.cd_interp_flaps',                          'aeroelastic_qblade.airfoils_cd')
+                self.connect('xf.cm_interp_flaps',                          'aeroelastic_qblade.airfoils_cm')
+                self.connect('rotorse.rp.powercurve.V',                     'aeroelastic_qblade.U')
+                self.connect('rotorse.rp.powercurve.Omega',                 'aeroelastic_qblade.Omega')
+                self.connect('rotorse.rp.powercurve.pitch',                 'aeroelastic_qblade.pitch')
+
+                # Chrono blade structural definition
+                self.connect('rotorse.rhoA',                           'aeroelastic_qblade.beam:rhoA')
+                self.connect('rotorse.EIxx',                           'aeroelastic_qblade.beam:EIxx')
+                self.connect('rotorse.EIyy',                           'aeroelastic_qblade.beam:EIyy')
+                self.connect('rotorse.EA',                             'aeroelastic_qblade.beam:EA')
+                self.connect('rotorse.GJ',                             'aeroelastic_qblade.beam:GJ')
+                # TODO self.connect('rotorse.re.precomp.G',                   'aeroelastic_qblade.beam:G')
+                self.connect('rotorse.re.x_cg',                        'aeroelastic_qblade.beam:x_cg')
+                self.connect('rotorse.re.y_cg',                        'aeroelastic_qblade.beam:y_cg')
+                self.connect('rotorse.x_ec',                           'aeroelastic_qblade.beam:x_ec')
+                self.connect('rotorse.y_ec',                           'aeroelastic_qblade.beam:y_ec')
+                self.connect('rotorse.re.x_sc',                        'aeroelastic_qblade.beam:x_sc')
+                self.connect('rotorse.re.precomp.flap_iner',           'aeroelastic_qblade.beam:flap_iner')
+                self.connect('rotorse.re.precomp.edge_iner',           'aeroelastic_qblade.beam:edge_iner')
+                # self.connect('rotorse.re.Tw_iner',                     'aeroelastic_qblade.beam:Tw_iner') # TODO: what happened to Tw_iner?
+                self.connect('rotorse.rs.frame.flap_mode_freqs',       'aeroelastic_qblade.flap_freq', src_indices=[0])
+                self.connect('rotorse.rs.frame.edge_mode_freqs',       'aeroelastic_qblade.edge_freq', src_indices=[0])
+                
+                # TODO: FPM six by six 
+                
+                # Chrono tower structural definition
+                if modeling_options["flags"]["floating"]:
+                    self.connect('floatingse.f1',                      'aeroelastic_qblade.twr_freq')
+                else:
+                    self.connect('towerse.tower.f1',                   'aeroelastic_qblade.twr_freq')
+                self.connect('towerse.tower_outer_diameter',           'aeroelastic_qblade.twr:outer_diameter')
+                self.connect('towerse.tower_wall_thickness',           'aeroelastic_qblade.twr:wall_thickness')
+                self.connect('towerse.z_param',                        'aeroelastic_qblade.twr:z')
+                self.connect('towerse.member.mass_den',                'aeroelastic_qblade.twr:rhoA')
+                self.connect('towerse.member.foreaft_stff',            'aeroelastic_qblade.twr:EIyy')
+                self.connect('towerse.member.sideside_stff',           'aeroelastic_qblade.twr:EIxx')
+                self.connect('towerse.member.axial_stff',              'aeroelastic_qblade.twr:EA')
+                self.connect('towerse.member.tor_stff',                'aeroelastic_qblade.twr:GJ')
+                self.connect('towerse.member.G',                       'aeroelastic_qblade.twr:G')
+                self.connect('tower.cd',                               'aeroelastic_qblade.twr:cd')
+                self.connect('tower_grid.foundation_height',           'aeroelastic_qblade.tower_base_height')
+                # More Tower properties
+                self.connect('towerse.z_full',                          'aeroelastic_qblade.tower_z_full')
+                if modeling_options["flags"]["floating"]:
+                        # self.connect('floatingse.torsion_freqs',      'aeroelastic_qblade.tor_freq', src_indices=[0])
+                        self.connect('floatingse.f1',                 'sse_tune.tune_rosco.twr_freq')
+                else:
+                    # self.connect('towerse.tower.torsion_freqs',      'aeroelastic_qblade.tor_freq', src_indices=[0])
+                    self.connect('towerse.tower.f1',                 'sse_tune.tune_rosco.twr_freq')
+                
+                
+                # Required parameters to carry out conversion into QBlade format
+                self.connect('high_level_tower_props.hub_height',   'aeroelastic_qblade.hub_height')
+                self.connect('nacelle.distance_tt_hub',             'aeroelastic_qblade.distance_tt_hub')
+                self.connect('drivese.above_yaw_I_TT',              'aeroelastic_qblade.nacelle_I_TT')
+                self.connect('towerse.tower_I_base',                'aeroelastic_qblade.tower_I_base')
+
+                if modeling_options['flags']['monopile']:
+                    self.connect('monopile.transition_piece_mass',  'aeroelastic_qblade.transition_piece_mass')
+                    self.connect('fixedse.transition_piece_I',      'aeroelastic_qblade.transition_piece_I', src_indices=[0,1,2])
+                    self.connect('monopile.gravity_foundation_mass','aeroelastic_qblade.gravity_foundation_mass')
+                    self.connect('fixedse.gravity_foundation_I',    'aeroelastic_qblade.gravity_foundation_I', src_indices=[0,1,2])
+                    self.connect('fixedse.z_param',                 'aeroelastic_qblade.monopile_z')
+                    self.connect('fixedse.z_full',                  'aeroelastic_qblade.monopile_z_full')
+                    self.connect('fixedse.monopile_outer_diameter', 'aeroelastic_qblade.monopile_outer_diameter')
+                    self.connect('fixedse.monopile_wall_thickness', 'aeroelastic_qblade.monopile_wall_thickness')
+                    self.connect('fixedse.member.E',                'aeroelastic_qblade.monopile_E')
+                    self.connect('fixedse.member.G',                'aeroelastic_qblade.monopile_G')
+                    self.connect('fixedse.member.rho',              'aeroelastic_qblade.monopile_rho')
+                
+                if modeling_options['flags']['floating']:
+                    if modeling_options['Level1']['flag']:
+                        ptfm_data_source = 'raft'
+                    else:
+                        ptfm_data_source = 'floatingse'
+                    self.connect(f'{ptfm_data_source}.platform_mass',                   'aeroelastic_qblade.platform_mass')
+                    self.connect(f'{ptfm_data_source}.platform_total_center_of_mass',   'aeroelastic_qblade.platform_total_center_of_mass')
+                    self.connect(f'{ptfm_data_source}.platform_I_total',                'aeroelastic_qblade.platform_I_total')
+                    self.connect(f'{ptfm_data_source}.platform_displacement',           'aeroelastic_qblade.platform_displacement')
+                    self.connect('floating.transition_node',                            'aeroelastic_qblade.transition_node')
+                    self.connect('floatingse.platform_nodes',                           'aeroelastic_qblade.platform_nodes')
+                    self.connect('floatingse.platform_elem_n1',                         'aeroelastic_qblade.platform_elem_n1')
+                    self.connect('floatingse.platform_elem_n2',                         'aeroelastic_qblade.platform_elem_n2')
+                    self.connect('floatingse.platform_elem_memid',                      'aeroelastic_qblade.platform_elem_memid')
+                
+                    for k, kname in enumerate(modeling_options["floating"]["members"]["name"]):
+                        idx = modeling_options["floating"]["members"]["name2idx"][kname]
+                        #self.connect(f"floating.memgrp{idx}.outer_diameter",                f"aeroelastic_qblade.member{k}.outer_diameter_in")
+                        self.connect(f"floating.memgrp{idx}.s",                             f"aeroelastic_qblade.member{k}:s")
+                        self.connect(f"floatingse.member{k}.outer_diameter",                f"aeroelastic_qblade.member{k}:outer_diameter")
+                        self.connect(f"floatingse.member{k}.wall_thickness",                f"aeroelastic_qblade.member{k}:wall_thickness")
+                        for var in ["joint1", "joint2", "s_ghost1", "s_ghost2"]:
+                                self.connect(f"floating.member_{kname}:{var}",              f"aeroelastic_qblade.member{k}:{var}")
+                
+                    if modeling_options['flags']['mooring']:
+                        self.connect('mooring.line_diameter',               'aeroelastic_qblade.line_diameter')
+                        self.connect('mooring.line_mass_density',           'aeroelastic_qblade.line_mass_density')
+                        self.connect('mooring.line_stiffness',              'aeroelastic_qblade.line_stiffness')
+                        self.connect('mooring.unstretched_length',          'aeroelastic_qblade.unstretched_length')
+                        self.connect('mooring.mooring_nodes',               'aeroelastic_qblade.nodes_location_full')
+                        self.connect('mooring.line_transverse_added_mass',  'aeroelastic_qblade.line_transverse_added_mass')
+                        self.connect('mooring.line_transverse_drag',        'aeroelastic_qblade.line_transverse_drag')
+                        self.connect('mooring.node_names',                  'aeroelastic_qblade.node_names')
+                    
+                    # For fatigue
+                self.connect('configuration.lifetime',                              'aeroelastic_qblade.lifetime')
+                self.connect('blade.fatigue.sparU_sigma_ult',                       'aeroelastic_qblade.blade_sparU_ultstress')
+                self.connect('blade.fatigue.sparU_wohlerexp',                       'aeroelastic_qblade.blade_sparU_wohlerexp')
+                self.connect('blade.fatigue.sparU_wohlerA',                         'aeroelastic_qblade.blade_sparU_wohlerA')
+                self.connect('blade.fatigue.sparL_sigma_ult',                       'aeroelastic_qblade.blade_sparL_ultstress')
+                self.connect('blade.fatigue.sparL_wohlerexp',                       'aeroelastic_qblade.blade_sparL_wohlerexp')
+                self.connect('blade.fatigue.sparL_wohlerA',                         'aeroelastic_qblade.blade_sparL_wohlerA')
+                self.connect('blade.fatigue.teU_sigma_ult',                         'aeroelastic_qblade.blade_teU_ultstress')
+                self.connect('blade.fatigue.teU_wohlerexp',                         'aeroelastic_qblade.blade_teU_wohlerexp')
+                self.connect('blade.fatigue.teU_wohlerA',                           'aeroelastic_qblade.blade_teU_wohlerA')
+                self.connect('blade.fatigue.teL_sigma_ult',                         'aeroelastic_qblade.blade_teL_ultstress')
+                self.connect('blade.fatigue.teL_wohlerexp',                         'aeroelastic_qblade.blade_teL_wohlerexp')
+                self.connect('blade.fatigue.teL_wohlerA',                           'aeroelastic_qblade.blade_teL_wohlerA')
+                self.connect('rotorse.rs.strains.axial_root_sparU_load2stress',     'aeroelastic_qblade.blade_root_sparU_load2stress')
+                self.connect('rotorse.rs.strains.axial_root_sparL_load2stress',     'aeroelastic_qblade.blade_root_sparL_load2stress')
+                self.connect('rotorse.rs.strains.axial_maxc_teU_load2stress',       'aeroelastic_qblade.blade_maxc_teU_load2stress')
+                self.connect('rotorse.rs.strains.axial_maxc_teL_load2stress',       'aeroelastic_qblade.blade_maxc_teL_load2stress')
+                self.connect('drivese.lss_wohler_exp',                              'aeroelastic_qblade.lss_wohlerexp')
+                self.connect('drivese.lss_wohler_A',                                'aeroelastic_qblade.lss_wohlerA')
+                self.connect('drivese.lss_Xt',                                      'aeroelastic_qblade.lss_ultstress')
+                self.connect('drivese.lss_axial_load2stress',                       'aeroelastic_qblade.lss_axial_load2stress')
+                self.connect('drivese.lss_shear_load2stress',                       'aeroelastic_qblade.lss_shear_load2stress')
+                if modeling_options["flags"]["tower"]:
+                    self.connect('towerse.member.wohler_exp',                       'aeroelastic_qblade.tower_wohlerexp')
+                    self.connect('towerse.member.wohler_A',                         'aeroelastic_qblade.tower_wohlerA')
+                    self.connect('towerse.member.sigma_ult',                        'aeroelastic_qblade.tower_ultstress')
+                    self.connect('towerse.member.axial_load2stress',                'aeroelastic_qblade.tower_axial_load2stress')
+                    self.connect('towerse.member.shear_load2stress',                'aeroelastic_qblade.tower_shear_load2stress')
+                if modeling_options["flags"]["monopile"]:
+                    self.connect('fixedse.member.wohler_exp',                       'aeroelastic_qblade.monopile_wohlerexp')
+                    self.connect('fixedse.member.wohler_A',                         'aeroelastic_qblade.monopile_wohlerA')
+                    self.connect('fixedse.member.sigma_ult',                        'aeroelastic_qblade.monopile_ultstress')
+                    self.connect('fixedse.member.axial_load2stress',                'aeroelastic_qblade.monopile_axial_load2stress')
+                    self.connect('fixedse.member.shear_load2stress',                'aeroelastic_qblade.monopile_shear_load2stress')
+                # envrionment
+                self.connect('env.Hsig_wave',                   'aeroelastic_qblade.Hsig_wave')     # TODO: these depend on wind speed
+                self.connect('env.Tsig_wave',                   'aeroelastic_qblade.Tsig_wave')
+
+
+                # Connections to rotor load analysis
+                self.connect('aeroelastic_qblade.blade_maxTD_Mx', 'rlds_post.m2pa.Mx')
+                self.connect('aeroelastic_qblade.blade_maxTD_My', 'rlds_post.m2pa.My')
+                self.connect('aeroelastic_qblade.blade_maxTD_Fz', 'rlds_post.strains.F3')
+
+                self.connect("rotorse.rs.frame.alpha", "rlds_post.alpha")
+                self.connect('rotorse.EA', 'rlds_post.strains.EA')
+                self.connect('rotorse.A', 'rlds_post.strains.A')
+                self.connect('blade.pa.chord_param',  'rlds_post.strains.chord')
+                self.connect('rotorse.rs.frame.EI11', 'rlds_post.strains.EI11')
+                self.connect('rotorse.rs.frame.EI22', 'rlds_post.strains.EI22')
+                self.connect('rotorse.xu_spar', 'rlds_post.strains.xu_spar')
+                self.connect('rotorse.xl_spar', 'rlds_post.strains.xl_spar')
+                self.connect('rotorse.yu_spar', 'rlds_post.strains.yu_spar')
+                self.connect('rotorse.yl_spar', 'rlds_post.strains.yl_spar')
+                self.connect('rotorse.xu_te', 'rlds_post.strains.xu_te')
+                self.connect('rotorse.xl_te', 'rlds_post.strains.xl_te')
+                self.connect('rotorse.yu_te', 'rlds_post.strains.yu_te')
+                self.connect('rotorse.yl_te', 'rlds_post.strains.yl_te')
+                self.connect('blade.outer_shape_bem.s','rlds_post.constr.s')
+
+                if modeling_options["flags"]["monopile"]:
+                    mono_params = ["z_full","d_full","t_full",
+                                  "E_full","G_full","rho_full","sigma_y_full"]
+                    for k in mono_params:
+                        self.connect(f'fixedse.{k}',    f'fixedse_post.{k}')
+                    self.connect("fixedse.env.qdyn",    "fixedse_post.qdyn")
+                    self.connect("monopile.height",     "fixedse_post.bending_height")
+
+                    self.connect("aeroelastic_qblade.monopile_maxMy_Fz", "fixedse_post.cylinder_Fz")
+                    self.connect("aeroelastic_qblade.monopile_maxMy_Fx", "fixedse_post.cylinder_Vx")
+                    self.connect("aeroelastic_qblade.monopile_maxMy_Fy", "fixedse_post.cylinder_Vy")
+                    self.connect("aeroelastic_qblade.monopile_maxMy_Mx", "fixedse_post.cylinder_Mxx")
+                    self.connect("aeroelastic_qblade.monopile_maxMy_My", "fixedse_post.cylinder_Myy")
+                    self.connect("aeroelastic_qblade.monopile_maxMy_Mz", "fixedse_post.cylinder_Mzz")
+
+                # Connections to turbine constraints
+                self.connect('aeroelastic_qblade.max_TipDxc',               'tcons_post.tip_deflection')
+                self.connect('configuration.rotor_orientation',             'tcons_post.rotor_orientation')
+                self.connect('blade.high_level_blade_props.rotor_radius',   'tcons_post.Rtip')
+                self.connect('blade.outer_shape_bem.ref_axis',              'tcons_post.ref_axis_blade')
+                self.connect('hub.cone',                                    'tcons_post.precone')
+                self.connect('nacelle.uptilt',                              'tcons_post.tilt')
+                self.connect('nacelle.overhang',                            'tcons_post.overhang')
+                self.connect('tower.ref_axis',                              'tcons_post.ref_axis_tower')
+                self.connect('tower.diameter',                              'tcons_post.outer_diameter_full')
+
+
+            # Inputs to plantfinancese from wt group
+            if not modeling_options['Level4']['from_qblade']:
+                
+                # if modeling_options['DLC_driver']['n_ws_dlc11'] > 0: # TODO this should be working in qblade too
+                self.connect('aeroelastic_qblade.AEP', 'financese_post.turbine_aep')
+                self.connect('tcc.turbine_cost_kW',     'financese_post.tcc_per_kW')
+                
+                if modeling_options["flags"]["bos"]:
+                    if modeling_options['flags']['offshore']:
+                        self.connect('orbit.total_capex_kW',    'financese_post.bos_per_kW')
+                    else:
+                        self.connect('landbosse.bos_capex_kW',  'financese_post.bos_per_kW')
+                else:
+                    self.connect("costs.bos_per_kW", "financese_post.bos_per_kW")  
+            
+            # Inputs to plantfinancese from input yaml
+            if modeling_options['flags']['control'] and not modeling_options['Level4']['from_qblade']:
+                self.connect('configuration.rated_power',     'financese_post.machine_rating')
+
+            if len(modeling_options['Level4']['simulation']['MEANINF']) > 0:
+                self.connect('aeroelastic_qblade.AEP',  'outputs_2_screen_weis.aep')
+
+            if not modeling_options['Level4']['from_qblade']:    
+                self.connect('costs.turbine_number',    'financese_post.turbine_number')
+                self.connect('costs.opex_per_kW',       'financese_post.opex_per_kW')
+                self.connect('costs.offset_tcc_per_kW', 'financese_post.offset_tcc_per_kW')
+                self.connect('costs.wake_loss_factor',  'financese_post.wake_loss_factor')
+                self.connect('costs.fixed_charge_rate', 'financese_post.fixed_charge_rate')
+                self.connect('financese_post.lcoe',      'outputs_2_screen_weis.lcoe')
+
+                self.connect('rotorse.blade_mass',  'outputs_2_screen_weis.blade_mass')
+                self.connect('aeroelastic_qblade.max_TipDxc', 'outputs_2_screen_weis.tip_deflection')
+
+                # Connections to outputs to screen
+                if modeling_options['General']['qblade_configuration']['model_only'] == False:
+                    self.connect('aeroelastic_qblade.Std_PtfmPitch',      'outputs_2_screen_weis.Std_PtfmPitch')
+                    self.connect('aeroelastic_qblade.Max_PtfmPitch',      'outputs_2_screen_weis.Max_PtfmPitch')

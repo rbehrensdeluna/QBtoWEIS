@@ -76,6 +76,54 @@ properties:
                         type: number
                         default: -9999
                         decription: All OpenFAST outputs will be filled with this if the simulation fails. 
+                    write_stdout:
+                        type: boolean
+                        default: False
+                        description: Write standard output to own file.  Output will not print to screen.
+            qblade_configuration:
+                type: object
+                default: {}
+                properties:
+                    flag:
+                        type: boolean
+                        default: False
+                        description: Whether or not to include QBlade in the WEIS simulation
+                    QB_run_mod:
+                        type: string
+                        default: none
+                        description: Filename prefix for output files
+                    QB_run_dir:
+                        type: string
+                        default: none
+                        description: Path to place QBlade output files (e.g. /home/user/myturbines/output)
+                    model_only:
+                        type: boolean
+                        default: False
+                        description: Flag to only generate a QBlade model and stop
+                    path2qb_dll:
+                        type: string
+                        default: none
+                        description: Path to QBlade shared library (e.g. /home/user/QBlade/libqblade.so)
+                    path2qb_libs:
+                        type: string
+                        default: none
+                        description: Path to QBlade libraries
+                    number_of_workers:
+                        type: integer
+                        default: 1
+                        description: run QBlade simulation on number of specified cores
+                    keep_time:
+                        type: boolean
+                        default: True
+                        description: Keep timeseries in openmdao_qblade for post-processing
+                    store_iterations:
+                        type: boolean
+                        default: False
+                        description: store the qblade *.sim of each iteration (for visualization of optimization progress)
+                    store_qprs:
+                        type: boolean
+                        default: False
+                        description: store the .qpr of a simulation (should not be used for optimizations)
             goodman_correction:
                 type: boolean
                 default: False
@@ -166,6 +214,1534 @@ properties:
                 type: boolean
                 default: True
                 description: Flag to run pyHAMS
+    Level4: &qbmodopt
+        type: object
+        default: {}
+        description: Options for WEIS fidelity level 3 = nonlinear time domain
+        properties:
+            flag:
+                type: boolean
+                default: False
+                description: Whether or not to run WEIS extension fidelity level 4 = nonlinear time domain in QBlade
+            simulation: &qbsimulation 
+                type: object
+                default: {}
+                properties:
+                    Simulate:
+                        type: boolean
+                        default: False
+                        description: Flag to create *.sim file to run QBlade simulation
+                    TMax:
+                        type: number
+                        default: 0
+                        description: Simulation length in seconds (overrides NUMTIMESTEPS)
+                    wave_flag:
+                        type: boolean
+                        default: False
+                        description: Write an .lwa file and include it in the simulation
+                    ISOFFSHORE:
+                        type: integer
+                        default: 0
+                        max: 1
+                        description: Flag to indicate if the turbine is floating
+                    INITIAL_YAW:
+                        type: array
+                        default: [0]
+                        min: -360.
+                        max: 360.
+                        description: the initial turbine yaw in degrees
+                    INITIAL_PITCH:
+                        type: array
+                        default: [0]
+                        min: -360.
+                        max: 360.
+                        description: the initial turbine pitch in degrees
+                    INITIAL_AZIMUTH:
+                        type: array
+                        default: [0]
+                        min: -360.
+                        max: 360.
+                        description: the initial turbine azimuth in degrees
+                    STRSUBSTEP:
+                        type: integer
+                        default: 1
+                        min: 1
+                        description: the number of structural substeps per timestep (usually 1)
+                    RELAXSTEPS:
+                        type: integer
+                        default: 1
+                        min: 1
+                        description: the number of initial static structural relaxation steps
+                    PRESCRIBETYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 2
+                        description: rotor RPM prescribe type (0 = ramp-up; 1 = whole sim; 2 = no RPM prescibed) 
+                    RPMPRESCRIBED:
+                        type: array
+                        default: [0]
+                        min: 0.
+                        description: the prescribed rotor speed in RPM. If fewer entries compared to MEANINF are provided, the first entry of RPMPRESCRIBED is used for each
+                    STRITERATIONS:
+                        type: integer
+                        default: 5
+                        min: 1
+                        description: number of iterations for the time integration (used when integrator is HHT or Euler)
+                    MODNEWTONITER:
+                        type: integer
+                        default: 0
+                        min: 0
+                        description: use the modified newton iteration?
+                    INCLUDEAERO:
+                        type: integer
+                        default: 1
+                        min: 0
+                        description: include aerodynamic forces in the simulation
+                    INCLUDEHYDRO:
+                        type: integer
+                        default: 1
+                        min: 0
+                        description: include hydrodynamic forces in the simulation
+                    GLOBPOS_X:
+                        type: number
+                        default: 0.
+                        description: the global x-position of the turbine in meters
+                    GLOBPOS_Y:
+                        type: number
+                        default: 0.
+                        description: the global y-position of the turbine in meters
+                    GLOBPOS_Z:
+                        type: number
+                        default: 0.
+                        description: the global z-position of the turbine in meters
+                    GLOBROT_X:
+                        type: number
+                        default: 0.
+                        description: the global rotation around the x-axis of the turbine in degrees
+                    GLOBROT_Y:
+                        type: number
+                        default: 0.
+                        description: the global rotation around the y-axis of the turbine in degrees
+                    GLOBROT_Z:
+                        type: number
+                        default: 0.
+                        description: the global rotation around the z-axis of the turbine in degrees
+                    FLOAT_SURGE:
+                        type: number
+                        default: 0.
+                        description: the initial floater surge in meters                
+                    FLOAT_SWAY:
+                        type: number
+                        default: 0.
+                        description: the initial floater sway in meters 
+                    FLOAT_HEAVE:
+                        type: number
+                        default: 0.
+                        description: the initial floater yeave in meters 
+                    FLOAT_ROLL:
+                        type: number
+                        default: 0.
+                        description: the initial floater roll in degrees
+                    FLOAT_PITCH:
+                        type: number
+                        default: 0.
+                        description: the initial floater pitch in degrees
+                    FLOAT_YAW:
+                        type: number
+                        default: 0.
+                        description: the initial floater yaw in degrees
+                    TIMESTEP:
+                        type: number
+                        default: 0.05
+                        min: 0.0
+                        description: the timestep size in seconds
+                    NUMTIMESTEPS:
+                        type: integer
+                        default: 4000
+                        min: 1
+                        description: the number of timesteps
+                    RAMPUP:
+                        type: number
+                        default: 20.0
+                        min: 0.
+                        description: the rampup time for the structural model
+                    ADDDAMP:
+                        type: number
+                        default: 0.
+                        min: 0.
+                        description: the initial time with additional damping
+                    ADDDAMPFACTOR:
+                        type: number
+                        default: 50
+                        description: for the additional damping time this factor is used to increase the damping of all components
+                    WAKEINTERACTION:
+                        type: number
+                        default: 0.0
+                        description: in case of multi-turbine simulation the wake interaction start at? [s
+                    WNDTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 2
+                        description: use a number - 0 = steady; 1 = windfield; 2 = hubheight
+                    STITCHINGTYPE:
+                        type: integer
+                        default: 0
+                        description: the windfield stitching type; 0 = periodic; 1 = mirror
+                    WINDAUTOSHIFT:
+                        type: boolean
+                        default: true
+                        description: the windfield shifting automatically based on rotor diameter [bool]
+                    SHIFTTIME:
+                        type: number
+                        default: 0.00
+                        description: the windfield is shifted by this time if WINDAUTOSHIFT = 0
+                    MEANINF:
+                        type: array
+                        default: [0]
+                        description: if an array with >1 elements is entered, 1 sim file for each simulation is generated
+                    HORANGLE:
+                        type: number
+                        default: 0.00
+                        description: the horizontal inflow angle in degrees
+                    VERTANGLE:
+                        type: number
+                        default: 0.00
+                        description: the vertical inflow angle in degrees
+                    PROFILETYPE:
+                        type: integer
+                        default: 0
+                        description: the type of wind profile used (0 = Power Law; 1 = Logarithmic)
+                    SHEAREXP:
+                        type: number
+                        default: 0.000
+                        description: the shear exponent if using a power law profile, if a windfield is used these values are used to calculate the mean wake convection velocities
+                    ROUGHLENGTH:
+                        type: number
+                        default: 0.000
+                        description: the roughness length if using a log profile, if a windfield is used these values are used to calculate the mean wake convection velocities
+                    DIRSHEAR:
+                        type: number
+                        default: 0.00
+                        description: a value for the directional shear in deg/m
+                    REFHEIGHT:
+                        type: number
+                        default: 90.00
+                        description: the reference height, used to contruct the BL profile
+                    WATERDEPTH:
+                        type: number
+                        default: 320.00
+                        min: 0.0
+                        description: the water depth
+                    WAVESTRETCHING:
+                        type: integer
+                        default: 1
+                        min: 0
+                        max: 3
+                        description: the type of wavestretching, 0 = vertical, 1 = wheeler, 2 = extrapolation, 3 = none
+                    SEABEDSTIFF:
+                        type: number
+                        default: 10000.00
+                        description: the vertical seabed stiffness [N/m^3]
+                    SEABEDDAMP:
+                        type: number
+                        default: 0.20
+                        min: 0.0
+                        max: 1.0
+                        description: a damping factor for the vertical seabed stiffness evaluation, between 0 and 1 [-]
+                    SEABEDSHEAR:
+                        type: number
+                        default: 0.10
+                        min: 0.0
+                        max: 1.0
+                        description: a factor for the evaluation of shear forces (friction), between 0 and 1 [-]
+                    SURF_CURR_U:
+                        type: number
+                        default: 0.00
+                        description: near surface current velocity in meters/sec
+                    SURF_CURR_DIR:
+                        type: number
+                        default: 0.00
+                        description: near surface current direction in deg
+                    SURF_CURR_DEPTH:
+                        type: number
+                        default: 30.00
+                        description: near surface current depth in meters
+                    SUB_CURR_U:
+                        type: number
+                        default: 0.00
+                        description: sub surface current velocity in meters/sec
+                    SUB_CURR_DIR:
+                        type: number
+                        default: 0.00
+                        description: sub surface current direction in deg
+                    SUB_CURR_EXP:
+                        type: number
+                        default: 0.14
+                        description: sub surface current exponent
+                    SHORE_CURR_U:
+                        type: number
+                        default: 0.00
+                        description: near shore (constant) current velocity [m/s]
+                    SHORE_CURR_DIR:
+                        type: number
+                        default: 0.00
+                        description: near shore (constant) current direction [deg]
+                    GRAVITY:
+                        type: number
+                        default: 9.81
+                        min: 0.0
+                        description: acceleration due to gravity in meters/sec^2
+                    STOREFROM:
+                        type: number
+                        default: 0.0
+                        description: the simulation stores data from this point in time, in seconds
+                    STOREREPLAY:
+                        type: boolean
+                        default: false
+                        description: store a replay of the simulation (warning, large memory will be required)
+                    STOREAERO:
+                        type: boolean
+                        default: true
+                        description: should the aerodynamic data be stored
+                    STOREBLADE:
+                        type: boolean
+                        default: true
+                        description: should the local aerodynamic blade data be stored
+                    STORESTRUCT:
+                        type: boolean
+                        default: true
+                        description: should the structural data be stored
+                    STORESIM:
+                        type: boolean
+                        default: false
+                        description: should the simulation (performance) data be stored
+                    STOREHYDRO:
+                        type: boolean
+                        default: true
+                        description: should the controller data be stored
+                    STORECONTROLLER:
+                        type: boolean
+                        default: false
+                        description: should the controller data be stored
+                    CALCMODAL:
+                        type: boolean
+                        default: false
+                        description: perform a modal analysis (only single turbine simulations)
+                    MINFREQ:
+                        type: number
+                        default: 0.0
+                        description: store Eigenvalues, starting with this frequency
+                    DELTAFREQ:
+                        type: number
+                        default: 0.0
+                        description: omit Eigenvalues that are closer spaced than this value
+                    NUMFREQ:
+                        type: number
+                        default: 100.0
+                        description: set the number of Eigenmodes and Eigenvalues that will be stored
+            Aero: &qbaero
+                type: object
+                default: {}
+                description: Aerodynamic definition of a wind turbine in QBlade
+                properties:
+                    ROTORTYPE: 
+                        type: string
+                        defaut: 'HAWT'
+                        enum: ['HAWT','VAWT']
+                        description: Definition of wind turbine type, either HAWT or VAWT. For now, only HAWT is an option.
+                    INVERTEDFOILS:
+                        type: boolean
+                        default: False
+                        description: Dummy for now as it only works only with VAWTs
+                    AFTabMod:
+                        type: integer
+                        default: 1
+                        enum: [1,2,3]
+                        description: Interpolation method for multiple airfoil tables {1=1D interpolation on AoA (first table only); 2=2D interpolation on AoA and Re; 3=2D interpolation on AoA and UserProp} (-)
+                    InCol_Alfa:
+                        type: integer
+                        default: 1
+                        description: The column in the airfoil tables that contains the angle of attack (-)
+                    InCol_Cl:
+                        type: integer
+                        default: 2
+                        description: The column in the airfoil tables that contains the lift coefficient (-)
+                    InCol_Cd:
+                        type: integer
+                        default: 3
+                        description: The column in the airfoil tables that contains the drag coefficient (-)
+                    InCol_Cm:
+                        type: integer
+                        default: 4
+                        description: The column in the airfoil tables that contains the pitching-moment coefficient; use zero if there is no Cm column (-)
+            Main: &qbmain
+                type: object
+                default: {}
+                description: Main file modeling options in QBlade
+                properties:
+                    GLBGEOEPS:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: s
+                        description:
+                    DRTRDOF:
+                        type: boolean
+                        default: True
+                        description: Models drivetrain dynamics
+                    BRKTORQUE:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: N * m
+                        description: Fully deployed HSS-brake torque (N-m)
+                    BRKDEPLOY:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: s
+                        description: Time to initiate deployment of the HSS brake (s)
+                    BRKDELAY:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: s
+                        description: Time for HSS-brake to reach full deployment once initiated (sec) [used only when HSSBrMode=1]
+                    ERRORYAW:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: deg
+                        description: yaw error (deg) (HAWT only)
+                    ERRORPITCH_1:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: deg
+                        description: pitch error blade 1
+                    ERRORPITCH_2:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: deg
+                        description: pitch error blade 2
+                    ERRORPITCH_3:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        unit: deg
+                        description: pitch error blade 3
+                    AER_OUT:
+                        type: boolean
+                        default: true
+                        description: store (local) aerodynamic data at all sensor locations
+                    FOR_OUT:
+                        type: boolean
+                        default: true
+                        description: store (local) forces at all chosen locations
+                    ROT_OUT:
+                        type: boolean
+                        default: false
+                        description: store (local) body rotations at all chosen locations
+                    MOM_OUT:
+                        type: boolean
+                        default: false
+                        description: store (local) moments at all chosen locations
+                    DEF_OUT:
+                        type: boolean
+                        default: false
+                        description: store (local) deflections at all chosen locations
+                    POS_OUT:
+                        type: boolean
+                        default: false
+                        description: store (global) positions at all chosen locations
+                    VEL_OUT:
+                        type: boolean
+                        default: false
+                        description: store (global) velocities at all chosen locations
+                    ACC_OUT:
+                        type: boolean
+                        default: false
+                        description: store (global) accelerations at all chosen locations
+                    LVE_OUT:
+                        type: boolean
+                        default: false
+                        description: store (local) velocities at all chosen locations
+                    LAC_OUT:
+                        type: boolean
+                        default: false
+                        description: store (local) accelerations at all chosen locations
+                    BLD_1:
+                        type: array
+                        default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+                        description: blade 1 output locations (should generally not be modified as these positions are reuqired by WEIS to compute integrated forces along the span)
+                    BLD_2:
+                        type: array
+                        default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+                        description: blade 2 output locations (should generally not be modified as these positions are reuqired by WEIS to compute integrated forces along the span)
+                    BLD_3:
+                        type: array
+                        default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+                        description: blade 3 output locations (should generally not be modified as these positions are reuqired by WEIS to compute integrated forces along the span)
+                    TWR:
+                        type: array
+                        default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+                        description: tower output locations ()
+            Blade: &qbblade
+                type: object
+                default: {}
+                description: Blade file defining structural properties in QBlade (Chrono)
+                properties:
+                    USECRITDAMP:
+                        type: boolean
+                        default: False
+                        description: If the tower Rayleigh damping coefficient should be calculated on the basis of critical damping
+                    CRITDAMP:
+                        type: number
+                        default: 3.
+                        minimum: 0.
+                        description: Blade structural damping in percent of critical (%)
+                    RAYLEIGHDMP:
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        description: stiffness proportional Rayleigh damping coefficient
+                    STIFFTUNER:
+                        type: number
+                        default: 1.
+                        minimum: 0.
+                        maximum: 9999.
+                        description: multiplication factor to tune the global stiffness properties of the data table
+                    MASSTUNER:
+                        type: number
+                        default: 1.
+                        minimum: 0.
+                        maximum: 9999.
+                        description: multiplication factor to tune the global mass properties of the data table
+                    DISC:
+                        type: string #modify to allow for variable entries (<num>, 'struct', 'aero')
+                        default: 'struct' 
+                        description: discretization of the body into structural nodes {<num> equally spaced (along the curved length) structural nodes, 'struct' after the discretization in the structural data table, 'aero' after the aerodynamic blade data table (only for blade bodies)
+            Tower: &qbtower
+                type: object
+                default: {}
+                description: Tower file defining structural properties in QBlade (Chrono)
+                properties:
+                    USECRITDAMP:
+                        type: boolean
+                        default: False
+                        description: If the tower Rayleigh damping coefficient should be calculated on the basis of critical damping
+                    CRITDAMP:
+                        type: number
+                        default: 2.
+                        minimum: 0.
+                        description: Tower structural damping in percent of critical (%)
+                    RAYLEIGHDMP:
+                        type: number
+                        default: 0.0025
+                        minimum: 0.
+                        description: stiffness proportional Rayleigh damping coefficient
+                    STIFFTUNER:
+                        type: number
+                        default: 1.
+                        minimum: 0.
+                        maximum: 9999.
+                        description: multiplication factor to tune the global stiffness properties of the data table
+                    MASSTUNER:
+                        type: number
+                        default: 1.
+                        minimum: 0.
+                        maximum: 9999.
+                        description: multiplication factor to tune the global mass properties of the data table
+                    DISC:
+                        type: string #modify to allow for variable entries (<num>, 'struct', 'aero')
+                        default: 'Blade' 
+                        description: discretization of the body into structural nodes {<num> equally spaced (along the curved length) structural nodes, 'struct' after the discretization in the structural data table, 'aero' after the aerodynamic blade data table (only for blade bodies)
+                    CD: 
+                        type: number
+                        default: 0.
+                        minimum: 0.
+                        description: drag coefficient for the tower
+            Turbine: &qbturbine
+                type: object
+                default: {}
+                description: Turbine file defining rotor definition, geometry, stall modes, aero models and wake parameters of a QBlade turbine
+                properties:
+                    TURBTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 1
+                        description: Turbine type (0=HAWT; 1=VAWT (not possible at the moment))
+                    ROTORCONFIG:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 1
+                        description: Defines whether the rotor is upwind or downwind (0=upwind; 1=downwind - not possible at the moment)
+                    NOSTRUCTURE:
+                        type: boolean
+                        default: False 
+                        description: Flag to run QBlade turbine without the structural CHRONO inputs (rigid)
+                    ROTATIONALDIR:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 1
+                        description: Direction of rotor rotation (0 = STANDARD (clockwise) or 1 = REVERSED (anti-clockwise))
+                    DISCTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 2
+                        description: Discretization type for the rotor (0=from blade table; 1=linear; 2=cosine)
+                    INTPTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 1
+                        description: type of rotor interpolation (0 = linear, 1 = Akima splines)  
+                    NUMPANELS:
+                        type: integer
+                        default: 30
+                        min: 1
+                        description: the number of aerodynamic panels per blade (unused if DISCTYPE = 0)
+                    OVERHANG:
+                        type: number
+                        default: 10
+                        min: 0
+                        description: the rotor overhang (only used if no structural model is loaded)
+                    SHAFTTILT:
+                        type: number
+                        default: 0
+                        min: -90
+                        max: 90
+                        description: the rotor shaft tilt angle (degrees) (only used if no structural model is loaded)
+                    ROTORCONE:
+                        type: number
+                        default: 0
+                        min: -90
+                        max: 90
+                        description: the rotor cone angle (degrees) (only used if no structural model is loaded)
+                    CLEARANCE:
+                        type: number
+                        default: 0
+                        min: 0
+                        description: the rotor clearance (only used if no structural model is loaded) - dummy for now since VAWT parameter 
+                    XTILT:
+                        type: number
+                        default: 0
+                        min: -90
+                        max: 90
+                        description: the rotor x-tilt angle (degrees) (only used if no structural model is loaded) - dummy for now since VAWT parameter 
+                    YTILT:
+                        type: number
+                        default: 0
+                        min: -90
+                        max: 90
+                        description: the rotor y-tilt angle (degrees) (only used if no structural model is loaded) - dummy for now since VAWT parameter
+                    TOWERHEIGHT:
+                        type: number
+                        default: 100
+                        min: 0
+                        description: the tower height (only used if no structural model is loaded)
+                    TOWERTOPRAD:
+                        type: number
+                        default: 2
+                        min: 0
+                        description: the tower top radius (only used if no structural model is loaded)
+                    TOWERBOTRAD:
+                        type: number
+                        default: 3
+                        min: 0
+                        description: the tower bottom radius (only used if no structural model is loaded)  
+                    
+                    DYNSTALLTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 4
+                        description: the dynamic stall model (0 = none; 1 = OYE; ; 2 = IAG; 3 = GORMONT-BERG; 4 = ATEFLAP)
+                    TF_OYE:
+                        type: number
+                        default: 8
+                        min: 0
+                        description: Tf constant for the OYE dynamic stall model
+                    AM_GB:
+                        type: number
+                        default: 6
+                        min: 0
+                        description: Am constant for the GORMONT-BERG dynamic stall model
+                    TF_ATE:
+                        type: number
+                        default: 3
+                        min: 0
+                        description: Tf constant for the ATEFLAP dynamic stall model
+                    TP_ATE:
+                        type: number
+                        default: 2
+                        min: 0
+                        description: Tp constant for the ATEFLAP dynamic stall model
+                    IAGPARAMS:
+                        type: array
+                        description: IAG dynamic stall model parameters
+                        default: [0.30, 0.70, 0.70, 0.53, 0.75, 1.70, 3.00, 6.00, 6.00, 0.20, 0.10, 1.50, 1.50, 0.00]
+                        items:
+                            type: number
+                            minItems: 14
+                            maxItems: 14
+                    UNSTEADYAERO:
+                        type: boolean
+                        default: False
+                        description: include unsteady attached flow aerodynamics? 
+                    2PLIFTDRAG:
+                        type: boolean
+                        default: True
+                        description: nclude the 2 point lift drag correction?
+                    HIMMELSKAMP:
+                        type: boolean
+                        default: False
+                        description: include the Himmelskamp Stall delay? (HAWT only)
+                    TOWERSHADOW:
+                        type: boolean
+                        default: False
+                        description: include the tower shadow effect (only used if no structural model is loaded)
+                    TOWERDRAG:
+                        type: number
+                        default: 0.5
+                        description: the tower drag coefficient [-] (if a structural model is used the tower drag is defined windIO definition)
+                    WAKETYPE:
+                        type: integer
+                        default: 1
+                        min: 0
+                        max: 1
+                        description: the wake model type 0 = free vortex wake; 1 = unsteady BEM (unsteady BEM is only available for HAWT)         
+                    WAKEINTTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 2
+                        description: the wake integration type (0 = EF; 1 = PC; 2 = PC2B)
+                    WAKEROLLUP:
+                        type: boolean
+                        default: True
+                        description: calculate wake self-induction [bool]
+                    TRAILINGVORT:
+                        type: boolean
+                        default: True
+                        description: include trailing vortex elements [bool]
+                    SHEDVORT:
+                        type: boolean
+                        default: True
+                        description: include shed vortex elements [bool]
+                    CONVECTIONTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 2
+                        description: the wake convection type (0 = BL, 1 = HH, 2 = LOC)
+                    WAKERELAXATION:
+                        type: number
+                        default: 1.
+                        min: 0
+                        max: 1
+                        description: the wake relaxation factor [0-1]
+                    FIRSTWAKEROW:
+                        type: number
+                        default: 1
+                        min: 0
+                        description: first wake row length [-]
+                    MAXWAKESIZE:
+                        type: number
+                        default: 200000
+                        min: 0
+                        description: the maximum number of wake elements [-]
+                    MAXWAKEDIST:
+                        type: number
+                        default: 100
+                        min: 0
+                        description: the maxmimum wake distance from the rotor plane (normalized by dia) [-]
+                    WAKEREDUCTION:
+                        type: number
+                        default: 0.001
+                        min: 0
+                        description: the wake reduction factor [-]
+                    WAKELENGTHTYPE:
+                        type: integer
+                        default: 0
+                        min: 0
+                        max: 1
+                        description: the wake length type (0 = counted in rotor revolutions, 1 = counted in time steps)
+                    CONVERSIONLENGTH:
+                        type: number
+                        default: 1000000.
+                        min: 0
+                        description: the wake conversion length (to particles) [-]
+                    NEARWAKELENGTH:
+                        type: number
+                        default: 0.25
+                        min: 0
+                        description: the near wake length [-]
+                    ZONE1LENGTH:
+                        type: number
+                        default: 2.0
+                        min: 0
+                        description: the wake zone 1 length [-]
+                    ZONE2LENGTH:
+                        type: number
+                        default: 4.0
+                        min: 0
+                        description: the wake zone 2 length [-]
+                    ZONE3LENGTH:
+                        type: number
+                        default: 6.0
+                        min: 0
+                        description: the wake zone 3 length [-]
+                    ZONE1FACTOR:
+                        type: integer
+                        default: 2
+                        min: 1
+                        description: the wake zone 1 factor [-]
+                    ZONE2FACTOR:
+                        type: integer
+                        default: 2
+                        min: 1
+                        description: the wake zone 2 factor [-]
+                    ZONE3FACTOR:
+                        type: integer
+                        default: 2
+                        min: 1
+                        description: the wake zone 3 factor [-]
+                    BOUNDCORERADIUS:
+                        type: number
+                        default: 0.05
+                        min: 0
+                        max: 1.
+                        description: the fixed core radius of the bound blade vortex (fraction of local chord)
+                    WAKECORERADIUS:
+                        type: number
+                        default: 0.05
+                        min: 0
+                        max: 1.
+                        description: the intial core radius of the free wake vortex (fraction of local chord) [0-1]
+                    VORTEXVISCOSITY:
+                        type: number
+                        default: 800.0
+                        min: 0
+                        description: the turbulent vortex viscosity
+                    VORTEXSTRAIN:
+                        type: boolean
+                        default: False
+                        description: calculate vortex strain [bool]
+                    MAXSTRAIN:
+                        type: number
+                        default: 5
+                        min: 0
+                        description: the maximum element strain, before elements are removed from the wake [-]
+                    GAMMARELAXATION:
+                        type: number
+                        default: 0.1
+                        min: 0
+                        max: 1
+                        description: the relaxation factor used in the gamma (circulation) iteration
+                    GAMMAEPSILON:
+                        type: number
+                        default: 5e-04
+                        min: 0
+                        description: the relative gamma (circulation) convergence criteria
+                    GAMMAITERATIONS:
+                        type: integer
+                        default: 100
+                        min: 1
+                        description: the maximum number of gamma (circulation) iterations
+                    POLARDISC:
+                        type: integer
+                        default: 12
+                        min: 1
+                        description: the polar discretization for the unsteady BEM
+                    BEMTIPLOSS:
+                        type: boolean
+                        default: True
+                        description: use BEM tip loss factor
+                    BEMSPEEDUP:
+                        type: number
+                        default: 0.0    
+                        description: initial BEM convergence acceleration time in seconds
+                    GEOMSTIFFNESS:
+                        type: boolean
+                        default: False
+                        description: enable geometric stiffness
+                    AEROPANELLOADS:
+                        type: boolean
+                        default: False
+                        description: enable distributed aero panel loads and gradients´
+                    CONTROLLERTYPE: # TODO: should this go into Level 4 Simulation?
+                        type: integer
+                        enum: [0,1,2,3]
+                        default: 0
+                        description: Include a controller into the simulation {0=None; 1=Bladed (ROSCO); 2=DTU; 3=TUB}
+                    CONTROLLERFILE: # TODO: should this go into Level 4 Simulation?
+                        type: string
+                        default: 'libdiscon'
+                        description: name of the controller .dll (TUBCon_1.3.9_64Bit, dtu_we_controller_64, libdiscon, libdiscon_ROSCO-2.4.1, libdiscon_ROSCO-2.6.0, libdiscon_ROSCO-2.7.0)  # without ending (.dll/.so)
+            QBladeOcean: &qbocean
+                type: object
+                default: {}
+                description: Module that defines the ocean conditions, and calculates hydrodynamic loads in QBlade
+                properties:
+                    WATERDEPTH:
+                        type: number
+                        default: 0
+                        min: 0
+                        description: the water depth
+                    ISFLOATING:
+                        type: boolean
+                        default: False
+                        description: is the turbine floating
+                    WAVEKINEVALTYPE:
+                        type: integer
+                        default: 0
+                        enum: [0,1,2]
+                        description: 0 - local evaluation, 1 - eval at fixed ref pos, 2 - eval at lagged position
+                    WAVEKINTAU:
+                        type: number
+                        default: 30.0
+                        min: 0
+                        description: time constant for the lagged waveKin position evaluation
+                    USEADVANCEDBUOYANCY:
+                        type: boolean
+                        default: false
+                        description: actiavte advanced buoyancy model
+                    ADVANCEDBUOYANCY:
+                        type: integer
+                        default: 100
+                        min: 1
+                        description: advanced buoyancy model to calculate buoyancy of partially submerged members, , especially usefull if "lying" cylinders are used to generate the draft
+                    STATICBUOYANCY:
+                        type: boolean
+                        default: false
+                        description: static buoyancy, based on the MSL should be used when using morison member buoyancy combined with potential flow diffraction forces
+                    POTFLOW:
+                        type: boolean
+                        default: false
+                        description: Potential-flow {0 = none=no potential flow, 1 = frequency-to-time-domain transforms based on BEMuse/NEMOH/WAMIT
+                    POT_HST_FILE:
+                        type: string
+                        default: ''
+                        description: relative path to hydrodynamic stiffness matrix in WAMIT format. If this keyword is used then the hydrodynamic stiffness matrix SUB_HYDROSTIFFNESSX is populated with data from the file, overwriting any user-defined stiffness matrix.
+                    POT_RAD_FILE:
+                        type: string
+                        default: ''
+                        description: relative path to potential flow file with damping coefficients that are transfered to the Radiation IRF, POTFLOW must be true
+                    POT_EXC_FILE:
+                        type: string
+                        default: ''
+                        description: relative path to potential flow file with excitation force coefficients that are transfered to the Excitation IRF, POTFLOW must be true
+                    POT_DIFF_FILE:
+                        type: string
+                        default: ''
+                        description: relative path to file (*.12d or *.8) containing difference frequencies coefficients that are transferred to the difference frequency QTF. POTFLOW must be true and DIFF_EVAL_TYPE must be selected
+                    POT_SUM_FILE:
+                        type: string
+                        default: ''
+                        description: relative path to file (*.12s) containing sum frequencies coefficients that are transferred to the sum frequency QTF. POTFLOW must be true and USE_SUM_FREQS must be true
+                    USE_RADIATION:
+                        type: boolean
+                        default: false
+                        description: Whether to use radiation forces calculated from potential flow file
+                    DELTA_FREQ_RAD:
+                        type: number
+                        default: 0.05
+                        description: Frequency spacing used for the interpolation of the radiation IRFs
+                    TRUNC_TIME_RAD:
+                        type: number
+                        default: 60.0
+                        description: Truncation time for radiation IRFs
+                    USE_RAD_ADDMASS:
+                        type: boolean
+                        default: false
+                        description: Whether to use added mass matrix provided in radiation file
+                    USE_EXCITATION:
+                        type: boolean
+                        default: false
+                        description: Whether to use excitation forces calculated from potential flow file
+                    DELTA_FREQ_EXC:
+                        type: number
+                        default: 0.05
+                        description: Frequency spacing for the interpolation of the excitation IRFs
+                    DELTA_DIR_EXC:
+                        type: number
+                        default: 0.50
+                        description: Direction spacing for excitation IRFs
+                    TRUNC_TIME_EXC:
+                        type: number
+                        default: 60.0
+                        description: Truncation time for excitation calculations
+                    USE_SUM_FREQS:
+                        type: boolean
+                        default: false
+                        description: Whether to use sum frequency forces calculated from potential flow file
+                    DIFF_EVAL_TYPE:
+                        type: integer
+                        default: 0
+                        enum: [0,1,2,3]
+                        description: 0-none,1-explicit,2-newman,3-meandrift
+                    REF_HYDRO_POS:
+                        type: array
+                        default: [0.0, 0.0, 0.0]
+                        items:
+                            type: number
+                            minItems: 3
+                            maxItems: 3
+                        description: neutral point in case of a floating substructure
+                    SUB_HYDROSTIFFNESS1: &subhydrostiffness
+                        type: array
+                        default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                        description: (Additional) linear stiffness by row (N/m, N/rad, N-m/m, N-m/rad)
+                        items:
+                            type: number
+                            minItems: 6
+                            maxItems: 6
+                    IsBuoy:
+                        integer: boolean
+                        default: 0
+                        enum: [0,1]
+                        description: activates the calculation of buoyancy forces based on the instantaneous submerged volume (when IsBuoy is set to 1 and diffraction potflow forces are included, STATICBUOYANCY should be set to True to avoid double counting of excitation forces)
+                    SUB_HYDROSTIFFNESS2: *subhydrostiffness
+                    SUB_HYDROSTIFFNESS3: *subhydrostiffness
+                    SUB_HYDROSTIFFNESS4: *subhydrostiffness
+                    SUB_HYDROSTIFFNESS5: *subhydrostiffness
+                    SUB_HYDROSTIFFNESS6: *subhydrostiffness
+                    SUB_HYDRODAMPING1: &subhydrodamping
+                        type: array
+                        default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                        description: (Additional) linear damping by row (N/(m/s), N/(rad/s), N-m/(m/s), N-m/(rad/s))
+                        items:
+                            type: number
+                            minItems: 6
+                            maxItems: 6
+                    SUB_HYDRODAMPING2: *subhydrodamping
+                    SUB_HYDRODAMPING3: *subhydrodamping
+                    SUB_HYDRODAMPING4: *subhydrodamping
+                    SUB_HYDRODAMPING5: *subhydrodamping
+                    SUB_HYDRODAMPING6: *subhydrodamping
+                    SUB_HYDROQUADDAMPING1: &subhydroquaddamping
+                        type: array
+                        default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                        description: (Additional) linear damping by row (N/(m/s), N/(rad/s), N-m/(m/s), N-m/(rad/s))
+                        items:
+                            type: number
+                            minItems: 6
+                            maxItems: 6
+                    SUB_HYDROQUADDAMPING2: *subhydroquaddamping
+                    SUB_HYDROQUADDAMPING3: *subhydroquaddamping
+                    SUB_HYDROQUADDAMPING4: *subhydroquaddamping
+                    SUB_HYDROQUADDAMPING5: *subhydroquaddamping
+                    SUB_HYDROQUADDAMPING6: *subhydroquaddamping
+                    SUB_HYDROADDEDMASS1: &subhydroaddedmass
+                        type: array
+                        default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                        description: Added mass matrix, to be used if 'USE_RAD_ADDMASS' is false
+                        items:
+                            type: number
+                            minItems: 6
+                            maxItems: 6
+                    SUB_HYDROADDEDMASS2: *subhydroaddedmass
+                    SUB_HYDROADDEDMASS3: *subhydroaddedmass
+                    SUB_HYDROADDEDMASS4: *subhydroaddedmass
+                    SUB_HYDROADDEDMASS5: *subhydroaddedmass
+                    SUB_HYDROADDEDMASS6: *subhydroaddedmass
+                    SUB_HYDROCONSTFORCE:
+                        type: array
+                        default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                        description: Additional preload (N, N-m)
+                        items:
+                            type: number
+                            minItems: 6
+                            maxItems: 6
+                    MARINEGROWTH:
+                        type: array
+                        default: [0.1, 1100.0, 320.0, 2.0]
+                        desctiption: Marine growth parameters (thickness, density, start in [m] below MSL, end in [m] below MSL)
+                        items:
+                            type: number
+                            minItems: 4
+                            maxItems: 4
+                    SUB_STIFFTUNER:
+                        type: number
+                        default: 1.0
+                        description: Stiffness of substructure tuner value
+                    SUB_MASSTUNER:
+                        type: number
+                        default: 1.0
+                        description: Mass of substructure tuner value
+                    SUB_BUOYANCYTUNER:
+                        type: number
+                        default: 1.0
+                        description: Buoyancy of substructuretuner value
+                    MooDamp:
+                        type: number
+                        default: 0.0
+                        description: Damping of the mooring lines
+                    MooElmDsc:
+                        type: integer
+                        default: 30
+                        min: 2
+                        description: Discretization of the mooring lines
+                    MooIsBuoy:
+                        type: integer
+                        default: 1
+                        enum: [0,1]
+                        description: activates the calculation of buoyancy forces based on the instantaneous submerged volume 
+                    override_morison_coefficients:
+                        type: boolean
+                        default: False 
+                        description: weather to override the strip theory coefficients defined in the windIO file and replace them with a global value for each member
+                    HydroCdN: &hydro
+                        type: number
+                        minimum: 0.0
+                        maximum: 100.0
+                        default: 1.0
+                        description: Simple strip theory model coefficient, default of 1.0
+                    HydroCaN: *hydro
+                    HydroCpN: *hydro
+                    HydroCdA: &hydro_0
+                        type: number
+                        minimum: 0.0
+                        maximum: 100.0
+                        default: 0.0
+                        description: Simple strip theory model coefficient, default of 0.0
+                    HydroCaA: *hydro_0
+                    HydroCpA: *hydro_0
+                    MCFC:
+                        type: integer
+                        default: 0
+                        enum: [0,1]
+                        description: MacCamy-Fuchs correction, 0 = deactivated, 1 = activated
+                    TIMEOFFSET:
+                        type: number
+                        default: 0.0
+                        description: time offset in seconds applied to the linear wave field
+                    WAVETYPE:
+                        type: integer
+                        default: 3
+                        enum: [0, 1, 2, 3, 4, 5, 6, 7]
+                        description: type of wave field to be created; 0=TIMESERIES, 1=COMPONENT, 2=SINGLE, 3=JONSWAP, 4=ISSC, 5=TORSETHAUGEN, 6=CUSTOM, 7=STREAMFUNCTION
+                    override_wave:
+                        type: boolean
+                        default: False
+                        description: Overrides "significant_wave_height", "significant_wave_period" parameters defined in the windIO file using, "SIGHEIGHT" & "PEAKPERIOD" entries
+                    SIGHEIGHT:
+                        type: array
+                        default: [8.0]
+                        min: 0
+                        description: the significant wave height (Hs) [m]
+                    PEAKPERIOD:
+                        type: array
+                        default: [10.0]
+                        description: the peak period (Tp) [s]
+                    AUTOGAMMA:
+                        type: boolean
+                        default: true
+                        description: use gamma according to IEC (bool); 0 = OFF, 1 = ON (JONSWAP & TORSE only)
+                    GAMMA:
+                        type: number
+                        default: 1.0
+                        description: custom gamma (JONSWAP & TORSE only)
+                    AUTOSIGMA:
+                        type: boolean
+                        default: true
+                        description: use sigmas according to IEC (JONSWAP & TORSE only)
+                    SIGMA1:
+                        type: number
+                        default: 0.07
+                        description: sigma1 (JONSWAP & TORSE only)
+                    SIGMA2:
+                        type: number
+                        default: 0.09
+                        description: sigma2 (JONSWAP & TORSE only)
+                    DOUBLEPEAK:
+                        type: integer
+                        default: 0
+                        description: if true a double peak TORSETHAUGEN spectrum will be created, if false only a single peak (TORSE only)
+                    AUTOORCHI:
+                        type: boolean
+                        default: true
+                        description: automatic OCHI-HUBBLE parameters from significant wave height (OCHI only)
+                    MODFREQ1:
+                        type: number
+                        default: 0.064
+                        description: modal frequency 1, must be "< modalfreq1 * 0.5" (OCHI only)
+                    MODFREQ2:
+                        type: number
+                        default: 0.114
+                        description: modal frequency 2, should be larger than 0.096 (OCHI only)
+                    SIGHEIGHT1:
+                        type: number
+                        default: 10.164
+                        description: significant height 1, should be larger than height 2 (OCHI only)
+                    SIGHEIGHT2:
+                        type: number
+                        default: 6.534
+                        description: significant height 2 (OCHI only)
+                    LAMBDA1:
+                        type: number
+                        default: 3.0
+                        description: peak shape 1 (OCHI only)
+                    LAMBDA2:
+                        type: number
+                        default: 0.727
+                        description: peak shape 2 (OCHI only)
+                    DISCTYPE:
+                        type: integer
+                        default: 0
+                        enum: [0, 1]
+                        description: frequency discretization type for wave spectrum; 0 = equal energy; 1 = equal frequency
+                    AUTOFREQ:
+                        type: boolean
+                        default: true
+                        description: use automatic frequency range for wave spectrum (f_in = 0.5*f_p, f_out = 10*f_p)
+                    FCUTIN:
+                        type: number
+                        default: 0.039
+                        description: cut-in frequency of wave spectrum
+                    FCUTOUT:
+                        type: number
+                        default: 0.787
+                        description: cut-out frequency of wave spectrum
+                    MAXFBIN:
+                        type: number
+                        default: 0.050
+                        description: maximum frequency bin width [Hz]
+                    NUMFREQ:
+                        type: integer
+                        default: 150
+                        description: the number of frequency bins
+                    RANDSEED:
+                        type: integer
+                        default: 12345
+                        min: 0
+                        max: 65535
+                        description: the seed for the random phase generator range [0-65535]
+                    DIRTYPE:
+                        type: integer
+                        default: 1
+                        enum: [0, 1]
+                        description: the directional type, 0 = UNIDIRECTIONAL, 1 = COSINESPREAD
+                    DIRMEAN:
+                        type: number
+                        default: 0.000
+                        description: mean wave direction [deg]
+                    DIRMAX:
+                        type: number
+                        default: 50.000
+                        description: directional spread [deg]
+                    SPREADEXP:
+                        type: number
+                        default: 5.000
+                        description: the spreading exponent
+                    NUMDIR:
+                        type: integer
+                        default: 40
+                        description: the number of directional bins
+                    EMBEDWAVE:
+                        type: boolean
+                        default: false
+                        description: add a constrained wave [bool]
+                    EMBEDELEV:
+                        type: number
+                        default: 10.00
+                        description: the wave elevation of the embedded wave [m]
+                    EMBEDTIME:
+                        type: number
+                        default: 0.00
+                        description: the time at which the embedded wave occurs [s]
+                    EMBEDXPOS:
+                        type: number
+                        default: 0.00
+                        description: the x-position at which the embedded wave occurs [m]
+                    EMBEDYPOS:
+                        type: number
+                        default: 0.00
+                        description: the y-position at which the embedded wave occurs [m]
+                    PASTESTREAM:
+                        type: boolean
+                        default: false
+                        description: paste a streamfunction wave over the embedded linear wave [bool]
+                    SIGHEIGHTSTREAM:
+                        type: number
+                        default: 8.10
+                        description: the significant height of the streamfunction wave [m]
+                    PERIODSTREAM:
+                        type: number
+                        default: 12.70
+                        description: the period of the streamfunction wave [s]
+                    NSub_Sensors:
+                        type: integer
+                        default: 0
+                        description: number of subsensors. Only modify if necessary as this is filled automatically depending on the number of flexible members!
+
+            QTurbSim: &qbturbsim
+                type: object
+                default: {}
+                description: Options to generate a TurbSim input file outside the DLC generator
+                properties:
+                    flag:
+                        type: boolean
+                        default: False
+                        description: Whether or not to generate a TurbSim Input file through QBlade
+                    Echo:
+                        type: boolean
+                        default: False
+                        description: Echo input data to <RootName>.ech (flag)
+                    RandSeed1:
+                        type: array
+                        default: [1]
+                        description: First random seed  (-2147483648 to 2147483647), should be an array, even for one entry only!
+                    RandSeed2:
+                        default: RANLUX
+                        description: Second random seed  (-2147483648 to 2147483647)
+                    WrBHHTP:
+                        type: boolean
+                        default: False
+                        description: Flag to output hub-height turbulence parameters in binary form?
+                    WrFHHTP:
+                        type: boolean
+                        default: False
+                        description: Flag to output hub-height turbulence parameters in formatted form? (Generates RootName.dat)
+                    WrADHH:
+                        type: boolean
+                        default: False
+                        description: Flag to output hub-height time-series data in AeroDyn form? (Generates RootName.hh)
+                    WrADFF:
+                        type: boolean
+                        default: True
+                        description: Flag to output full-field time-series data in TurbSim/AeroDyn form? (Generates Rootname.bts)
+                    WrBLFF:
+                        type: boolean
+                        default: False
+                        description: Flag to output full-field time-series data in BLADED/AeroDyn form? (Generates RootName.wnd)
+                    WrADTWR:
+                        type: boolean
+                        default: False
+                        description: Flag to output tower time-series data? (Generates RootName.twr)
+                    WrHAWCFF:
+                        type: boolean
+                        default: False
+                        description: requests TurbSim to write HAWC-formatted output files
+                    WrFMTFF:
+                        type: boolean
+                        default: False
+                        description: Flag to output full-field time-series data in formatted (readable) form? (Generates RootName.u, RootName.v, RootName.w)
+                    WrACT:
+                        type: boolean
+                        default: False
+                        description: Flag to output coherent turbulence time steps in AeroDyn form? (Generates RootName.cts)
+                    Clockwise:
+                        type: boolean
+                        default: True
+                        description: Flag for clockwise rotation when looking downwind? (Used only for full-field binary files, not necessary for AeroDyn)
+                    ScaleIEC:
+                        type: integer
+                        default: 0
+                        max: 2
+                        description: Scale IEC turbulence models to exact target standard deviation? [0=no additional scaling; 1=use hub scale uniformly; 2=use individual scales]
+                    NumGrid_Z:
+                        type: integer
+                        default: 20
+                        min: 0
+                        description: Vertical grid-point matrix dimension
+                    NumGrid_Y:
+                        type: integer
+                        default: 20
+                        description: Horizontal grid-point matrix dimension
+                    TimeStep:
+                        type: number
+                        default: 0.05
+                        description: Time step [seconds]
+                    AnalysisTime:
+                        type: number
+                        default: 60.00
+                        description: Length of analysis time series [s] (program will add time if necessary' AnalysisTime = MAX(AnalysisTime, usableTimeLabel + GridWidth / MeanHHWS))
+                    usableTimeLabel:
+                        type: number
+                        default: -1.00
+                        description: Usable length of output time series [seconds] (program will add GridWidth / MeanHHWS seconds)
+                    HubHt:
+                        type: number
+                        default: 0.00
+                        description: Hub height [m] (should be > 0.5 * GridHeight)
+                    GridHeight:
+                        type: number
+                        default: 0.00
+                        description: Grid height [m]
+                    GridWidth:
+                        type: number
+                        default: 0.00
+                        description: Grid width [m] (should be >= 2 * (RotorRadius + ShaftLength))
+                    VFlowAng:
+                        type: number
+                        default: 0.0
+                        description: Vertical mean flow (uptilt) angle [degrees]
+                    HFlowAng:
+                        type: number
+                        default: 0.0
+                        description: Horizontal mean flow (skew) angle [degrees]
+                    TurbModel:
+                        type: string
+                        default: 'IECKAI'
+                        enum: ['IECKAI', 'IECVKM', 'GP_LLJ', 'NWTCUP', 'SMOOTH', 'WF_UPW', 'WF_07D', 'WF_14D', 'TIDAL', 'NONE']
+                        description: Turbulence model
+                    UserFile:
+                        type: string
+                        default: 'unused'
+                        description: Name of secondary input file for user-defined spectra or time series inputs
+                    IECstandard:
+                        type: string
+                        default: '1-ED3'
+                        enum: ['1-ED3', '2-ED3', '3-ED3', '1-ED2', '2-ED2', '3-ED2', '1-ED1', '2-ED1', '3-ED1']
+                        description: Number of IEC 61400-x standard (x=1,2, or 3 with optional 61400-1 edition number)
+                    IECturbc:
+                        type: string
+                        default: ''
+                        enum: ['A', 'B', 'C', 'KHTEST','']
+                        description: IEC turbulence characteristic ("KHTEST" option with NWTCUP model, not used for other models), if default, the class letter from windIO will be used
+                    IEC_WindType:
+                        type: string
+                        default: 'NTM'
+                        enum: ['NTM', '1ETM', '2ETM', '3ETM', '1EWM1', '2EWM1', '3EWM1', '1EWM50', '2EWM50', '3EWM50']
+                        description: IEC turbulence type ("x" represents wind turbine class 1, 2, or 3)
+                    ETMc:
+                        type: number
+                        default: 2.0
+                        description: IEC Extreme Turbulence Model "c" parameter [m/s]
+                    ProfileType:
+                        type: string
+                        default: 'default'
+                        enum: ['JET', 'LOG', 'PL', 'H2L', 'IEC', 'default']
+                        description: Wind profile type
+                    ProfileFile:
+                        type: string
+                        default: 'unused'
+                        description: Name of the file that contains user-defined input profiles
+                    RefHt:
+                        type: number
+                        default: 0.00
+                        description: Height of the reference wind speed [m]
+                    URef:
+                        type: array
+                        default: [10]
+                        description: Mean (total) wind speed at the reference height [m/s] (or "default" for JET wind profile)
+                    ZJetMax:
+                        type: string
+                        default: 'default'
+                        description: Jet height [m] (used only for JET wind profile, valid 70-490 m)
+                    PLExp:
+                        type: number
+                        default: -1
+                        description: Power law exponent (-)
+                    Z0:
+                        type: string
+                        default: 'default'
+                        description: Surface roughness length [m]
+                    Latitude:
+                        type: string
+                        default: 'default'
+                        description: Site latitude [degrees] (or "default")
+                    RICH_NO:
+                        type: number
+                        default: 0.05
+                        description: Gradient Richardson number
+                    UStar:
+                        type: string
+                        default: 'default'
+                        description: Friction or shear velocity [m/s] (or "default")
+                    ZI:
+                        type: string
+                        default: 'default'
+                        description: Mixing layer depth [m] (or "default")
+                    PC_UW:
+                        type: string
+                        default: 'default'
+                        description: Hub mean u'w' Reynolds stress (or "default")
+                    PC_UV:
+                        type: string
+                        default: 'default'
+                        description: Hub mean u'v' Reynolds stress (or "default")
+                    PC_VW:
+                        type: string
+                        default: 'default'
+                        description: Hub mean v'w' Reynolds stress (or "default")
+                    SCMod1:
+                        type: string
+                        default: 'default'
+                        enum: ['GENERAL', 'IEC', 'API', 'NONE', 'default']
+                        description: u-component coherence model
+                    SCMod2:
+                        type: string
+                        default: 'default'
+                        enum: ['GENERAL', 'IEC', 'API', 'NONE', 'default']
+                        description: v-component coherence model
+                    SCMod3:
+                        type: string
+                        default: 'default'
+                        enum: ['GENERAL', 'IEC', 'API', 'NONE', 'default']
+                        description: w-component coherence model
+                    InCDec1:
+                        type: string
+                        default: 'default'
+                        description: u-component coherence parameters [-, m^-1] ("a b" in quotes or "default")
+                    InCDec2:
+                        type: string
+                        default: 'default'
+                        description: v-component coherence parameters [-, m^-1] ("a b" in quotes or "default")
+                    InCDec3:
+                        type: string
+                        default: 'default'
+                        description: w-component coherence parameters [-, m^-1] ("a b" in quotes or "default")
+                    CohExp:
+                        type: string
+                        default: 'default'
+                        description: Coherence exponent for general model [-] (or "default")
+                    CTEventPath:
+                        type: string
+                        default: 'path/to/coh_events/eventdata'
+                        description: Name of the path where event data files are located
+                    CTEventFile:
+                        type: string
+                        default: 'Random'
+                        enum: ['LES', 'DNS', 'Random']
+                        description: Type of event files
+                    Randomize:
+                        type: boolean
+                        default: true
+                        description: Randomize the disturbance scale and locations? (true/false)
+                    DistScl:
+                        type: number
+                        default: 1.0
+                        description: Disturbance scale (ratio of wave height to rotor disk). (Ignored when Randomize = true.)
+                    CTLy:
+                        type: number
+                        default: 0.5
+                        description: Fractional location of tower centerline from right (looking downwind) to left side of the dataset. (Ignored when Randomize = true.)
+                    CTLz:
+                        type: number
+                        default: 0.5
+                        description: Fractional location of hub height from the bottom of the dataset. (Ignored when Randomize = true.)
+                    CTStartTime:
+                        type: number
+                        default: 30.0
+                        description: Minimum start time for coherent structures in RootName.cts [seconds]
+            from_qblade:
+                type: boolean
+                default: False
+                description: Whether we derive QBlade model from an existing model and ignore WISDEM
+            qblade_file: 
+                type: string
+                default: 'Tower'
+                description: Main (.fst) OpenFAST input file name. No directory.
     Level3: &ofmodopt
         type: object
         default: {}
@@ -3041,7 +4617,7 @@ properties:
                         DLC:
                             type: string
                             default: '1.1'
-                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '12.1', 'Custom']
+                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.3', '3.1', '3.2', '3.3', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '12.1', 'Custom']
                             description: IEC design load case to run. The DLCs currently supported are 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.1, 6.1, 6.3, and 6.4
                         wind_speed:
                             type: array
@@ -3174,8 +4750,8 @@ properties:
                         IEC_WindType:
                             type: string
                             default: NTM
-                            enum: ['NTM', '1ETM', '2ETM', '3ETM', '1EWM1', '2EWM1', '3EWM1', '1EWM50', '2EWM50', '3EWM50', 'ECD', 'EDC', 'EOG']
-                            description: IEC turbulence type ('NTM'=normal, 'xETM'=extreme turbulence, 'xEWM1'=extreme 1-year wind, 'xEWM50'=extreme 50-year wind, where x=wind turbine class 1, 2, or 3), 'ECD'=extreme coherent gust with direction change, 'EDC'=extreme direction change, 'EOG'=extreme operating gust. Normally the user does not need to define this entry.
+                            enum: ['NTM', '1ETM', '2ETM', '3ETM', '1EWM1', '2EWM1', '3EWM1', '1EWM50', '2EWM50', '3EWM50', 'ECD', 'EDC', 'EOG','EWS']
+                            description: IEC turbulence type ('NTM'=normal, 'xETM'=extreme turbulence, 'xEWM1'=extreme 1-year wind, 'xEWM50'=extreme 50-year wind, where x=wind turbine class 1, 2, or 3), 'ECD'=extreme coherent gust with direction change, 'EDC'=extreme direction change, 'EOG'=extreme operating gust. Normally the user does not need to define this entry, 'EWS'='extreme wind shear'
                         analysis_time:
                             type: number
                             unit: s
@@ -3357,7 +4933,7 @@ properties:
                                     type: number
                                     unit: m/s
                                     default: -1
-                                    description: Mean (total) velocity at the reference height [m/s] (or 'default' for JET velocity profile) [must be 1-hr mean for API model; otherwise is the mean over AnalysisTime seconds]
+                                    description: URef is an input to TurbSim, but it's not honored in WEIS.  Please use the wind_speed input to each DLC instead.
                                 IECturbc:
                                     type: number
                                     unit: '(-)'

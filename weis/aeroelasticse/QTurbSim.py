@@ -16,6 +16,7 @@ and may not be used without authorization.
 
 import os
 import shutil
+import time
 import numpy as np
 import concurrent.futures
 from weis.aeroelasticse.turbsim_util import Turbsim_wrapper

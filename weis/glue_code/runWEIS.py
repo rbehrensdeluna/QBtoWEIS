@@ -217,6 +217,10 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options, geometry
             froot_out = os.path.join(folder_output, opt_options['general']['fname_output'])
             # Remove the fst_vt key from the dictionary and write out the modeling options
             modeling_options['General']['openfast_configuration']['fst_vt'] = {}
+            
+            if 'qblade_configuration' in modeling_options['General']:
+                modeling_options['General']['qblade_configuration']['qb_vt'] = {}
+
             if not modeling_options['Level3']['from_openfast']:
                 wt_initial.write_ontology(wt_opt, froot_out)
             wt_initial.write_options(froot_out)

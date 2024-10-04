@@ -59,7 +59,11 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
         mod_opt_dir = osp.split(self.modeling_options['fname_input_modeling'])[0]
 
         # BEM dir, all levels
-        base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
+        if self.modeling_options['General']['qblade_configuration']['flag']:
+            base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
+        else:
+            base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['qblade_configuration']['QB_run_dir'])
+
         if MPI:
             rank    = MPI.COMM_WORLD.Get_rank()
             bemDir = osp.join(base_run_dir,'rank_%000d'%int(rank),'BEM')
@@ -143,6 +147,50 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
                             self.modeling_options["Level3"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(mod_opt_dir, potpath) )
                         else:
                             raise Exception(f'No valid Wamit-style output found for specified PotFile option, {potpath}.1')
+        
+        # QBlade
+        if self.modeling_options['Level4']['flag']:
+            self.modeling_options['General']['qblade_configuration']['qb_vt'] = {}
+
+            if self.modeling_options["flags"]["offshore"] or self.modeling_options["Level4"]["from_qblade"]:
+                if self.modeling_options["Level1"]["potential_model_override"] == 2:
+                 self.modeling_options["Level4"]["QBladeOcean"]["POTFLOW"] = True
+                elif ( (self.modeling_options["Level1"]["potential_model_override"] == 0) and
+                    (len(self.modeling_options["Level1"]["potential_bem_members"]) > 0) ):
+                    self.modeling_options["Level4"]["QBladeOcean"]["POTFLOW"] = True
+                elif self.modeling_options["Level1"]["potential_model_override"] == 1:
+                    self.modeling_options["Level4"]["QBladeOcean"]["POTFLOW"] = False
+                else:
+                    # Keep user defined value of PotMod
+                    pass
+
+            if self.modeling_options["Level4"]["QBladeOcean"]["POTFLOW"] == True:
+
+                # If user requested POTFLOW but didn't specify any override or members, just run everything
+                if ( (self.modeling_options["Level1"]["potential_model_override"] == 0) and
+                    (len(self.modeling_options["Level1"]["potential_bem_members"]) == 0) ):
+                    self.modeling_options["Level1"]["potential_model_override"] == 2
+                    
+                cwd = os.getcwd()
+                weis_dir = osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__))))
+                potradpath = self.modeling_options["Level4"]["QBladeOcean"]["POT_RAD_FILE"].replace('.1','')
+                potexcpath = self.modeling_options["Level4"]["QBladeOcean"]["POT_EXC_FILE"].replace('.3','')
+                potexcpath = self.modeling_options["Level4"]["QBladeOcean"]["POT_HST_FILE"].replace('.hst','')
+                if ( (len(potradpath) == 0 and len(potexcpath) == 0) or (potradpath.lower() in ['unused','default','none'] and potexcpath.lower() in ['unused','default','none']) ):
+                    self.modeling_options['Level1']['flag'] = True
+                    self.modeling_options["Level4"]["QBladeOcean"]["POT_RAD_FILE"] = osp.join(cwd, bemDir,'Output','Wamit_format','Buoy') + '.1'
+                    self.modeling_options["Level4"]["QBladeOcean"]["POT_EXC_FILE"] = osp.join(cwd, bemDir,'Output','Wamit_format','Buoy') + '.3'
+                    self.modeling_options["Level4"]["QBladeOcean"]["POT_HST_FILE"] = osp.join(cwd, bemDir,'Output','Wamit_format','Buoy') + '.hst'
+                else:
+                    if self.modeling_options['Level1']['runPyHAMS']:
+                        if len(potradpath) > 0:
+                            print('Found existing potential model: {}\n    - Trying to use this instead of running PyHAMS.'.format(potradpath))
+                        if len(potexcpath) > 0:
+                            print('Found existing potential model: {}\n    - Trying to use this instead of running PyHAMS.'.format(potexcpath))
+                        if len(potexcpath) > 0:
+                            print('Found existing potential model: {}\n    - Trying to use this instead of running PyHAMS.'.format(potexcpath))
+                        self.modeling_options['Level1']['runPyHAMS'] = False
+
 
         # OpenFAST dir
         if self.modeling_options["Level3"]["from_openfast"]:
@@ -166,7 +214,8 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
         # ROSCO
         self.modeling_options['ROSCO']['flag'] = (self.modeling_options['Level1']['flag'] or
                                                   self.modeling_options['Level2']['flag'] or
-                                                  self.modeling_options['Level3']['flag'])
+                                                  self.modeling_options['Level3']['flag'] or
+                                                  self.modeling_options['Level4']['flag'])
         
         if self.modeling_options['ROSCO']['tuning_yaml'] != 'none':  # default is empty
             # Make path absolute if not, relative to modeling options input

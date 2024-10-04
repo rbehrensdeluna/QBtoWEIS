@@ -373,6 +373,9 @@ class TuneROSCO(ExplicitComponent):
         if (self.modeling_options['Level2']['flag'] or self.modeling_options['Level3']['flag']):
             self.modeling_options['General']['openfast_configuration']['fst_vt']['DISCON_in'] = ROSCO_input
         
+        if self.modeling_options['Level4']['flag']:
+            self.modeling_options['General']['qblade_configuration']['qb_vt']['DISCON_in'] = ROSCO_input
+
         # Outputs 
         if rosco_init_options['Flp_Mode'] >= 1:
             outputs['flptune_coeff1']   = 2*WISDEM_turbine.bld_flapwise_damp*WISDEM_turbine.bld_flapwise_freq + controller.kappa[-1]*WISDEM_turbine.bld_flapwise_freq**2*controller.Kp_flap[-1]

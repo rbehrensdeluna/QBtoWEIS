@@ -5,7 +5,7 @@ class PoseOptimizationWEIS(PoseOptimization):
 
     def __init__(self, wt_init, modeling_options, analysis_options):
         
-        self.level_flags = np.array([modeling_options[level]['flag'] for level in ['Level1','Level2','Level3']])
+        self.level_flags = np.array([modeling_options[level]['flag'] for level in ['Level1','Level2','Level3','Level4']])
         # if sum(self.level_flags) > 1:
             # raise Exception('Only one level in WEIS can be enabled at the same time')
 
@@ -14,6 +14,10 @@ class PoseOptimizationWEIS(PoseOptimization):
         # Set solve component for some optimization constraints, and merit figures (RAFT or openfast)
         if modeling_options['Level3']['flag']:
             self.floating_solve_component = 'aeroelastic'
+            self.ae_solve_component = 'aeroelastic'
+        elif modeling_options['Level4']['flag']:
+            self.floating_solve_component = 'aeroelastic_qblade'
+            self.ae_solve_component = 'aeroelastic_qblade'
         elif modeling_options['Level1']['flag']:
             self.floating_solve_component = 'raft'
         else:
@@ -89,24 +93,24 @@ class PoseOptimizationWEIS(PoseOptimization):
             wt_opt.model.add_objective('tcons_post.tip_deflection_ratio')
             
         elif self.opt['merit_figure'] == 'DEL_RootMyb':   # for DAC optimization on root-flap-bending moments
-            wt_opt.model.add_objective('aeroelastic.DEL_RootMyb', ref = 1.e3)
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.DEL_RootMyb', ref = 1.e3)
             
         elif self.opt['merit_figure'] == 'DEL_TwrBsMyt':   # for pitch controller optimization
-            wt_opt.model.add_objective('aeroelastic.DEL_TwrBsMyt', ref=1.e4)
+            wt_opt.model.add_objective(f'{self.floating_solve_component}.DEL_TwrBsMyt', ref=1.e4)
             
         elif self.opt['merit_figure'] == 'rotor_overspeed':
             if not any(self.level_flags):
-                raise Exception('Please turn on the call to OpenFAST or RAFT if you are trying to optimize rotor overspeed constraints.')
+                raise Exception('Please turn on the call to OpenFAST, QBlade or RAFT if you are trying to optimize rotor overspeed constraints.')
             wt_opt.model.add_objective(f'{self.floating_solve_component}.rotor_overspeed')
         
         elif self.opt['merit_figure'] == 'Std_PtfmPitch':
-            wt_opt.model.add_objective('aeroelastic.Std_PtfmPitch')
+            wt_opt.model.add_objective(f'{self.floating_solve_component}.Std_PtfmPitch')
         
         elif self.opt['merit_figure'] == 'Max_PtfmPitch':
-            wt_opt.model.add_objective('aeroelastic.Max_PtfmPitch')
+            wt_opt.model.add_objective(f'{self.floating_solve_component}.Max_PtfmPitch')
 
         elif self.opt['merit_figure'] == 'Cp':
-            wt_opt.model.add_objective('aeroelastic.Cp_out', ref=-1.)
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.Cp_out', ref=-1.)
         
         elif self.opt['merit_figure'] == 'weis_lcoe' or self.opt['merit_figure'].lower() == 'lcoe':
             wt_opt.model.add_objective('financese_post.lcoe')
@@ -324,9 +328,9 @@ class PoseOptimizationWEIS(PoseOptimization):
             
         # Blade pitch travel
         if control_constraints['avg_pitch_travel']['flag']:
-            if self.modeling['Level3']['flag'] != True:
-                raise Exception('Please turn on the call to OpenFAST if you are trying to optimize avg_pitch_travel constraints.')
-            wt_opt.model.add_constraint('aeroelastic.avg_pitch_travel',
+            if self.modeling['Level3']['flag'] != True and self.modeling['Level4']['flag'] != True :
+                raise Exception('Please turn on the call to OpenFAST or QBlade if you are trying to optimize avg_pitch_travel constraints.')
+            wt_opt.model.add_constraint(f'{self.ae_solve_component}.avg_pitch_travel',
                 upper = control_constraints['avg_pitch_travel']['max'])
 
         # Blade pitch duty cycle (number of direction changes)
