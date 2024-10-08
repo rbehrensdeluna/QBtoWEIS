@@ -636,10 +636,18 @@ class InputWriter_QBlade(object):
             f.write(f"{0.0:<.5e} {(self.qb_vt['QBladeOcean']['SUB_MASS']):<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e}\n")
             f.write(f"{0.0:<.5e} {0.0:<.5e} {self.qb_vt['QBladeOcean']['SUB_MASS']:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e}\n")
             f.write(f"{0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {self.qb_vt['QBladeOcean']['SUB_INER'][0]:<.5e} {0.0:<.5e} {0.0:<.5e}\n")
-            f.write(f"{0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {self.qb_vt['QBladeOcean']['SUB_INER'][0]:<.5e} {0.0:<.5e}\n")
-            f.write(f"{0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {self.qb_vt['QBladeOcean']['SUB_INER'][0]:<.5e}\n")
+            f.write(f"{0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {self.qb_vt['QBladeOcean']['SUB_INER'][1]:<.5e} {0.0:<.5e}\n")
+            f.write(f"{0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {0.0:<.5e} {self.qb_vt['QBladeOcean']['SUB_INER'][2]:<.5e}\n")
             f.write('\n')
 
+            f.write(f"{'SUB_HYDROADDEDMASS':<{keyword_length}} - the hydrodynamic added mass is defined and applied at the REF_HYDRO_POS \n")
+            f.write('K(0,0)[N/m] K(1,1)[N/m] K(2,2)[N/m] K(3,3)[Nm/rad] K(4,4)[Nm/rad] K(4,4)[Nm/rad]\n')
+            for j in range(6):
+                ln = " ".join(['{:>10.5e}'.format(i) for i in (self.qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'][j,:])])
+                ln = ln + "\n"
+                f.write(ln)
+            f.write('\n')
+            
             f.write(f"{'SUB_HYDROSTIFFNESS':<{keyword_length}} - the hydrodynamic stiffness is defined and applied at the REF_HYDRO_POS\n")
             f.write('K(0,0)[N/m] K(1,1)[N/m] K(2,2)[N/m] K(3,3)[Nm/rad] K(4,4)[Nm/rad] K(4,4)[Nm/rad]\n')
             for j in range(6):
@@ -656,10 +664,10 @@ class InputWriter_QBlade(object):
                 f.write(ln)
             f.write('\n')
 
-            f.write(f"{'SUB_HYDRODAMPING':<{keyword_length}} - the hydrodynamic quadratic damping is defined and applied at the REF_HYDRO_POS\n")
+            f.write(f"{'SUB_HYDROQUADDAMPING':<{keyword_length}} - the hydrodynamic quadratic damping is defined and applied at the REF_HYDRO_POS\n")
             f.write('R(0,0)[Ns2/m2] R(1,1)[Ns2/m2] R(2,2)[Ns2/m2] R(3,3)[Nms/rd2] R(4,4)[Nms/rd2] R(4,4)[Nms/rd2]\n')
             for j in range(6):
-                ln = " ".join(['{:>10.5e}'.format(i) for i in (self.qb_vt['QBladeOcean']['SUB_HYDRODAMPING'][j,:])])
+                ln = " ".join(['{:>10.5e}'.format(i) for i in (self.qb_vt['QBladeOcean']['SUB_HYDROQUADDAMPING'][j,:])])
                 ln = ln + "\n"
                 f.write(ln)
             f.write('\n')

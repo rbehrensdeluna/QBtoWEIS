@@ -723,6 +723,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QBladeOcean']['ISFLOATING']  =  True
                 qb_vt['QBladeOcean']['SUB_MASS']    =  float(inputs["platform_mass"])
                 qb_vt['QBladeOcean']['SUB_INER']    = inputs["platform_I_total"][0:3]
+                qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDROSTIFFNESS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROSTIFFNESS'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDRODAMPING'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDRODAMPING'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDROQUADDAMPING'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROQUADDAMPING'+str(m+1)] for m in range(6)]))
@@ -1054,7 +1055,7 @@ class QBLADELoadCases(ExplicitComponent):
             cases = len(qb_vt['QSim']['MEANINF'])
             wind_reference = qb_vt['QSim']['MEANINF']
 
-        if not len(wind_reference) != len(qb_vt['QSim']['RPMPRESCRIBED']) != len(qb_vt['QSim']['INITIAL_PITCH']):
+        if len(wind_reference) != len(qb_vt['QSim']['RPMPRESCRIBED']) != len(qb_vt['QSim']['INITIAL_PITCH']):
             automatic_init_conditions = True 
             qb_vt['QSim']['RPMPRESCRIBED'] = []
             qb_vt['QSim']['INITIAL_PITCH'] = []
@@ -1070,7 +1071,7 @@ class QBLADELoadCases(ExplicitComponent):
             if ('U' in inputs) and ('Omega' in inputs) and ('pitch' in inputs) and automatic_init_conditions:
                 qb_vt['QSim']['RPMPRESCRIBED'].append(np.interp(u_ref, inputs['U'], inputs['Omega']))
                 qb_vt['QSim']['INITIAL_PITCH'].append(np.interp(u_ref, inputs['U'], inputs['pitch']))
-            else:
+            elif automatic_init_conditions:
                 qb_vt['QSim']['RPMPRESCRIBED'].append(qb_vt['DISCON_in']['PC_RefSpd'] * 30 / np.pi / qb_vt['Main']['GBRATIO'])
                 qb_vt['QSim']['INITIAL_PITCH'].append(15)
                 
