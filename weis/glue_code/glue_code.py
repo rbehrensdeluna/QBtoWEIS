@@ -1208,7 +1208,9 @@ class WindPark(om.Group):
                 self.connect('blade.outer_shape_bem.s','rlds_post.constr.s')
 
                 if modeling_options["flags"]["monopile"]:
-                    mono_params = ["z_full","d_full","t_full",
+                    # mono_params = ["z_full","d_full","t_full",
+                    #               "E_full","G_full","rho_full","sigma_y_full"]
+                    mono_params = ["z_full","outer_diameter_full","t_full",
                                   "E_full","G_full","rho_full","sigma_y_full"]
                     for k in mono_params:
                         self.connect(f'fixedse.{k}',    f'fixedse_post.{k}')

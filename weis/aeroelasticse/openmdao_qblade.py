@@ -477,8 +477,9 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['Aero']['NumBlNds']       = self.n_span
         qb_vt['Aero']['BlTwist']        = inputs['theta']
         qb_vt['Aero']['BlChord']        = inputs['chord']
-        qb_vt['Aero']['XOffset']        = inputs['ref_axis_blade'][:,1]
-        qb_vt['Aero']['YOffset']        = inputs['ref_axis_blade'][:,0]
+        BlCrvAC, BlSwpAC = self.get_ac_axis(inputs)
+        qb_vt['Aero']['XOffset']        = BlSwpAC #inputs['ref_axis_blade'][:,1]
+        qb_vt['Aero']['YOffset']        = BlCrvAC # inputs['ref_axis_blade'][:,0]
         qb_vt['Aero']['Paxis']          = inputs['le_location']
         qb_vt['Aero']['af_data']        = []
         
@@ -632,6 +633,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QBladeOcean']['SUB_MASS']    =  float(inputs["platform_mass"])
                 qb_vt['QBladeOcean']['SUB_INER']    = inputs["platform_I_total"][0:3]
                 qb_vt['QBladeOcean']['REF_COG_POS'] = inputs['platform_total_center_of_mass']
+                qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDROSTIFFNESS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROSTIFFNESS'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDRODAMPING'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDRODAMPING'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDROQUADDAMPING'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROQUADDAMPING'+str(m+1)] for m in range(6)]))
@@ -1055,7 +1057,7 @@ class QBLADELoadCases(ExplicitComponent):
             cases = len(qb_vt['QSim']['MEANINF'])
             wind_reference = qb_vt['QSim']['MEANINF']
 
-        if len(wind_reference) != len(qb_vt['QSim']['RPMPRESCRIBED']) != len(qb_vt['QSim']['INITIAL_PITCH']):
+        if len(wind_reference) != len(qb_vt['QSim']['RPMPRESCRIBED']) or len(wind_reference) != len(qb_vt['QSim']['INITIAL_PITCH']):
             automatic_init_conditions = True 
             qb_vt['QSim']['RPMPRESCRIBED'] = []
             qb_vt['QSim']['INITIAL_PITCH'] = []
@@ -1256,7 +1258,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["X_b Tip Trl.Def. (FLAP) BLD 1 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 1 [m]", "Z_b Tip Trl.Def. (LONG) BLD 1 [m]", "X_b Tip Trl.Def. (FLAP) BLD 2 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 2 [m]", "Z_b Tip Trl.Def. (LONG) BLD 2 [m]"]
             channels_out += ["X_b RootBend. Mom. BLD 1 [Nm]", "Y_b RootBend. Mom. BLD 1 [Nm]", "Z_b RootBend. Mom. BLD 1 [Nm]", "X_b RootBend. Mom. BLD 2 [Nm]", "Y_b RootBend. Mom. BLD 2 [Nm]", "Z_b RootBend. Mom. BLD 2 [Nm]"]
             channels_out += ["X_c Root For. BLD 1 [N]","Y_c Root For. BLD 1 [N]","Z_c Root For. BLD 1 [N]", "X_c Root For. BLD 2 [N]","Y_c Root For. BLD 2 [N]","Z_c Root For. BLD 2 [N]"]
-            channels_out += ["X_b Root For. BLD 1 [N]",  "Y_b Root For. BLD 1 [N]", "Z_b Root For. BLD 1 [N]", "X_b Root For. BLD 2 [N]",  "Y_b Root For. BLD 2 [N]", "Z_b Root For. BLD 2 [N]"]
+            channels_out += ["X_b Rooet For. BLD 1 [N]",  "Y_b Root For. BLD 1 [N]", "Z_b Root For. BLD 1 [N]", "X_b Root For. BLD 2 [N]",  "Y_b Root For. BLD 2 [N]", "Z_b Root For. BLD 2 [N]"]
             channels_out += ["Z_l For. BLD_1 pos 0.100 [N]", "Z_l For. BLD_1 pos 0.200 [N]", "Z_l For. BLD_1 pos 0.300 [N]", "Z_l For. BLD_1 pos 0.400 [N]", "Z_l For. BLD_1 pos 0.500 [N]", "Z_l For. BLD_1 pos 0.600 [N]", "Z_l For. BLD_1 pos 0.700 [N]", "Z_l For. BLD_1 pos 0.800 [N]", "Z_l For. BLD_1 pos 0.900 [N]"]
             channels_out += ["X_l Mom. BLD_1 pos 0.100 [Nm]", "X_l Mom. BLD_1 pos 0.200 [Nm]", "X_l Mom. BLD_1 pos 0.300 [Nm]", "X_l Mom. BLD_1 pos 0.400 [Nm]", "X_l Mom. BLD_1 pos 0.500 [Nm]", "X_l Mom. BLD_1 pos 0.600 [Nm]", "X_l Mom. BLD_1 pos 0.700 [Nm]", "X_l Mom. BLD_1 pos 0.800 [Nm]", "X_l Mom. BLD_1 pos 0.900 [Nm]"]
             channels_out += ["Y_l Mom. BLD_1 pos 0.100 [Nm]", "Y_l Mom. BLD_1 pos 0.200 [Nm]", "Y_l Mom. BLD_1 pos 0.300 [Nm]", "Y_l Mom. BLD_1 pos 0.400 [Nm]", "Y_l Mom. BLD_1 pos 0.500 [Nm]", "Y_l Mom. BLD_1 pos 0.600 [Nm]", "Y_l Mom. BLD_1 pos 0.700 [Nm]", "Y_l Mom. BLD_1 pos 0.800 [Nm]", "Y_l Mom. BLD_1 pos 0.900 [Nm]"]
@@ -1326,6 +1328,18 @@ class QBLADELoadCases(ExplicitComponent):
                     channels_out += ["Pitch Angle Blade 3 [deg]"]
         
         return channels_out
+
+    def get_ac_axis(self, inputs):
+    
+        # Get the absolute offset between pitch axis (rotation center) and aerodynamic center
+        ch_offset = inputs['chord'] * (inputs['ac'] - inputs['le_location'])
+        # Rotate it by the twist using the AD15 coordinate system
+        x , y = util.rotate(0., 0., 0., ch_offset, -np.deg2rad(inputs['theta']))
+        # Apply offset to determine the AC axis
+        BlCrvAC = inputs['ref_axis_blade'][:,0] + x
+        BlSwpAC = inputs['ref_axis_blade'][:,1] + y
+    
+        return BlCrvAC, BlSwpAC
 
     def write_QBLADE(self, qb_vt, inputs, discrete_inputs):
         modopt = self.options['modeling_options']
