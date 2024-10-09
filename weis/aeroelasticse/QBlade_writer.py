@@ -1153,7 +1153,7 @@ class InputWriter_QBlade(object):
             f.write('----------------------------------------Ocean Depth, Waves and Currents-------------------------------------------\n')
             f.write('the following parameters only need to be set if ISOFFSHORE = 1\n')
             f.write(f"{str(self.qb_vt['QSim']['WATERDEPTH']):<{object_length}}{'WATERDEPTH':<{keyword_length}} - the water depth\n")
-            f.write(f"{str(self.qb_vt['QBladeOcean']['lwaFile']):<{object_length}}{'WAVEFILE':<{keyword_length}} - the path to the wave file, leave blank if unused\n")
+            f.write(f"{str(self.qb_vt['QBladeOcean']['lwaFile']+' '):<{object_length}}{'WAVEFILE':<{keyword_length}} - the path to the wave file, leave blank if unused\n")
             f.write(f"{str(self.qb_vt['QSim']['WAVESTRETCHING']):<{object_length}}{'WAVESTRETCHING':<{keyword_length}} - the type of wavestretching, 0 = vertical, 1 = wheeler, 2 = extrapolation, 3 = none\n")
             #TODO: get stiffness and shaer from windIO definition instead hard coded
             f.write(f"{str(self.qb_vt['QSim']['SEABEDSTIFF']):<{object_length}}{'SEABEDSTIFF':<{keyword_length}} - the vertical seabed stiffness [N/m^3]\n")
