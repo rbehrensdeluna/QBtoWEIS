@@ -79,6 +79,7 @@ class QBLADELoadCases(ExplicitComponent):
     def initialize(self):
         self.options.declare('modeling_options')
         self.options.declare('opt_options')
+        self.options.declare('wt_init')
 
     def setup(self):
         modopt = self.options['modeling_options']
@@ -477,10 +478,9 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['Aero']['NumBlNds']       = self.n_span
         qb_vt['Aero']['BlTwist']        = inputs['theta']
         qb_vt['Aero']['BlChord']        = inputs['chord']
-        BlCrvAC, BlSwpAC = self.get_ac_axis(inputs)
-        qb_vt['Aero']['XOffset']        = BlSwpAC #inputs['ref_axis_blade'][:,1]
-        qb_vt['Aero']['YOffset']        = BlCrvAC # inputs['ref_axis_blade'][:,0]
-        qb_vt['Aero']['Paxis']          = inputs['le_location']
+        qb_vt['Aero']['XOffset']        =  inputs['ref_axis_blade'][:,1]
+        qb_vt['Aero']['YOffset']        =  inputs['ref_axis_blade'][:,0]
+        qb_vt['Aero']['Paxis']          =  inputs['le_location']
         qb_vt['Aero']['af_data']        = []
         
         # Set the Aero flag AFTabMod, deciding whether we use more Re per airfoil or user-defined tables (used for example in distributed aerodynamic control)
@@ -555,18 +555,18 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['Blade']['EIx']       =  inputs['beam:EIyy']
         qb_vt['Blade']['EIy']       =  inputs['beam:EIxx']
         qb_vt['Blade']['EA']        =  inputs['beam:EA']
-        qb_vt['Blade']['GJ']        =  inputs['beam:GJ']
+        qb_vt['Blade']['GJ']        =  inputs['beam:GJ'] # np.ones_like(inputs['beam:EA'])*1e11 
         qb_vt['Blade']['GA']        =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now 
-        qb_vt['Blade']['STRPIT']    = -strpit
+        qb_vt['Blade']['STRPIT']    =  strpit
         qb_vt['Blade']['KSX']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
         qb_vt['Blade']['KSY']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
-        qb_vt['Blade']['RGX']       = -np.sqrt(inputs['beam:flap_iner'] / inputs['beam:rhoA']) / inputs['chord']
+        qb_vt['Blade']['RGX']       =  np.sqrt(inputs['beam:flap_iner'] / inputs['beam:rhoA']) / inputs['chord']
         qb_vt['Blade']['RGY']       =  np.sqrt(inputs['beam:edge_iner'] / inputs['beam:rhoA']) / inputs['chord']
-        qb_vt['Blade']['XCM']       = -inputs['beam:y_cg'] / inputs['chord'] # careful with the reference system conversion between QBlade CHRONO and OpenFAST
+        qb_vt['Blade']['XCM']       =  inputs['beam:y_cg'] / inputs['chord'] 
         qb_vt['Blade']['YCM']       =  inputs['beam:x_cg'] / inputs['chord']
-        qb_vt['Blade']['XCE']       = -inputs['beam:y_ec'] / inputs['chord']
+        qb_vt['Blade']['XCE']       =  inputs['beam:y_ec'] / inputs['chord']
         qb_vt['Blade']['YCE']       =  inputs['beam:x_ec'] / inputs['chord']
-        qb_vt['Blade']['XCS']       = -inputs['beam:y_sc'] / inputs['chord']
+        qb_vt['Blade']['XCS']       =  inputs['beam:y_sc'] / inputs['chord']
         qb_vt['Blade']['YCS']       =  inputs['beam:x_sc'] / inputs['chord']
 
         ## Tower structural definition inputs
@@ -1284,7 +1284,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Angle of Attack BLD_1 pos 0.100 [deg]", "Angle of Attack BLD_1 pos 0.200 [deg]", "Angle of Attack BLD_1 pos 0.300 [deg]", "Angle of Attack BLD_1 pos 0.400 [deg]", "Angle of Attack BLD_1 pos 0.500 [deg]", "Angle of Attack BLD_1 pos 0.600 [deg]", "Angle of Attack BLD_1 pos 0.700 [deg]", "Angle of Attack BLD_1 pos 0.800 [deg]", "Angle of Attack BLD_1 pos 0.900 [deg]"]
             channels_out += ["Angle of Attack BLD_2 pos 0.100 [deg]", "Angle of Attack BLD_2 pos 0.200 [deg]", "Angle of Attack BLD_2 pos 0.300 [deg]", "Angle of Attack BLD_2 pos 0.400 [deg]", "Angle of Attack BLD_2 pos 0.500 [deg]", "Angle of Attack BLD_2 pos 0.600 [deg]", "Angle of Attack BLD_2 pos 0.700 [deg]", "Angle of Attack BLD_2 pos 0.800 [deg]", "Angle of Attack BLD_2 pos 0.900 [deg]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
-            channels_out += ["Aero. Power [W]"]
+            channels_out += ["Aero. Power [W]", "NP Wave Elevation [m]"]
 
             if self.n_blades == 3:
                 channels_out += ["X_c Tip Trl.Def. (OOP) BLD 3 [m]", "Y_c Tip Trl.Def. (IP) BLD 3 [m]", "Z_c Tip Trl.Def. BLD 3 [m]"]
@@ -1431,7 +1431,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QBladeOcean'][key] = modeling_options['Level4']['QBladeOcean'][key]
         if 'QTurbSim' in modeling_options['Level4']:
             for key in modeling_options['Level4']['QTurbSim']:
-                qb_vt['QTurbSim'][key] = modeling_options['Level4']['QTurbSim'][key]    
+                qb_vt['QTurbSim'][key] = modeling_options['Level4']['QTurbSim'][key]
         return qb_vt
 
     def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs):

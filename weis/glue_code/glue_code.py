@@ -36,10 +36,12 @@ class WindPark(om.Group):
     def initialize(self):
         self.options.declare('modeling_options')
         self.options.declare('opt_options')
+        self.options.declare('wt_init')
 
     def setup(self):
         modeling_options = self.options['modeling_options']
         opt_options      = self.options['opt_options']
+        wt_init          = self.options['wt_init']
 
         #self.linear_solver = lbgs = om.LinearBlockGS()
         #self.nonlinear_solver = nlbgs = om.NonlinearBlockGS()

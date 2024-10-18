@@ -359,6 +359,11 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['Tower']['RAYLEIGHDMP']):<{object_lenght}}RAYLEIGHDMP \n")
             f.write(f"{str(self.qb_vt['Tower']['STIFFTUNER']):<{object_lenght}}STIFFTUNER \n")
             f.write(f"{str(self.qb_vt['Tower']['MASSTUNER']):<{object_lenght}}MASSTUNER \n")
+            f.write('\n')
+
+            f.write(f"{str(self.qb_vt['Tower']['INTPTYPE']):<{object_lenght}}INTPTYPE 0-LINEAR; 1-AKIMA; 2-HERMITE; 3-C2SPLINE \n")
+            f.write(f"{str(self.qb_vt['Tower']['BEAMTYPE']):<{object_lenght}}BEAMTYPE 0-EULER; 1-TIMOSHENKO; 2-TIMOSHENKO_FPM \n")
+            f.write(f"{str(self.qb_vt['Tower']['DISCTYPE']):<{object_lenght}}DISCTYPE 0-LINEAR; 1-COSINE; 2-STRUCT; 3-AERO \n")
 
             f.write(f"{str(self.qb_vt['Tower']['DISC']):<{object_lenght}}DISC \n")
             f.write('\n')
@@ -408,7 +413,10 @@ class InputWriter_QBlade(object):
             f.write('\n')
             f.write('---------------------- QBLADE BLADE INPUT FILE ----------------------\n')
             f.write('\n')
-            f.write(f"{str(self.qb_vt['Blade']['RAYLEIGHDMP']):<{object_lenght}}RAYLEIGHDMP \n")
+            if not self.qb_vt['Blade']['USERAYLEIGHDMP_ANISO']:
+                f.write(f"{str(self.qb_vt['Blade']['RAYLEIGHDMP']):<{object_lenght}}RAYLEIGHDMP \n")
+            else:
+                f.write(f"{' '.join(map(str, self.qb_vt['Blade']['RAYLEIGHDMP_ANISO'])):<{object_lenght}} RAYLEIGHDMP_ANISO \n")
             f.write(f"{str(self.qb_vt['Blade']['STIFFTUNER']):<{object_lenght}}STIFFTUNER \n")
             f.write(f"{str(self.qb_vt['Blade']['MASSTUNER']):<{object_lenght}}MASSTUNER \n")
             f.write('\n')
