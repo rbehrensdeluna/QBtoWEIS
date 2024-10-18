@@ -421,6 +421,9 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['Blade']['MASSTUNER']):<{object_lenght}}MASSTUNER \n")
             f.write('\n')
 
+            f.write(f"{str(self.qb_vt['Blade']['INTPTYPE']):<{object_lenght}}INTPTYPE 0-LINEAR; 1-AKIMA; 2-HERMITE; 3-C2SPLINE \n")
+            f.write(f"{str(self.qb_vt['Blade']['BEAMTYPE']):<{object_lenght}}BEAMTYPE 0-EULER; 1-TIMOSHENKO; 2-TIMOSHENKO_FPM \n")
+            f.write(f"{str(self.qb_vt['Blade']['DISCTYPE']):<{object_lenght}}DISCTYPE 0-LINEAR; 1-COSINE; 2-STRUCT; 3-AERO \n")
             f.write(f"{str(self.qb_vt['Blade']['DISC']):<{object_lenght}}DSIC \n")
             f.write('\n')
 
