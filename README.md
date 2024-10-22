@@ -1,79 +1,77 @@
-# WEIS
+# Under Development
+This tool is currently under active development and will be released with full functionality, including example test cases, in January 2025.
 
-[![Coverage Status](https://coveralls.io/repos/github/WISDEM/WEIS/badge.svg?branch=develop)](https://coveralls.io/github/WISDEM/WEIS?branch=develop)
-[![Actions Status](https://github.com/WISDEM/WEIS/workflows/CI_WEIS/badge.svg?branch=develop)](https://github.com/WISDEM/WEIS/actions)
-[![Documentation Status](https://readthedocs.org/projects/weis/badge/?version=develop)](https://weis.readthedocs.io/en/develop/?badge=develop)
-[![DOI](https://zenodo.org/badge/289320573.svg)](https://zenodo.org/badge/latestdoi/289320573)
+# QBtoWEIS
 
-WEIS, Wind Energy with Integrated Servo-control, performs multifidelity co-design of wind turbines. WEIS is a framework that combines multiple NREL-developed tools to enable design optimization of floating offshore wind turbines.
+**QBtoWEIS** is an extension of the WEIS (Wind Energy with Integrated Servo-control) framework that integrates the capabilities of QBlade to expand the design and optimization process for floating offshore wind turbines. By adding computationally highly optimized methods for wake aerodynamics and structural modeling, QBtoWEIS creates an even more versatile and powerful multi-fidelity toolchain, offering greater flexibility in co-design and optimization.
 
-Author: [NREL WISDEM & OpenFAST & Control Teams](mailto:systems.engineering@nrel.gov)
+## WEIS
 
-## Documentation
+[WEIS](https://github.com/WISDEM/WEIS) is a comprehensive framework developed by the National Renewable Energy Laboratory (NREL) that integrates several NREL-developed tools for the design optimization of floating offshore wind turbines. It facilitates aero-servo-hydro-elastic modeling, structural analysis, and control system design, enabling a holistic approach to floating wind turbine development.
 
-See local documentation in the `docs`-directory or access the online version at <https://weis.readthedocs.io/en/latest/>
+## QBlade
 
-## Packages
+[QBlade](https://qblade.org/) is a versatile aero-servo-hydro-elastic simulation tool for wind turbines. It features a highly optimized lifting-line free vortex wake algorithm, which ensures efficient and accurate wake modeling. The underlying structural model implemented in QBlade supports Euler-Bernoulli, Timoshenko, and geometrically exact beam theory, all of which provide computationally efficient structural models. Notably, all three approaches can be associated with similar computational costs, allowing for flexibility in model selection without sacrificing performance.
 
-WEIS integrates in a unique workflow four models:
-* [WISDEM](https://github.com/WISDEM/WISDEM) is a set of models for assessing overall wind plant cost of energy (COE).
-* [OpenFAST](https://github.com/OpenFAST/openfast) is the community model for wind turbine simulation to be developed and used by research laboratories, academia, and industry.
-* [TurbSim](https://www.nrel.gov/docs/fy09osti/46198.pdf) is a stochastic, full-field, turbulent-wind simulator.
-* [ROSCO](https://github.com/NREL/ROSCO) provides an open, modular and fully adaptable baseline wind turbine controller to the scientific community.
+[QBlade documentation](https://docs.qblade.org/)
 
-In addition, three external libraries are added:
-* [pCrunch](https://github.com/NREL/pCrunch) is a collection of tools to ease the process of parsing large amounts of OpenFAST output data and conduct loads analysis.
-* [pyOptSparse](https://github.com/mdolab/pyoptsparse) is a framework for formulating and efficiently solving nonlinear constrained optimization problems.
+## Additional Packages
 
-The core WEIS modules are:
- * _aeroelasticse_ is a wrapper to call [OpenFAST](https://github.com/OpenFAST/openfast)
- * _control_ contains the routines calling [ROSCO](https://github.com/NREL/ROSCO) and the routines supporting distributed aerodynamic control devices, such trailing edge flaps
- * _gluecode_ contains the scripts glueing together all models and libraries
- * _multifidelity_ contains the codes to run multifidelity design optimizations
- * _optimization_drivers_ contains various optimization drivers
- * _schema_ contains the YAML files and corresponding schemas representing the input files to WEIS
+QBtoWEIS integrates the following packages in addition to the stack of tools already available in WEIS:
+* [QBlade](https://qblade.org/) - freely available wind turbine simulation tool
+
+## Additional Packages (coming soon)
+
+* [SONATA](https://github.com/ptrbortolotti/SONATA) - toolbox for Multidisciplinary Rotor Blade Design Environment for Structural Optimization and Aeroelastic Analysis
 
 ## Installation
 
-On laptop and personal computers, installation with [Anaconda](https://www.anaconda.com) is the recommended approach because of the ability to create self-contained environments suitable for testing and analysis.  WEIS requires [Anaconda 64-bit](https://www.anaconda.com/distribution/). However, the `conda` command has begun to show its age and we now recommend the one-for-one replacement with the [Miniforge3 distribution](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge3), which is much more lightweight and more easily solves for the package dependencies.  Sometimes, using `mamba` in place of `conda` with this distribution speeds up the installation process. WEIS is currently supported on Linux, MAC and Windows Sub-system for Linux (WSL). Installing WEIS on native Windows is not yet supported, but planned in 2024.
+The installation process is almost equivalent to the one of the main branch of WEIS:
 
-The installation instructions below use the environment name, "weis-env," but any name is acceptable. For those working behind company firewalls, you may have to change the conda authentication with `conda config --set ssl_verify no`.  Proxy servers can also be set with `conda config --set proxy_servers.http http://id:pw@address:port` and `conda config --set proxy_servers.https https://id:pw@address:port`.
+On laptop and personal computers, installation with [Anaconda](https://www.anaconda.com) is the recommended approach because of the ability to create self-contained environments suitable for testing and analysis. WEIS requires [Anaconda 64-bit](https://www.anaconda.com/distribution/). However, the `conda` command has begun to show its age, and we now recommend the one-for-one replacement with the [Miniforge3 distribution](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge3), which is much more lightweight and more easily solves for the package dependencies. Sometimes, using `mamba` in place of `conda` with this distribution speeds up the installation process. QBtoWEIS is currently supported on Linux and Windows Subsystem for Linux (WSL2). Installing QBtoWEIS on native Windows is not yet supported, but planned in 2025.
 
-0.  On the DOE HPC system eagle, make sure to start from a clean setup and type
+The installation instructions below use the environment name, "qbweis-env," but any name is acceptable. For those working behind company firewalls, you may have to change the conda authentication with `conda config --set ssl_verify no`. Proxy servers can also be set with `conda config --set proxy_servers.http http://id:pw@address:port` and `conda config --set proxy_servers.https https://id:pw@address:port`.
 
-        module purge
-        module load conda        
-
-1.  Setup and activate the Anaconda environment from a prompt (WSL terminal on Windows or Terminal.app on Mac)
-
+1. Clone the repository and create a virtual environment install the software:
+   
         conda config --add channels conda-forge
-        conda install git
-        git clone https://github.com/WISDEM/WEIS.git
-        cd WEIS
-        git checkout branch_name                         # (Only if you want to switch branches, say "develop")
-        conda env create --name weis-env -f environment.yml
-        conda activate weis-env                          # (if this does not work, try source activate weis-env)
+        git clone https://github.com/rbehrensdeluna/QBtoWEIS.git
+        cd QBtoWEIS
 
-
-2. Add in final packages and install the software
-
-        conda install -y petsc4py mpi4py pyoptsparse     # (Mac / Linux only)
-        pip install -e .
-
-3. Instructions specific for DOE HPC system Eagle.  Before executing the setup script, do:
-
-        module load comp-intel intel-mpi mkl
-        module unload gcc
+        
+2. Create a virtual environment abd install the software
+   
+        conda env create --name qbweis-env -f environment.yml
+        conda activate qbweis-env   # (if this does not work, try source activate qbweis-env)
+        conda install -y petsc4py mpi4py 
         pip install --no-deps -e . -v
+        conda install -c conda-forge pyoptsparse
 
-**NOTE:** To use WEIS again after installation is complete, you will always need to activate the conda environment first with `conda activate weis-env` (or `source activate weis-env`). On Eagle, make sure to reload the necessary modules
+**NOTE:** To use QBtoWEIS again after installation is complete, you will always need to activate the conda environment first with conda activate qbweis-env (or source activate qbweis-env).
 
-For Windows users, we recommend installing `git` and the `m264` packages in separate environments as some of the libraries appear to conflict such that WISDEM cannot be successfully built from source.  The `git` package is best installed in the `base` environment.
+## Download and configure QBladeCE executables under WSL2
 
-## Developer guide
+   Download QBladeCE from https://qblade.org/downloads/ and place it in the WSL2 directory.
+   
+   install some libraries that are required to run qblade:
+       	
+        sudo apt-get update -y
+        sudo apt-get install -y libqt5opengl5 libqt5xml5 libquadmath0 libglu1-mesa
+        
+   Make QBladeCE executable
+   
+        chmod +x run_qblade.sh
+        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.7.8 
 
-If you plan to contribute code to WEIS, please first consult the [developer guide](https://weis.readthedocs.io/en/latest/how_to_contribute_code.html).
+**NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.7.8 or newer to enable for multi-processing capabilities (number_of_workers > 1)
+        
+## Troubleshoot.
+If you are having trouble creating the virtual environment try allocating more RAM to the WSL2 (e.g. https://learn.microsoft.com/en-us/answers/questions/1296124/how-to-increase-memory-and-cpu-limits-for-wsl2-win)
 
-## Feedback
+Verify if correct package versions were installed
 
-For software issues please use <https://github.com/WISDEM/WEIS/issues>.  
+        conda list wisdem # (check if wisdem version equals 3.13.0 otherwise uninstall and revert)
+        pip uninstall wisdem
+        pip install wisdem==3.13.0
+        
+        The same should be done for rosco (2.9.2) scipy (1.13.0) and openfast (3.5.2)
