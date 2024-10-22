@@ -8,7 +8,7 @@ dependencies:
   - jsonmerge
   - mat4py
   - nlopt
-  - openfast>=3.5.3
+  - openfast=3.5.2
   - openraft>=1.2.4
   - osqp  
   - pcrunch
