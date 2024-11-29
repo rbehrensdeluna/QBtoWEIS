@@ -1249,8 +1249,9 @@ class QBLADELoadCases(ExplicitComponent):
             wrapper.execute()
 
     def output_channels(self):
-        modopt = self.options['modeling_options']       
 
+        modopt = self.options['modeling_options']       
+        
         if not self.qb_vt['Turbine']['NOSTRUCTURE']:
             channels_out  = ["Time [s]"]
             channels_out += ["X_c Tip Trl.Def. (OOP) BLD 1 [m]", "Y_c Tip Trl.Def. (IP) BLD 1 [m]", "Z_c Tip Trl.Def. BLD 1 [m]", "X_c Tip Trl.Def. (OOP) BLD 2 [m]", "Y_c Tip Trl.Def. (IP) BLD 2 [m]", "Z_c Tip Trl.Def. BLD 2 [m]"]
