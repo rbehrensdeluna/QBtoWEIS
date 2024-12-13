@@ -4,6 +4,7 @@ General:
         OF_run_fst: NREL5MW_OC3_spar
         OF_run_dir: outputs/03_NREL5MW_OC3_spar
         use_exe: True
+        model_only: True
 
 WISDEM:
     RotorSE:

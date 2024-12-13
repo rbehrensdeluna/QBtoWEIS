@@ -127,6 +127,7 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('gearbox_ratio',         val=1.0,                 desc='Gearbox ratio')
             self.add_input('gearbox_efficiency',    val=1.0,                 desc='Gearbox efficiency')
             self.add_input('GenIner',               val=0.0, units='kg*m**2',desc='Moments of inertia for the generator about high speed shaft')
+            self.add_input('generator_efficiency',  val=1.0,                 desc='Generator efficiency')
             self.add_input('drivetrain_spring_constant',         val=0.0,         units='N*m/rad',   desc='Moments of inertia for the generator about high speed shaft')
             self.add_input("drivetrain_damping_coefficient",    val=0.0,          units="N*m*s/rad", desc='Equivalent damping coefficient for the drivetrain system')
 
@@ -461,6 +462,8 @@ class QBLADELoadCases(ExplicitComponent):
 
         qb_vt['Main']['GBRATIO']        = round(inputs['gearbox_ratio'][0], precision)
         qb_vt['Main']['GBOXEFF']        = round(inputs['gearbox_efficiency'][0], precision)
+        qb_vt['Main']['GENEFF']         = round(float(inputs['generator_efficiency']/inputs['gearbox_efficiency']), precision)
+
         qb_vt['Main']['GENINER']        = round(float(inputs['GenIner']), precision)
         qb_vt['Main']['DTTORSPR']       = round(float(inputs['drivetrain_spring_constant']), precision)
         qb_vt['Main']['DTTORDMP']       = round(float(inputs['drivetrain_damping_coefficient']), precision)
@@ -1251,21 +1254,73 @@ class QBLADELoadCases(ExplicitComponent):
     def output_channels(self):
 
         modopt = self.options['modeling_options']       
+
+        bld_1_stations = self.qb_vt['Main']['BLD_1']
+        bld_2_stations = self.qb_vt['Main']['BLD_2']
+        bld_3_stations = self.qb_vt['Main']['BLD_3']
+        twr_stations = self.qb_vt['Main']['TWR']
+        # Validate that all required stations are provided.
+        # pCrunch relies on station data to function correctly, so this ensures 
+        # no mandatory inputs are missing before proceeding.
+        try:
+            self.validate_stations(bld_1_stations, "BLD_1")
+            self.validate_stations(bld_2_stations, "BLD_2")
+            self.validate_stations(bld_3_stations, "BLD_3")
+            self.validate_stations(twr_stations, "TWR")
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
         
         if not self.qb_vt['Turbine']['NOSTRUCTURE']:
-            channels_out  = ["Time [s]"]
+            
+            channels_out = []
+
+            channels_out += ["Time [s]"]
+            # Add distributed blade and tower stations
+            for bld_station in zip(bld_1_stations, bld_2_stations, bld_3_stations):
+                # blade 1
+                channels_out += [f'Z_l For. BLD_1 pos {bld_station[0]:.3f} [N]']
+                channels_out += [f'X_l Mom. BLD_1 pos {bld_station[0]:.3f} [Nm]']
+                channels_out += [f'Y_l Mom. BLD_1 pos {bld_station[0]:.3f} [Nm]']
+                channels_out += [f'Angle of Attack BLD_1 pos {bld_station[0]:.3f} [deg]']
+                channels_out += [f'X_b For. BLD_1 pos {bld_station[0]:.3f} [N]']
+                channels_out += [f'Y_b For. BLD_1 pos {bld_station[0]:.3f} [N]']
+                channels_out += [f'Z_b For. BLD_1 pos {bld_station[0]:.3f} [N]']
+                channels_out += [f'X_b Mom. BLD_1 pos {bld_station[0]:.3f} [Nm]']
+                channels_out += [f'Y_b Mom. BLD_1 pos {bld_station[0]:.3f} [Nm]']
+                channels_out += [f'Z_b Mom. BLD_1 pos {bld_station[0]:.3f} [Nm]']
+                channels_out += [f'X_b Trl.Def. BLD_1 pos {bld_station[0]:.3f} [m]']
+                channels_out += [f'Y_b Trl.Def. BLD_1 pos {bld_station[0]:.3f} [m]']
+                channels_out += [f'Z_b Trl.Def. BLD_1 pos {bld_station[0]:.3f} [m]']
+                channels_out += [f'X_b Rot.Def. BLD_1 pos {bld_station[0]:.3f} [deg]']
+                channels_out += [f'Y_b Rot.Def. BLD_1 pos {bld_station[0]:.3f} [deg]']
+                channels_out += [f'Z_b Rot.Def. BLD_1 pos {bld_station[0]:.3f} [deg]']
+                channels_out += [f'X_c Aero. Force BLD_1 pos {bld_station[0]:.3f} [N/m]']
+                channels_out += [f'Y_c Aero. Force BLD_1 pos {bld_station[0]:.3f} [N/m]']
+                channels_out += [f'Z_l For. BLD_2 pos {bld_station[1]:.3f} [N]']
+                channels_out += [f'X_l Mom. BLD_2 pos {bld_station[1]:.3f} [Nm]']
+                channels_out += [f'Y_l Mom. BLD_2 pos {bld_station[1]:.3f} [Nm]']
+                channels_out += [f'Angle of Attack BLD_2 pos {bld_station[1]:.3f} [deg]']
+                
+                if self.n_blades == 3:
+                    channels_out += [f'Z_l For. BLD_3 pos {bld_station[2]:.3f} [N]']
+                    channels_out += [f'X_l Mom. BLD_3 pos {bld_station[2]:.3f} [Nm]']
+                    channels_out += [f'Y_l Mom. BLD_3 pos {bld_station[2]:.3f} [Nm]']
+                    channels_out += [f'Angle of Attack BLD_3 pos {bld_station[2]:.3f} [deg]']
+            for twr_station in twr_stations:
+                channels_out += [f'X_l For. TWR pos {twr_station:.3f} [N]']
+                channels_out += [f'Y_l For. TWR pos {twr_station:.3f} [N]']
+                channels_out += [f'Z_l For. TWR pos {twr_station:.3f} [N]']
+                channels_out += [f'X_l Mom. TWR pos {twr_station:.3f} [Nm]']
+                channels_out += [f'Y_l Mom. TWR pos {twr_station:.3f} [Nm]']
+                channels_out += [f'Z_l Mom. TWR pos {twr_station:.3f} [Nm]']
+
             channels_out += ["X_c Tip Trl.Def. (OOP) BLD 1 [m]", "Y_c Tip Trl.Def. (IP) BLD 1 [m]", "Z_c Tip Trl.Def. BLD 1 [m]", "X_c Tip Trl.Def. (OOP) BLD 2 [m]", "Y_c Tip Trl.Def. (IP) BLD 2 [m]", "Z_c Tip Trl.Def. BLD 2 [m]"]
             channels_out += ["X_c RootBend. Mom. (IP) BLD 1 [Nm]", "Y_c RootBend. Mom. (OOP) BLD 1 [Nm]", "Z_c RootBend. Mom. BLD 1 [Nm]", "X_c RootBend. Mom. (IP) BLD 2 [Nm]", "Y_c RootBend. Mom. (OOP) BLD 2 [Nm]", "Z_c RootBend. Mom. BLD 2 [Nm]"]
             channels_out += ["X_b Tip Trl.Def. (FLAP) BLD 1 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 1 [m]", "Z_b Tip Trl.Def. (LONG) BLD 1 [m]", "X_b Tip Trl.Def. (FLAP) BLD 2 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 2 [m]", "Z_b Tip Trl.Def. (LONG) BLD 2 [m]"]
             channels_out += ["X_b RootBend. Mom. BLD 1 [Nm]", "Y_b RootBend. Mom. BLD 1 [Nm]", "Z_b RootBend. Mom. BLD 1 [Nm]", "X_b RootBend. Mom. BLD 2 [Nm]", "Y_b RootBend. Mom. BLD 2 [Nm]", "Z_b RootBend. Mom. BLD 2 [Nm]"]
             channels_out += ["X_c Root For. BLD 1 [N]","Y_c Root For. BLD 1 [N]","Z_c Root For. BLD 1 [N]", "X_c Root For. BLD 2 [N]","Y_c Root For. BLD 2 [N]","Z_c Root For. BLD 2 [N]"]
-            channels_out += ["X_b Rooet For. BLD 1 [N]",  "Y_b Root For. BLD 1 [N]", "Z_b Root For. BLD 1 [N]", "X_b Root For. BLD 2 [N]",  "Y_b Root For. BLD 2 [N]", "Z_b Root For. BLD 2 [N]"]
-            channels_out += ["Z_l For. BLD_1 pos 0.100 [N]", "Z_l For. BLD_1 pos 0.200 [N]", "Z_l For. BLD_1 pos 0.300 [N]", "Z_l For. BLD_1 pos 0.400 [N]", "Z_l For. BLD_1 pos 0.500 [N]", "Z_l For. BLD_1 pos 0.600 [N]", "Z_l For. BLD_1 pos 0.700 [N]", "Z_l For. BLD_1 pos 0.800 [N]", "Z_l For. BLD_1 pos 0.900 [N]"]
-            channels_out += ["X_l Mom. BLD_1 pos 0.100 [Nm]", "X_l Mom. BLD_1 pos 0.200 [Nm]", "X_l Mom. BLD_1 pos 0.300 [Nm]", "X_l Mom. BLD_1 pos 0.400 [Nm]", "X_l Mom. BLD_1 pos 0.500 [Nm]", "X_l Mom. BLD_1 pos 0.600 [Nm]", "X_l Mom. BLD_1 pos 0.700 [Nm]", "X_l Mom. BLD_1 pos 0.800 [Nm]", "X_l Mom. BLD_1 pos 0.900 [Nm]"]
-            channels_out += ["Y_l Mom. BLD_1 pos 0.100 [Nm]", "Y_l Mom. BLD_1 pos 0.200 [Nm]", "Y_l Mom. BLD_1 pos 0.300 [Nm]", "Y_l Mom. BLD_1 pos 0.400 [Nm]", "Y_l Mom. BLD_1 pos 0.500 [Nm]", "Y_l Mom. BLD_1 pos 0.600 [Nm]", "Y_l Mom. BLD_1 pos 0.700 [Nm]", "Y_l Mom. BLD_1 pos 0.800 [Nm]", "Y_l Mom. BLD_1 pos 0.900 [Nm]"]
-            channels_out += ["Z_l For. BLD_2 pos 0.100 [N]", "Z_l For. BLD_2 pos 0.200 [N]", "Z_l For. BLD_2 pos 0.300 [N]", "Z_l For. BLD_2 pos 0.400 [N]", "Z_l For. BLD_2 pos 0.500 [N]", "Z_l For. BLD_2 pos 0.600 [N]", "Z_l For. BLD_2 pos 0.700 [N]", "Z_l For. BLD_2 pos 0.800 [N]", "Z_l For. BLD_2 pos 0.900 [N]"]
-            channels_out += ["X_l Mom. BLD_2 pos 0.100 [Nm]", "X_l Mom. BLD_2 pos 0.200 [Nm]", "X_l Mom. BLD_2 pos 0.300 [Nm]", "X_l Mom. BLD_2 pos 0.400 [Nm]", "X_l Mom. BLD_2 pos 0.500 [Nm]", "X_l Mom. BLD_2 pos 0.600 [Nm]", "X_l Mom. BLD_2 pos 0.700 [Nm]", "X_l Mom. BLD_2 pos 0.800 [Nm]", "X_l Mom. BLD_2 pos 0.900 [Nm]"]
-            channels_out += ["Y_l Mom. BLD_2 pos 0.100 [Nm]", "Y_l Mom. BLD_2 pos 0.200 [Nm]", "Y_l Mom. BLD_2 pos 0.300 [Nm]", "Y_l Mom. BLD_2 pos 0.400 [Nm]", "Y_l Mom. BLD_2 pos 0.500 [Nm]", "Y_l Mom. BLD_2 pos 0.600 [Nm]", "Y_l Mom. BLD_2 pos 0.700 [Nm]", "Y_l Mom. BLD_2 pos 0.800 [Nm]", "Y_l Mom. BLD_2 pos 0.900 [Nm]"]
+            channels_out += ["X_b Root For. BLD 1 [N]",  "Y_b Root For. BLD 1 [N]", "Z_b Root For. BLD 1 [N]", "X_b Root For. BLD 2 [N]",  "Y_b Root For. BLD 2 [N]", "Z_b Root For. BLD 2 [N]"]
             channels_out += ["Aero. Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "HSS Rpm [rpm]", "Yaw Angle [deg]", "LSS Azimuthal Pos. [deg]"]
             channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
@@ -1273,17 +1328,9 @@ class QBLADELoadCases(ExplicitComponent):
             # channels_out += [] ["RtVAvgxh", "RtVAvgyh", "RtVAvgzh"]
             channels_out += ["X_tb For. TWR Bot. Constr. [N]", "Y_tb For. TWR Bot. Constr. [N]", "Z_tb For. TWR Bot. Constr. [N]", "X_tb Mom. TWR Bot. Constr. [Nm]", "Y_tb Mom. TWR Bot. Constr. [Nm]", "Z_tb Mom. TWR Bot. Constr. [Nm]"]
             channels_out += ["X_tt For. TWR Top Constr. [N]", "Y_tt For. TWR Top Constr. [N]", "Z_tt For. TWR Top Constr. [N]", "X_tt Mom. TWR Top Constr. [Nm]", "Y_tt Mom. TWR Top Constr. [Nm]", "Z_tt Mom. TWR Top Constr. [Nm]"]
-            channels_out += ["X_l For. TWR pos 0.100 [N]", "X_l For. TWR pos 0.200 [N]", "X_l For. TWR pos 0.300 [N]", "X_l For. TWR pos 0.400 [N]", "X_l For. TWR pos 0.500 [N]", "X_l For. TWR pos 0.600 [N]", "X_l For. TWR pos 0.700 [N]", "X_l For. TWR pos 0.800 [N]", "X_l For. TWR pos 0.900 [N]"]
-            channels_out += ["Y_l For. TWR pos 0.100 [N]", "Y_l For. TWR pos 0.200 [N]", "Y_l For. TWR pos 0.300 [N]", "Y_l For. TWR pos 0.400 [N]", "Y_l For. TWR pos 0.500 [N]", "Y_l For. TWR pos 0.600 [N]", "Y_l For. TWR pos 0.700 [N]", "Y_l For. TWR pos 0.800 [N]", "Y_l For. TWR pos 0.900 [N]"]
-            channels_out += ["Z_l For. TWR pos 0.100 [N]", "Z_l For. TWR pos 0.200 [N]", "Z_l For. TWR pos 0.300 [N]", "Z_l For. TWR pos 0.400 [N]", "Z_l For. TWR pos 0.500 [N]", "Z_l For. TWR pos 0.600 [N]", "Z_l For. TWR pos 0.700 [N]", "Z_l For. TWR pos 0.800 [N]", "Z_l For. TWR pos 0.900 [N]"]
-            channels_out += ["X_l Mom. TWR pos 0.100 [Nm]", "X_l Mom. TWR pos 0.200 [Nm]", "X_l Mom. TWR pos 0.300 [Nm]", "X_l Mom. TWR pos 0.400 [Nm]", "X_l Mom. TWR pos 0.500 [Nm]", "X_l Mom. TWR pos 0.600 [Nm]", "X_l Mom. TWR pos 0.700 [Nm]", "X_l Mom. TWR pos 0.800 [Nm]", "X_l Mom. TWR pos 0.900 [Nm]"]
-            channels_out += ["Y_l Mom. TWR pos 0.100 [Nm]", "Y_l Mom. TWR pos 0.200 [Nm]", "Y_l Mom. TWR pos 0.300 [Nm]", "Y_l Mom. TWR pos 0.400 [Nm]", "Y_l Mom. TWR pos 0.500 [Nm]", "Y_l Mom. TWR pos 0.600 [Nm]", "Y_l Mom. TWR pos 0.700 [Nm]", "Y_l Mom. TWR pos 0.800 [Nm]", "Y_l Mom. TWR pos 0.900 [Nm]"]
-            channels_out += ["Z_l Mom. TWR pos 0.100 [Nm]", "Z_l Mom. TWR pos 0.200 [Nm]", "Z_l Mom. TWR pos 0.300 [Nm]", "Z_l Mom. TWR pos 0.400 [Nm]", "Z_l Mom. TWR pos 0.500 [Nm]", "Z_l Mom. TWR pos 0.600 [Nm]", "Z_l Mom. TWR pos 0.700 [Nm]", "Z_l Mom. TWR pos 0.800 [Nm]", "Z_l Mom. TWR pos 0.900 [Nm]"]
             channels_out += ["X_h For. Hub Const. [N]", "Y_h For. Hub Const. [N]", "Z_h For. Hub Const. [N]"] # equivalent to "LSShftFxa", "LSShftFya", "LSShftFza"] rotating 
             channels_out += ["X_s For. Shaft Const. [N]", "Y_s For. Shaft Const. [N]", "Z_s For. Shaft Const. [N]"]  # ["LSShftFxs", "LSShftFys", "LSShftFzs" non-rotating
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
-            channels_out += ["Angle of Attack BLD_1 pos 0.100 [deg]", "Angle of Attack BLD_1 pos 0.200 [deg]", "Angle of Attack BLD_1 pos 0.300 [deg]", "Angle of Attack BLD_1 pos 0.400 [deg]", "Angle of Attack BLD_1 pos 0.500 [deg]", "Angle of Attack BLD_1 pos 0.600 [deg]", "Angle of Attack BLD_1 pos 0.700 [deg]", "Angle of Attack BLD_1 pos 0.800 [deg]", "Angle of Attack BLD_1 pos 0.900 [deg]"]
-            channels_out += ["Angle of Attack BLD_2 pos 0.100 [deg]", "Angle of Attack BLD_2 pos 0.200 [deg]", "Angle of Attack BLD_2 pos 0.300 [deg]", "Angle of Attack BLD_2 pos 0.400 [deg]", "Angle of Attack BLD_2 pos 0.500 [deg]", "Angle of Attack BLD_2 pos 0.600 [deg]", "Angle of Attack BLD_2 pos 0.700 [deg]", "Angle of Attack BLD_2 pos 0.800 [deg]", "Angle of Attack BLD_2 pos 0.900 [deg]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
             channels_out += ["Aero. Power [W]", "NP Wave Elevation [m]"]
 
@@ -1295,11 +1342,7 @@ class QBLADELoadCases(ExplicitComponent):
                 channels_out += ["X_c Root For. BLD 3 [N]","Y_c Root For. BLD 3 [N]","Z_c Root For. BLD 3 [N]"]
                 channels_out += ["X_b Root For. BLD 3 [N]",  "Y_b Root For. BLD 3 [N]", "Z_b Root For. BLD 3 [N]"]
                 channels_out += ["Pitch Angle Blade 3 [deg]"]
-                channels_out += ["Z_l For. BLD_3 pos 0.100 [N]", "Z_l For. BLD_3 pos 0.200 [N]", "Z_l For. BLD_3 pos 0.300 [N]", "Z_l For. BLD_3 pos 0.400 [N]", "Z_l For. BLD_3 pos 0.500 [N]", "Z_l For. BLD_3 pos 0.600 [N]", "Z_l For. BLD_3 pos 0.700 [N]", "Z_l For. BLD_3 pos 0.800 [N]", "Z_l For. BLD_3 pos 0.900 [N]"]
-                channels_out += ["X_l Mom. BLD_3 pos 0.100 [Nm]", "X_l Mom. BLD_3 pos 0.200 [Nm]", "X_l Mom. BLD_3 pos 0.300 [Nm]", "X_l Mom. BLD_3 pos 0.400 [Nm]", "X_l Mom. BLD_3 pos 0.500 [Nm]", "X_l Mom. BLD_3 pos 0.600 [Nm]", "X_l Mom. BLD_3 pos 0.700 [Nm]", "X_l Mom. BLD_3 pos 0.800 [Nm]", "X_l Mom. BLD_3 pos 0.900 [Nm]"]
-                channels_out += ["Y_l Mom. BLD_3 pos 0.100 [Nm]", "Y_l Mom. BLD_3 pos 0.200 [Nm]", "Y_l Mom. BLD_3 pos 0.300 [Nm]", "Y_l Mom. BLD_3 pos 0.400 [Nm]", "Y_l Mom. BLD_3 pos 0.500 [Nm]", "Y_l Mom. BLD_3 pos 0.600 [Nm]", "Y_l Mom. BLD_3 pos 0.700 [Nm]", "Y_l Mom. BLD_3 pos 0.800 [Nm]", "Y_l Mom. BLD_3 pos 0.900 [Nm]"]
-                channels_out += ["Angle of Attack BLD_3 pos 0.100 [deg]", "Angle of Attack BLD_3 pos 0.200 [deg]", "Angle of Attack BLD_3 pos 0.300 [deg]", "Angle of Attack BLD_3 pos 0.400 [deg]", "Angle of Attack BLD_3 pos 0.500 [deg]", "Angle of Attack BLD_3 pos 0.600 [deg]", "Angle of Attack BLD_3 pos 0.700 [deg]", "Angle of Attack BLD_3 pos 0.800 [deg]", "Angle of Attack BLD_3 pos 0.900 [deg]"]
-
+            
             if modopt['flags']['floating']:
                 channels_out += ["NP Trans. X_g [m]", "NP Trans. Y_g [m]", "NP Trans. Z_g [m]", "NP Roll X_l [deg]", "NP Pitch Y_l [deg]", "NP Yaw Z_l [deg]"]
 
@@ -1926,3 +1969,8 @@ class QBLADELoadCases(ExplicitComponent):
         else:
             return int(np.ceil(distance / 10.0))
         
+    def validate_stations(self, station_array, component):
+        required_stations = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        missing_stations = [station for station in required_stations if station not in station_array]
+        if missing_stations:
+            raise ValueError(f"{component} is missing the following required stations: {missing_stations}, please modify the modeling file accordingly")

@@ -39,7 +39,7 @@ The installation instructions below use the environment name, "qbweis-env," but 
         cd QBtoWEIS
 
         
-2. Create a virtual environment abd install the software
+2. Create a virtual environment and install the software:
    
         conda env create --name qbweis-env -f environment.yml
         conda activate qbweis-env   # (if this does not work, try source activate qbweis-env)

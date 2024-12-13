@@ -676,19 +676,19 @@ properties:
                     BLD_1:
                         type: array
                         default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-                        description: blade 1 output locations (should generally not be modified as these positions are reuqired by WEIS to compute integrated forces along the span)
+                        description: blade 1 output locations (further stations can be added by the user but all all of the default stations are required to integrate forces along the span)
                     BLD_2:
                         type: array
                         default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-                        description: blade 2 output locations (should generally not be modified as these positions are reuqired by WEIS to compute integrated forces along the span)
+                        description: blade 2 output locations (further stations can be added by the user but all all of the default stations are required to integrate forces along the span)
                     BLD_3:
                         type: array
                         default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-                        description: blade 3 output locations (should generally not be modified as these positions are reuqired by WEIS to compute integrated forces along the span)
+                        description: blade 3 output locations (further stations can be added by the user but all all of the default stations are required to integrate forces along the span)
                     TWR:
                         type: array
                         default: [0.1, 0.20, 0.30, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-                        description: tower output locations ()
+                        description: tower output locations (further stations can be added by the user but all all of the default stations are required to integrate forces along the span)
             Blade: &qbblade
                 type: object
                 default: {}

@@ -1022,6 +1022,7 @@ class WindPark(om.Group):
                 self.connect('drivese.hub_system_mass',                 'aeroelastic_qblade.hub_system_mass')
                 self.connect('drivese.hub_system_I',                    'aeroelastic_qblade.hub_system_I')
                 self.connect('nacelle.gear_ratio',                      'aeroelastic_qblade.gearbox_ratio')
+                self.connect('rotorse.rp.powercurve.rated_efficiency',  'aeroelastic_qblade.generator_efficiency')
                 self.connect('nacelle.gearbox_efficiency',              'aeroelastic_qblade.gearbox_efficiency')
                 # drtdof
                 self.connect('drivese.generator_rotor_I',               'aeroelastic_qblade.GenIner', src_indices=[0])

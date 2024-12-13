@@ -286,6 +286,7 @@ class InputWriter_QBlade(object):
             f.write('------------------------------- DRIVETRAIN MODEL --------------------------\n')
             f.write(f"{str(self.qb_vt['Main']['GBRATIO']):<{object_lenght}}{'GBRATIO':<{keyword_length}} - gearbox ratio (N)\n")
             f.write(f"{str(self.qb_vt['Main']['GBOXEFF']):<{object_lenght}}{'GBOXEFF':<{keyword_length}} - gearbox efficiency (0-1)\n")
+            f.write(f"{str(self.qb_vt['Main']['GENEFF']):<{object_lenght}}{'GENEFF':<{keyword_length}} - generator efficiency  (0-1)\n")
             f.write(f"{str(self.qb_vt['Main']['DRTRDOF']):<{object_lenght}}{'DRTRDOF':<{keyword_length}} - Model drivetrain dynamics (true / false)\n") 
             f.write(f"{str(self.qb_vt['Main']['GENINER']):<{object_lenght}}{'GENINER':<{keyword_length}} - Generator side (HSS) Inertia (kg*m^2)\n") 
             f.write(f"{str(self.qb_vt['Main']['DTTORSPR']):<{object_lenght}}{'DTTORSPR':<{keyword_length}} - Drivetrain torsional stiffness (N*m/rad)\n") 
