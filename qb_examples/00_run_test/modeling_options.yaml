@@ -38,6 +38,7 @@ Level4: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         PRESCRIBETYPE: 1
         RPMPRESCRIBED: [12.1]
         TMax: 30
+        ADDCHANNELS: ['Azimuthal Angle BLD_1 [deg]']
     Aero:
         ROTORTYPE: HAWT         # only option for now
         INVERTEDFOILS: False    # dummy variable, only used for VAWTs
