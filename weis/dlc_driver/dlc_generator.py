@@ -227,7 +227,7 @@ class DLCGenerator(object):
         return wind_speed, wind_seed
 
     def get_wave_seeds(self, options, wind_speed):
-        if len(options['wave_seed']) > 0:
+        if len(options['wave_seeds']) > 0:
             wave_seed = np.array( [int(m) for m in options['wave_seed']] )
         else:
             wave_seed = self.rng_wave.integers(2147483648, size=len(wind_speed), dtype=int)
