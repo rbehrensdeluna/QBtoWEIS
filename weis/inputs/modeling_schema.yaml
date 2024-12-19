@@ -497,6 +497,12 @@ properties:
                         type: number
                         default: 100.0
                         description: set the number of Eigenmodes and Eigenvalues that will be stored
+                    ADDCHANNELS:
+                        type: array
+                        default: []
+                        description: Option to add arbitrary QBlade channels by the user. The channels need to match the name of the QBlade channel exactly - including the unit, e.g. ('Azimuthal Position Blade 1 [deg]')
+                        items:
+                            type: string
             Aero: &qbaero
                 type: object
                 default: {}
@@ -1480,7 +1486,6 @@ properties:
                         type: integer
                         default: 0
                         description: number of subsensors. Only modify if necessary as this is filled automatically depending on the number of flexible members!
-
             QTurbSim: &qbturbsim
                 type: object
                 default: {}

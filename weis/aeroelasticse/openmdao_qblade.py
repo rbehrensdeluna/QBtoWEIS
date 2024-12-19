@@ -57,7 +57,7 @@ import random
 import base64
 
 
-_encoded_version = 'MC4wLjFfcHJlLXJlbGVhc2U='
+_encoded_version = 'MS4wLjA='
 __version__ = base64.b64decode(_encoded_version).decode('utf-8')
 
 logger = logging.getLogger("wisdem/weis") 
@@ -401,10 +401,12 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('damage_monopile_base',     val=0.0, desc="Miner's rule cumulative damage at monopile base")
         
         # iteration counter used as model name appendix
-        self.qb_inumber = -1
+        self.qb_inumber = 0
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_ouputs=None):
-        print(f"############### The WEIS-QBlade component with version number: {__version__} is called ###############")
+        print("############################################################")
+        print(f"The WEIS-QBlade component with version number: {__version__} is called")
+        print("############################################################")
         
         modopt = self.options['modeling_options']
         sys.stdout.flush() 
@@ -1359,6 +1361,10 @@ class QBLADELoadCases(ExplicitComponent):
                     channels_out += [f"X_l Mom. SUB_member_{member-1} pos {rel_member_pos:.3f} [Nm]"]
                     channels_out += [f"Y_l Mom. SUB_member_{member-1} pos {rel_member_pos:.3f} [Nm]"]
                     channels_out += [f"Z_l Mom. SUB_member_{member-1} pos {rel_member_pos:.3f} [Nm]"]
+
+            # Add user defined channels from modeling_options
+            if self.qb_vt['QSim']['ADDCHANNELS']:
+                channels_out += self.qb_vt['QSim']['ADDCHANNELS']
         else:
             logger.warning("NOSTRUCTURE is set to True, Only channels and hence DVs, constraints and merit figures that don't depend on CHRONO are available")
             channels_out = ["Time [s]"]
@@ -1426,10 +1432,19 @@ class QBLADELoadCases(ExplicitComponent):
             writer.execute()
 
             if modopt['General']['qblade_configuration']['store_iterations']:
-                self.qb_inumber += 1
-                writer.QBLADE_runDirectory  = self.QBLADE_runDirectory + '/model_iterations'
-                writer.QBLADE_namingOut     = self.QBLADE_namingOut + '_it_' + str(self.qb_inumber).zfill(3)
+                writer.QBLADE_runDirectory = f"{self.QBLADE_runDirectory}/model_iterations"
+                iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
+                
+                if cases > 1:
+                    case = f"_case_{idx}"
+                else:
+                    case = ""
+                    
+                writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
+
                 writer.execute()    
+        
+        self.qb_inumber += 1 # update iteration counter
 
     def init_QBlade_model(self):
         modopt = self.options['modeling_options']

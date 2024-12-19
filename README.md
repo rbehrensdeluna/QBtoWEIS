@@ -76,6 +76,6 @@ Verify if correct package versions were installed
 
         conda list wisdem # (check if wisdem version equals 3.13.0 otherwise uninstall and revert)
         pip uninstall wisdem
-        pip install wisdem==3.13.0
-        
-        The same should be done for rosco (2.9.2) scipy (1.13.0) and openfast (3.5.2)
+        pip install wisdem==3.16.4
+
+        The same should be done for rosco (2.9.4), scipy (1.13.0), openfast (3.5.2), openmdao (3.35.0)
