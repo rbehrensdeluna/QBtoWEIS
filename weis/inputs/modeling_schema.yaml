@@ -80,6 +80,7 @@ properties:
                         type: boolean
                         default: False
                         description: Write standard output to own file.  Output will not print to screen.
+<<<<<<< HEAD
             qblade_configuration:
                 type: object
                 default: {}
@@ -124,6 +125,8 @@ properties:
                         type: boolean
                         default: False
                         description: store the .qpr of a simulation (should not be used for optimizations)
+=======
+>>>>>>> upstream/develop
             goodman_correction:
                 type: boolean
                 default: False
@@ -3428,7 +3431,7 @@ properties:
                         description: Low cut-off frequency or lower frequency limit of the wave spectrum beyond which the wave spectrum is zeroed (rad/s) [unused when WaveMod=0, 1, or 6]
                     WvHiCOff:
                         type: number
-                        default: 0.783827
+                        default: 1.256637  # 5 sec.
                         minimum: 0.0
                         maximum: 1e3
                         unit: rad/s
@@ -4659,7 +4662,11 @@ properties:
                         DLC:
                             type: string
                             default: '1.1'
+<<<<<<< HEAD
                             enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.3', '3.1', '3.2', '3.3', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '12.1', 'Custom']
+=======
+                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.3', '3.1', '3.2', '3.3', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '7.1', '7.2', '12.1', 'Custom','AEP']
+>>>>>>> upstream/develop
                             description: IEC design load case to run. The DLCs currently supported are 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.1, 6.1, 6.3, and 6.4
                         wind_speed:
                             type: array
@@ -4700,7 +4707,7 @@ properties:
                                 unit: none
                                 minItems: 1
                                 uniqueItems: true
-                        wave_seeds:
+                        wave_seed:
                             type: array
                             default: []
                             description: Wave random number generator seeds for HydroDyn
@@ -4818,6 +4825,14 @@ properties:
                         wind_file:
                             type: string
                             description: File path of custom wind file
+                        TI_factor: 
+                            type: number
+                            unit: Percentage
+                            description: The fraction of the TI, relative to the class defined in the geometry options or by turbulence_class
+                        turbulence_class: 
+                            type: string
+                            enum: ['A+','A','B','C']
+                            description: The class of turbulence, will overwrite class defined in geometry options. Only valid in the AEP DLC.
                         turbulent_wind:
                             type: object
                             default: {}
