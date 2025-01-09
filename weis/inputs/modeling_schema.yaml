@@ -231,6 +231,10 @@ properties:
                         type: boolean
                         default: False
                         description: Flag to create *.sim file to run QBlade simulation
+                    DLCGenerator:
+                        type: boolean
+                        default: False
+                        description: Flag to generate simulations with the DLC_driver options
                     TMax:
                         type: number
                         default: 0
@@ -1475,7 +1479,7 @@ properties:
                         description: the seed for the random phase generator range [0-65535]
                     DIRTYPE:
                         type: integer
-                        default: 1
+                        default: 0
                         enum: [0, 1]
                         description: the directional type, 0 = UNIDIRECTIONAL, 1 = COSINESPREAD
                     DIRMEAN:

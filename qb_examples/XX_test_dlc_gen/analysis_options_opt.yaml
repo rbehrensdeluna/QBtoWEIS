@@ -1,0 +1,45 @@
+general:
+    folder_output: test_dlc_gen
+    fname_output: refturb_output
+
+
+design_variables:
+  mooring:
+    line_length:
+      flag: true
+      lower_bound: 750
+      upper_bound: 1000
+    line_diameter:
+      flag: true
+      lower_bound: 0.05
+      upper_bound: 0.1
+  floating:
+    joints:
+      flag: True
+      z_coordinate:
+          - names: [spar_keel]
+            lower_bound: -140.0
+            upper_bound: -100.0
+
+merit_figure: platform_mass  # Merit figure of the optimization problem. The options are 'AEP' - 'LCOE' - 'Cp' - 'blade_mass' - 'blade_tip_deflection'
+
+constraints:
+  control:
+    Max_PtfmPitch:
+      flag: True
+      max: 5.5
+    Std_PtfmPitch:
+      flag: False
+      max: 2.
+
+driver:
+  optimization:
+    flag: True
+    tol: 1.e-3            # Optimality tolerance
+    max_iter: 200           # Maximum number of iterations (SLSQP)
+    solver: LN_COBYLA     # Optimization solver. Other options are 'SLSQP' - 'CONMIN'
+    
+recorder:
+    flag: True              # Flag to activate OpenMDAO recorder
+    file_name: log_opt.sql  # Name of OpenMDAO recorder
+    includes: ['floatingse.platform_mass']

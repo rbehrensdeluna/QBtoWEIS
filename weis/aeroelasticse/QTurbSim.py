@@ -27,6 +27,7 @@ class TurbSimRunner:
         self.QBLADE_namingOut = None
         self.qb_vt = None
         self.number_of_workers = 1
+        self.run_dir = None
 
     def run_single_turbsim(self, idx):
         QBLADE_namingOut_appendix = f'_{idx}'
@@ -37,14 +38,42 @@ class TurbSimRunner:
         wrapper.turbsim_input = self.QBLADE_namingOut + QBLADE_namingOut_appendix + '.inp'
         wrapper.execute()
 
-    def run_TurbSim(self):
-        indices = np.arange(len(self.qb_vt['QTurbSim']['URef']))
-        
-        with concurrent.futures.ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
-            futures = [executor.submit(self.run_single_turbsim, idx) for idx in indices]
+    def run_DLC_turbsim(self, turbsim_input_file):
+        wrapper = Turbsim_wrapper()
+        wrapper.turbsim_exe = shutil.which('turbsim')
+        wrapper.turbsim_input = turbsim_input_file
+        wrapper.execute()
+
+    def run_TurbSim(self,DLCGenerator):
+
+        if DLCGenerator:
+            turbsim_input_files = [os.path.join(self.run_dir, f) for f in os.listdir(self.run_dir) if f.endswith('.in')]
             
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"Simulation failed with exception: {e}")
+            with concurrent.futures.ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
+                futures = []
+                for turbsim_input_file in turbsim_input_files:
+                    # Check if the corresponding .bts file exists
+                    bts_file = os.path.splitext(turbsim_input_file)[0] + '.bts'
+                    if os.path.exists(bts_file):
+                        print(f"Skipping {turbsim_input_file} as {bts_file} already exists.")
+                        continue
+
+                    # If .bts file doesn't exist, add to the execution queue
+                    futures.append(executor.submit(self.run_DLC_turbsim, turbsim_input_file))
+
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"Simulation failed with exception: {e}")
+        else:
+            indices = np.arange(len(self.qb_vt['QTurbSim']['URef']))
+        
+            with concurrent.futures.ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
+                futures = [executor.submit(self.run_single_turbsim, idx) for idx in indices]
+                
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"Simulation failed with exception: {e}")

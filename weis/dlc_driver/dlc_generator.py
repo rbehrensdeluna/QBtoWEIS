@@ -51,6 +51,8 @@ class DLCGenerator(object):
 
     # TODO: not sure where this should live, so it's a global for now
     # Could it be an input yaml?
+    
+    
     openfast_input_map = {
         # Generic name: OpenFAST input (list if necessary)
         'total_time': ("Fst","TMax"),
@@ -123,6 +125,74 @@ class DLCGenerator(object):
         'shear': ("TurbSim", "shear_hv")
     }
 
+    qblade_input_map = {
+        # Generic name: OpenFAST input (list if necessary)
+        'total_time': ("QSim","TMax"),
+        'transient_time': ("QSim","STOREFROM"),
+        
+        'WindFile_type': ("QSim","WNDTYPE"),
+        'wind_speed': ("QSim","MEANINF"), # double check this 
+        'WindFile_name': ("QTurbSim","TurbSimInp"),
+        'WindHd': ("QSim","VERTANGLE"), # double check this
+
+        # TODO: Check if required in QBalde
+        # 'WindFile_name': ("InflowWind","Filename_Uni"),
+        # 'rotorD': ("InflowWind","RefLength"),
+        # 'hub_height': ("InflowWind","RefHt_Uni"),
+        
+        'rot_speed_initial': ("QSim","RPMPRESCRIBED"),
+        'pitch_initial': ("QSim","INITIAL_PITCH"),
+        'azimuth_init': ("QSim","INITIAL_AZIMUTH"),
+        'yaw_misalign': ("QSim","INITIAL_YAW"),
+        
+        'wave_height': ("QBladeOcean","SIGHEIGHT"),
+        'wave_period': ("QBladeOcean","PEAKPERIOD"),
+        'WaveHd': ("QBladeOcean","DIRMEAN"),
+        'WaveGamma': ("QBladeOcean","GAMMA"), # check this
+        'wave_seed': ("QBladeOcean","RANDSEED"),
+
+        'wave_model': ("HydroDyn","WAVETYPE"), # needs to do he same as WaveMod 
+
+        'aero_mod': ("Turbine","DYNSTALLTYPE"),
+        'wake_mod': ("Turbine","WAKETYPE"),
+        'tau1_const': ("AeroDyn15","tau1_const"), # No QBlade
+
+        'wind_seed': ("QTurbSim", "RandSeed1"),
+        'direction': ("QTurbSim", "direction_pn"),
+        'shear': ("QTurbSim", "shear_hv"),
+        
+        # TODO: These need to be converted to an event file
+        'shutdown_time': [
+            ("ServoDyn","TPitManS1"),
+            ("ServoDyn","TPitManS2"),
+            ("ServoDyn","TPitManS3"),
+            ("ServoDyn","TimGenOf"),
+            ],
+
+        'startup_time': [
+            ("ServoDyn","TimGenOn"),
+            ("ServoDyn","TPCOn"),
+        ],
+
+        'final_blade_pitch': [
+            ("ServoDyn","BlPitchF(1)"),
+            ("ServoDyn","BlPitchF(2)"),
+            ("ServoDyn","BlPitchF(3)"),
+            
+        ],
+
+        'pitchfault_time1': ("ServoDyn","TPitManS1"),
+        'pitchfault_time2': ("ServoDyn","TPitManS2"),
+        'pitchfault_time3': ("ServoDyn","TPitManS3"),
+        'pitchfault_blade1pos': ("ServoDyn","BlPitchF(1)"),
+        'pitchfault_blade2pos': ("ServoDyn","BlPitchF(2)"),
+        'pitchfault_blade3pos': ("ServoDyn","BlPitchF(3)"),
+        'genfault_time': ("ServoDyn","TimGenOf"),
+        'yawfault_time': ("ServoDyn","TYawManS"),
+        'yawfault_yawpos': ("ServoDyn","NacYawF"),
+
+    }
+
     
 
     def __init__(
@@ -164,6 +234,7 @@ class DLCGenerator(object):
 
         # Init openfast case list
         self.openfast_case_inputs = []
+        self.qblade_case_inputs = []
 
         # Metocean conditions
         self.mo_ws = metocean['wind_speed']
@@ -228,7 +299,7 @@ class DLCGenerator(object):
 
     def get_wave_seeds(self, options, wind_speed):
         if len(options['wave_seeds']) > 0:
-            wave_seed = np.array( [int(m) for m in options['wave_seed']] )
+            wave_seed = np.array( [int(m) for m in options['wave_seeds']] )
         else:
             wave_seed = self.rng_wave.integers(2147483648, size=len(wind_speed), dtype=int)
 
@@ -490,7 +561,11 @@ class DLCGenerator(object):
         generic_case_list, _ = CaseGen_General(gen_case_inputs,save_matrix=False)
 
         case_inputs_openfast = self.map_generic_to_openfast(generic_case_inputs, comb_options)
+        case_inputs_qblade = self.map_generic_to_qblade(generic_case_inputs, comb_options)
+
         self.openfast_case_inputs.append(case_inputs_openfast)
+        self.qblade_case_inputs.append(case_inputs_qblade)
+
         return generic_case_list
 
     def gen_met_options(self, dlc_options, sea_state='normal'):
@@ -554,6 +629,26 @@ class DLCGenerator(object):
                     case_inputs_openfast[openfast_input] = {'vals': comb_options[generic_input], 'group': i_group}
 
         return case_inputs_openfast
+    
+    def map_generic_to_qblade(self,generic_case_inputs, comb_options):
+        case_inputs_qblade = {}
+        for i_group, generic_case_group in enumerate(generic_case_inputs):
+            for generic_input in generic_case_group:
+
+                if generic_input not in self.qblade_input_map.keys():
+                    raise Exception(f'The input {generic_input} does not map to a QBlade input key in qblade_input_map')
+
+                qblade_input = self.qblade_input_map[generic_input]
+
+                if type(qblade_input) == list:
+                    # Apply to all list of openfast_inputs
+                    for qb_input in qblade_input:
+                        case_inputs_qblade[qb_input] = {'vals': comb_options[generic_input], 'group': i_group}
+
+                else:
+                    case_inputs_qblade[qblade_input] = {'vals': comb_options[generic_input], 'group': i_group}
+
+        return case_inputs_qblade
 
     def generate_1p1(self, dlc_options):
         # Power production normal turbulence model - normal sea state

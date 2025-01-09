@@ -1,0 +1,114 @@
+General:
+    verbosity: False  # When set to True, the code prints to screen many infos
+    openfast_configuration:
+        OF_run_fst: NREL5MW_OC3_spar
+        use_exe: True
+        model_only: False
+
+WISDEM:
+    RotorSE:
+        flag: True
+        spar_cap_ss: Spar_Cap_SS
+        spar_cap_ps: Spar_Cap_PS
+        te_ss: TE_reinforcement_SS
+        te_ps: TE_reinforcement_PS
+    TowerSE:
+        flag: True
+    DriveSE:
+        flag: True
+    FloatingSE:
+        flag: True
+        rank_and_file: True
+    BOS:
+        flag: True
+
+Level1:
+    flag: False
+    potential_model_override: 1
+    potential_bem_members: [spar]
+    min_freq_BEM: 0.1
+    min_freq: 0.1
+    max_freq: 1.0
+    
+Level3: # Options for WEIS fidelity level 3 = nonlinear time domain
+    flag: True
+    simulation:
+        DT: 0.0125
+        CompElast: 1
+        CompInflow: 1
+        CompAero: 2
+        CompServo: 1
+        CompHydro: 1
+        CompSub: 0
+        CompMooring: 3
+        CompIce: 0
+        SttsTime: 10.0
+        OutFileFmt: 3
+    linearization:
+        Linearize: False
+    ElastoDyn:
+        FlapDOF1: True
+        FlapDOF2: True
+        EdgeDOF: True
+        TeetDOF: False
+        DrTrDOF: False 
+        GenDOF: True
+        YawDOF: False  
+        TwFADOF1 : True
+        TwFADOF2 : False
+        TwSSDOF1 : True
+        TwSSDOF2 : True
+        PtfmSgDOF: True
+        PtfmSwDOF: True
+        PtfmHvDOF: True
+        PtfmRDOF : True
+        PtfmPDOF : True
+        PtfmYDOF : False
+        SumPrint: True
+    HydroDyn:
+        WaveTMax: 800
+        WvLowCOff: 0.15708
+        WvHiCOff: 3.2
+        WaveSeed1: 123456789
+        WaveSeed2: 1011121314
+        AddBLin1: [100000, 0.0, 0.0, 0.0, 0.0, 0.0]
+        AddBLin2: [0.0, 100000.0, 0.0, 0.0, 0.0, 0.0]
+        AddBLin3: [0.0, 0.0, 130000.0, 0.0, 0.0, 0.0]
+        AddBLin6: [0.0, 0.0, 0.0, 0.0, 0.0, 13000000]
+        AddCLin6: [0.0, 0.0, 0.0, 0.0, 0.0, 98340000]
+        PotMod: 1
+        ExctnMod: 1
+        RdtnMod: 1
+        RdtnDT: 0.0125
+        PotFile: examples/03_NREL5MW_OC3_spar/HydroData/Spar
+        # PtfmMass_Init: 7.462e6
+
+ROSCO:
+    flag: False
+    SD_Mode: 0
+    PS_Mode: 1
+    Fl_Mode: 2
+    zeta_pc: [0.7]
+    omega_pc: [0.35]
+    twr_freq: 100                     # Frequency of notch in floating feedback (F_NotchCornerFreq)
+    ptfm_freq: .2                     # Frequency of LPF in floating feedback (F_FlCornerFreq)
+    zeta_vs: 0.7
+    omega_vs: 0.2
+    
+DLC_driver:
+    DLCs:
+        - DLC: "1.1"
+          ws_bin_size: 1
+          wind_speed: [ 14.]
+          wave_height: [ 7.]
+          wave_period: [1.]
+          n_seeds: 1
+          analysis_time: 90.
+          transient_time: 0.
+          turbulent_wind:
+              HubHt: 90.0
+              GridHeight: 178.0
+              GridWidth: 178.0
+              Clockwise: True
+              RefHt: 90.0
+              PLExp: 0.11

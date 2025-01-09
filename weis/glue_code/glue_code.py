@@ -666,6 +666,8 @@ class WindPark(om.Group):
                     self.connect('tower.diameter',             'drivese_post.D_top', src_indices=[-1])
                     self.connect('aeroelastic.hub_Fxyz_aero',       'drivese_post.F_aero_hub')
                     self.connect('aeroelastic.hub_Mxyz_aero',       'drivese_post.M_aero_hub')
+                    # self.connect('aeroelastic.hub_Fxyz',       'drivese_post.F_hub')
+                    # self.connect('aeroelastic.hub_Mxyz',       'drivese_post.M_hub')
                     self.connect('aeroelastic.max_RootMyb',     'drivese_post.pitch_system.BRFM')
                     self.connect('blade.pa.chord_param',        'drivese_post.blade_root_diameter', src_indices=[0])
                     self.connect('rotorse.blade_mass',          'drivese_post.blade_mass')
@@ -1034,6 +1036,8 @@ class WindPark(om.Group):
                 self.connect('rotorse.rp.powercurve.V',                     'aeroelastic_qblade.U')
                 self.connect('rotorse.rp.powercurve.Omega',                 'aeroelastic_qblade.Omega')
                 self.connect('rotorse.rp.powercurve.pitch',                 'aeroelastic_qblade.pitch')
+                self.connect('rotorse.rp.powercurve.Ct_aero',               'aeroelastic_qblade.Ct_aero')
+                
 
                 # Chrono blade structural definition
                 self.connect('rotorse.rhoA',                           'aeroelastic_qblade.beam:rhoA')
@@ -1194,6 +1198,12 @@ class WindPark(om.Group):
                 self.connect('rotorse.yu_te', 'rlds_post.strains.yu_te')
                 self.connect('rotorse.yl_te', 'rlds_post.strains.yl_te')
                 self.connect('blade.outer_shape_bem.s','rlds_post.constr.s')
+                self.connect("blade.internal_structure_2d_fem.d_f", "rlds_post.brs.d_f")
+                self.connect("blade.internal_structure_2d_fem.sigma_max", "rlds_post.brs.sigma_max")
+                self.connect("blade.pa.chord_param", "rlds_post.brs.rootD", src_indices=[0])
+                self.connect("blade.ps.layer_thickness_param", "rlds_post.brs.layer_thickness")
+                self.connect("blade.internal_structure_2d_fem.layer_start_nd", "rlds_post.brs.layer_start_nd")
+                self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rlds_post.brs.layer_end_nd")
 
                 if modeling_options["flags"]["monopile"]:
                     # mono_params = ["z_full","d_full","t_full",

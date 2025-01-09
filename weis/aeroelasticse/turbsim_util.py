@@ -220,7 +220,7 @@ class Turbsim_wrapper(object):
         subprocess.call(exec_string)
         os.chdir(olddir)
 
-def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, hub_height, turbsim_exe, i_case):
+def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, hub_height, turbsim_exe, i_case, generate_for_qblade=False):
 
     if dlc_generator.cases[i_case].turbulent_wind:
         # Write out turbsim input file
@@ -246,21 +246,36 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
                         runTS = True
                         break
 
+        if generate_for_qblade:
+            if runTS:
+                ts_writer = TurbsimWriter(dlc_generator.cases[i_case])
+                ts_writer.execute(turbsim_input_file_path)
 
-        if runTS:
-            ts_writer = TurbsimWriter(dlc_generator.cases[i_case])
-            ts_writer.execute(turbsim_input_file_path)
+                # Run TurbSim in sequence
+                wrapper = Turbsim_wrapper()
+                wrapper.run_dir = wind_directory
+                #run_dir = os.path.dirname( os.path.dirname( os.path.dirname( os.path.realpath(__file__) ) ) ) + os.sep
+                wrapper.turbsim_exe = turbsim_exe
+                wrapper.turbsim_input = turbsim_input_file_name
+                # wrapper.execute() # we execute this beforhand in Qblade
 
-            # Run TurbSim in sequence
-            wrapper = Turbsim_wrapper()
-            wrapper.run_dir = wind_directory
-            #run_dir = os.path.dirname( os.path.dirname( os.path.dirname( os.path.realpath(__file__) ) ) ) + os.sep
-            wrapper.turbsim_exe = turbsim_exe
-            wrapper.turbsim_input = turbsim_input_file_name
-            wrapper.execute()
+            # a turbulent wind field in qblade equals a wind_type of 1
+            wind_file_type = 1 
+        else:
+            if runTS:
+                ts_writer = TurbsimWriter(dlc_generator.cases[i_case])
+                ts_writer.execute(turbsim_input_file_path)
 
-        # Pass data to CaseGen_General to call OpenFAST
-        wind_file_type = 3
+                # Run TurbSim in sequence
+                wrapper = Turbsim_wrapper()
+                wrapper.run_dir = wind_directory
+                #run_dir = os.path.dirname( os.path.dirname( os.path.dirname( os.path.realpath(__file__) ) ) ) + os.sep
+                wrapper.turbsim_exe = turbsim_exe
+                wrapper.turbsim_input = turbsim_input_file_name
+                wrapper.execute()
+
+            # Pass data to CaseGen_General to call OpenFAST
+            wind_file_type = 3
 
     else:
         if dlc_generator.cases[i_case].label != '12.1':

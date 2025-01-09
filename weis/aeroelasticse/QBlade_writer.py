@@ -79,7 +79,7 @@ class InputWriter_QBlade(object):
         if self.qb_vt['QSim']['wave_flag'] and self.qb_vt['QSim']['ISOFFSHORE'] == 1 :
             self.write_wave_file()
 
-        if self.qb_vt['QSim']['WNDTYPE']:
+        if self.qb_vt['QSim']['WNDTYPE'] and not self.qb_vt['QSim']['DLCGenerator']:
             self.write_turbsim_input()
 
         # write simulation setup file
@@ -877,7 +877,7 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['QBladeOcean']['GAMMA']):<{object_length}}{'GAMMA':<{keyword_length}}  - custom gamma (JONSWAP & TORSE only)\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['AUTOSIGMA']):<{object_length}}{'AUTOSIGMA':<{keyword_length}}  - use sigmas according to IEC (JONSWAP & TORSE only) [bool]\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['SIGMA1']):<{object_length}}{'SIGMA1':<{keyword_length}}  - sigma1 (JONSWAP & TORSE only)\n")
-            f.write(f"{str(self.qb_vt['QBladeOcean']['SIGMA2']):<{object_length}}{'SIGMA2':<{keyword_length}}  - sigma1 (JONSWAP & TORSE only)\n")
+            f.write(f"{str(self.qb_vt['QBladeOcean']['SIGMA2']):<{object_length}}{'SIGMA2':<{keyword_length}}  - sigma2 (JONSWAP & TORSE only)\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['DOUBLEPEAK']):<{object_length}}{'DOUBLEPEAK':<{keyword_length}}  - if true a double peak TORSETHAUGEN spectrum will be created, if false only a single peak (TORSE only)\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['AUTOORCHI']):<{object_length}}{'AUTOORCHI':<{keyword_length}}  - automatic OCHI-HUBBLE parameters from significant wave height (OCHI only) [bool]\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['MODFREQ1']):<{object_length}}{'MODFREQ1':<{keyword_length}}  - modal frequency 1, must be '< modalfreq1 * 0.5' (OCHI only)\n")
@@ -1085,8 +1085,11 @@ class InputWriter_QBlade(object):
         
         if not self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = ''
+        elif self.qb_vt['QSim']['DLCGenerator'] and self.qb_vt['QSim']['WNDTYPE'] == 1:
+            turbsim_file = self.qb_vt['QTurbSim']['TurbSimInp']
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = os.path.join(self.QBLADE_namingOut, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp']).replace('.inp','.bts')
+        
         
 
             

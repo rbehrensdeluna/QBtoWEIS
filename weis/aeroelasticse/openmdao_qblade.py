@@ -38,6 +38,7 @@ from functools import partial
 from pCrunch import PowerProduction
 from weis.aeroelasticse import FileTools
 from weis.aeroelasticse.turbsim_util import Turbsim_wrapper
+from weis.aeroelasticse.turbsim_util import generate_wind_files
 
 from weis.aeroelasticse.utils import OLAFParams
 from rosco.toolbox import control_interface as ROSCO_ci
@@ -46,7 +47,7 @@ from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
 from weis.control.dtqp_wrapper          import dtqp_wrapper
 from weis.aeroelasticse.StC_defaults        import default_StC_vt
 from weis.aeroelasticse.CaseGen_General import case_naming
-from wisdem.inputs import load_yaml
+from wisdem.inputs import load_yaml, write_yaml
 ## neccessary inputs:
 import wisdem.commonse.cross_sections as cs
 
@@ -307,13 +308,19 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('U',             val=np.zeros(n_pc), units='m/s', desc='wind speeds')
             self.add_input('Omega',         val=np.zeros(n_pc), units='rpm', desc='rotation speeds to run')
             self.add_input('pitch',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
+            self.add_input("Ct_aero",       val=np.zeros(n_pc), desc="rotor aerodynamic thrust coefficient")
 
         # TODO is this really the best way?
-        if modopt['Level4']['simulation']['WNDTYPE'] == 1:
-             n_ws = len(modopt['Level4']['QTurbSim']['URef'])  
-        else:
-             n_ws = len(modopt['Level4']['simulation']['MEANINF'])
 
+        if modopt['Level4']['simulation']['WNDTYPE'] == 1:
+            n_ws = len(modopt['Level4']['QTurbSim']['URef'])  
+        elif modopt['Level4']['simulation']['DLCGenerator']:
+            n_ws = modopt['DLC_driver']['n_cases']
+        else:
+            n_ws = len(modopt['Level4']['simulation']['MEANINF'])
+        
+        
+        
         # QBlade options
         QBmgmt = modopt['General']['qblade_configuration']
         self.model_only = QBmgmt['model_only']
@@ -326,6 +333,12 @@ class QBLADELoadCases(ExplicitComponent):
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
         self.QBLADE_runDirectory = QBLADE_directory_base
         self.QBLADE_namingOut = self.QBLADE_InputFile
+        if modopt['Level4']['simulation']['DLCGenerator']:
+            self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
+            if not os.path.exists(self.wind_directory):
+                os.makedirs(self.wind_directory, exist_ok=True) 
+
+        self.turbsim_exe = shutil.which('turbsim')
 
         # Outpus
 
@@ -421,10 +434,11 @@ class QBLADELoadCases(ExplicitComponent):
             self.write_QBLADE(qb_vt, inputs, discrete_inputs)
         else:
             # Write input QB files and run QB
-            self.write_QBLADE(qb_vt, inputs, discrete_inputs)
-            summary_stats, extreme_table, DELs, Damage, chan_time = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
+            if not qb_vt['QSim']['DLCGenerator']:
+                self.write_QBLADE(qb_vt, inputs, discrete_inputs)
+            summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
-            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs)
+            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator)
 
     def update_QBLADE_model(self, qb_vt, inputs, discrete_inputs):
         modopt = self.options['modeling_options']
@@ -437,6 +451,8 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['QSim']['VISCOSITYAIR'] = inputs['mu'][0] / inputs['rho'][0]
         qb_vt['QSim']['DENSITYWATER'] = float(inputs['rho_water'])
         qb_vt['QSim']['VISCOSITYWATER'] = inputs['mu_water'][0] /inputs['rho_water'][0]  
+        
+        # if DLCGenerator is true, NUMT
         if qb_vt['QSim']['TMax'] > 0:
             qb_vt['QSim']['NUMTIMESTEPS'] = int(qb_vt['QSim']['TMax'] / qb_vt['QSim']['TIMESTEP'])
 
@@ -1099,16 +1115,158 @@ class QBLADELoadCases(ExplicitComponent):
         path2qb_libs    = modopt['General']['qblade_configuration']['path2qb_libs']
         self.qb_vt = qb_vt 
 
+        if qb_vt['QSim']['DLCGenerator']:
+            modopt = self.options['modeling_options']
+            DLCs = modopt['DLC_driver']['DLCs']
+            # Initialize the DLC generator
+            cut_in = float(inputs['V_cutin'])
+            cut_out = float(inputs['V_cutout'])
+            rated = float(inputs['Vrated'])
+            ws_class = discrete_inputs['turbine_class']
+            wt_class = discrete_inputs['turbulence_class']
+            hub_height = float(inputs['hub_height'])
+            rotorD = float(inputs['Rtip'])*2.
+            PLExp = float(inputs['shearExp'])
+            fix_wind_seeds = modopt['DLC_driver']['fix_wind_seeds']
+            fix_wave_seeds = modopt['DLC_driver']['fix_wave_seeds']
+            metocean = modopt['DLC_driver']['metocean_conditions']
+
+            U_interp = inputs['U']
+            pitch_interp = inputs['pitch']
+            rot_speed_interp = inputs['Omega']
+            Ct_aero_interp = inputs['Ct_aero']
+
+            # Makes life easier in post-processing
+            self.qb_vt['QTurbSim']['URef']  = DLCs[0]['wind_speed']
+            # Necessary to make SIL run the appropriate number of timesteps
+            self.qb_vt['QSim']['TMax'] = DLCs[0]['analysis_time'] + DLCs[0]['transient_time']
+            
+            tau1_const_interp = np.zeros_like(Ct_aero_interp)
+            for i in range(len(Ct_aero_interp)):
+                a = 1. / 2. * (1. - np.sqrt(1. - np.min([Ct_aero_interp[i],1])))    # don't allow Ct_aero > 1
+                tau1_const_interp[i] = 1.1 / (1. - 1.3 * np.min([a, 0.5])) * inputs['Rtip'][0] / U_interp[i]
+
+            initial_condition_table = {}
+            initial_condition_table['U'] = U_interp
+            initial_condition_table['pitch_initial'] = pitch_interp
+            initial_condition_table['rot_speed_initial'] = rot_speed_interp
+            initial_condition_table['Ct_aero'] = Ct_aero_interp
+            initial_condition_table['tau1_const'] = tau1_const_interp
+
+            dlc_generator = DLCGenerator(
+                cut_in, 
+                cut_out, 
+                rated, 
+                ws_class, 
+                wt_class, 
+                fix_wind_seeds, 
+                fix_wave_seeds, 
+                metocean, 
+                initial_condition_table,
+                )
+        
+            # Generate cases from user inputs
+            for i_DLC in range(len(DLCs)):
+                DLCopt = DLCs[i_DLC]
+                dlc_generator.generate(DLCopt['DLC'], DLCopt)
+            
+            # Initialize parametric inputs
+            WindFile_type = np.zeros(dlc_generator.n_cases, dtype=int)
+            WindFile_name = [''] * dlc_generator.n_cases
+
+            self.TMax = np.zeros(dlc_generator.n_cases)
+            self.TStart = np.zeros(dlc_generator.n_cases)
+
+            for i_case in range(dlc_generator.n_cases):
+                if dlc_generator.cases[i_case].turbulent_wind:
+                    # Assign values common to all DLCs
+                    # Wind turbulence class
+                    if dlc_generator.cases[i_case].IECturbc > 0:    # use custom TI for DLC case
+                        dlc_generator.cases[i_case].IECturbc = str(dlc_generator.cases[i_case].IECturbc)
+                        dlc_generator.cases[i_case].IEC_WindType = 'NTM'        # must use NTM for custom TI
+                    else:
+                        dlc_generator.cases[i_case].IECturbc = wt_class
+                    # Reference height for wind speed
+                    if not dlc_generator.cases[i_case].RefHt:   # default RefHt is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].RefHt = hub_height
+                    # Center of wind grid (TurbSim confusingly calls it HubHt)
+                    if not dlc_generator.cases[i_case].HubHt:   # default HubHt is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].HubHt = hub_height
+
+                    if not dlc_generator.cases[i_case].GridHeight:   # default GridHeight is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].GridHeight =  2. * hub_height - 1.e-3
+
+                    if not dlc_generator.cases[i_case].GridWidth:   # default GridWidth is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].GridWidth =  2. * hub_height - 1.e-3
+
+                    # Power law exponent of wind shear
+                    if dlc_generator.cases[i_case].PLExp < 0:    # use PLExp based on environment options (shear_exp), otherwise use custom DLC PLExp
+                        dlc_generator.cases[i_case].PLExp = PLExp
+                    # Length of wind grids
+                    dlc_generator.cases[i_case].AnalysisTime = dlc_generator.cases[i_case].total_time
+            
+            for i_case in range(dlc_generator.n_cases):
+                WindFile_type[i_case] , WindFile_name[i_case] = generate_wind_files(
+                        dlc_generator, self.QBLADE_namingOut, self.wind_directory, rotorD, hub_height, self.turbsim_exe, i_case, generate_for_qblade=True)
+            
+            # Generate turbsim input files. This deviates a bit from the process used for openfast
+            turbsim = TurbSimRunner()
+            turbsim.run_dir = self.wind_directory
+            turbsim.qb_vt = qb_vt
+            turbsim.number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
+            turbsim.run_TurbSim(qb_vt['QSim']['DLCGenerator'])
+
+            # Parameteric inputs
+            case_name = []
+            case_list = []
+            for i_case, case_inputs in enumerate(dlc_generator.qblade_case_inputs):
+                # Generate case list for DLC i
+                dlc_label = DLCs[i_case]['DLC']
+                case_list_i, case_name_i = CaseGen_General(case_inputs, self.QBLADE_runDirectory, self.QBLADE_InputFile, filename_ext=f'_DLC{dlc_label}_{i_case}')
+                # Add DLC to case names
+                case_name_i = [f'DLC{dlc_label}_{i_case}_{cni}' for cni in case_name_i]
+                
+                # Extend lists of cases
+                case_list.extend(case_list_i)
+                case_name.extend(case_name_i)
+
+            # Apply wind files to case_list (this info will be in combined case matrix, but not individual DLCs)
+            for case_i, wt, wf in zip(case_list,WindFile_type,WindFile_name):
+                # TODO: not sure if we need this in QBlade but is helpful to define the wind type
+                case_i[('QSim','WNDTYPE')] = wt
+                case_i[('QTurbSim','TurbSimInp')] = wf
+                
+                # case_i[('QTurbSim','FileName_BTS')] = wf
+
+            # Save some case info
+            self.TMax = [c.total_time for c in dlc_generator.cases]
+            self.TStart = [c.transient_time for c in dlc_generator.cases]
+            dlc_label = [c.label for c in dlc_generator.cases]
+            
+            # Merge various cases into single case matrix
+            case_df = pd.DataFrame(case_list)
+            case_df.index = case_name
+            # Add case name and dlc label to front for readability
+            case_df.insert(0,'DLC',dlc_label)
+            case_df.insert(0,'case_name',case_name)
+            text_table = case_df.to_string(index=False)
+
+            self.write_QBLADE_DLCGenerator(qb_vt, inputs, discrete_inputs,case_list,case_name)
+
+            # Write the text table to a yaml, text file
+            # write_yaml(case_df.to_dict(),os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.yaml'))
+            # with open(os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.txt'), 'w') as file:
+                # file.write(text_table)
 
         # run TurbSim all cases
-        if qb_vt['QSim']['WNDTYPE'] == 1:
+        elif qb_vt['QSim']['WNDTYPE'] == 1:
             # self.run_TurbSim(qb_vt)
             turbsim = TurbSimRunner()
             turbsim.QBLADE_runDirectory = self.QBLADE_runDirectory
             turbsim.QBLADE_namingOut = self.QBLADE_namingOut
             turbsim.qb_vt = qb_vt
             turbsim.number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
-            turbsim.run_TurbSim()
+            turbsim.run_TurbSim(qb_vt['QSim']['DLCGenerator'])
 
                
         qblade                      = qbwrap.QBladeWrapper()
@@ -1116,7 +1274,7 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.QBlade_libs          = os.path.join(weis_dir,path2qb_libs)
         qblade.QBLADE_runDirectory  = self.QBLADE_runDirectory
         qblade.QBLADE_namingOut     = self.QBLADE_namingOut
-        qblade.qb_vt                = modopt['General']['qblade_configuration']['qb_vt']
+        qblade.qb_vt                = self.qb_vt
         qblade.number_of_workers    = modopt['General']['qblade_configuration']['number_of_workers']
         qblade.no_structure         = modopt['Level4']['Turbine']['NOSTRUCTURE']
         qblade.store_qprs           = modopt['General']['qblade_configuration']['store_qprs']
@@ -1238,7 +1396,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         summary_stats, extreme_table, DELs, Damage, chan_time = qblade.run_qblade_cases()
 
-        return summary_stats, extreme_table, DELs, Damage, chan_time
+        return summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator
 
     def run_TurbSim(self, qb_vt):
         self.qb_vt = qb_vt
@@ -1446,6 +1604,63 @@ class QBLADELoadCases(ExplicitComponent):
         
         self.qb_inumber += 1 # update iteration counter
 
+    def write_QBLADE_DLCGenerator(self, qb_vt, inputs, discrete_inputs,case_list,case_name):
+        modopt = self.options['modeling_options']
+        writer = InputWriter_QBlade()
+        
+        # For each case we want to generate a QBlade simulation - so we iterate through them
+        i_qb_vt = copy.deepcopy(qb_vt) # create one instance of qb_vt per case to be simulated
+
+        cases = len(case_name)
+        
+        for idx in range(cases):
+
+            # hardcode for now
+            i_qb_vt['QSim']['wave_flag']      = True
+            # i_qb_vt['QBladeOcean']['WAVETYPE'] = 3
+            i_qb_vt['QSim']['INITIAL_AZIMUTH'] = 0
+                
+            i_qb_vt['QTurbSim']['URef']         = case_list[idx][('QSim', 'MEANINF')]
+            i_qb_vt['QSim']['MEANINF']          = 0
+            i_qb_vt['QSim']['WNDTYPE']          = case_list[idx][('QSim', 'WNDTYPE')]
+            i_qb_vt['QTurbSim']['TurbSimInp']   = case_list[idx][('QTurbSim', 'TurbSimInp')]
+            i_qb_vt['QSim']['TMax']             = case_list[idx][('QSim', 'TMax')]
+            i_qb_vt['QSim']['NUMTIMESTEPS']     = int(i_qb_vt['QSim']['TMax'] / i_qb_vt['QSim']['TIMESTEP'])
+            i_qb_vt['QSim']['STOREFROM']        = case_list[idx][('QSim', 'STOREFROM')]
+            
+            i_qb_vt['QSim']['RPMPRESCRIBED']   = case_list[idx][('QSim', 'RPMPRESCRIBED')]
+            i_qb_vt['QSim']['INITIAL_PITCH']   = case_list[idx][('QSim', 'INITIAL_PITCH')]
+            i_qb_vt['QSim']['INITIAL_YAW']     = case_list[idx][('QSim', 'INITIAL_YAW')]
+            # i_qb_vt['QSim']['INITIAL_AZIMUTH'] = 0
+
+            i_qb_vt['QBladeOcean']['SIGHEIGHT']    = case_list[idx][('QBladeOcean', 'SIGHEIGHT')]
+            i_qb_vt['QBladeOcean']['PEAKPERIOD']   = case_list[idx][('QBladeOcean', 'PEAKPERIOD')]
+            # i_qb_vt['QBladeOcean']['DIRMEAN']      = case_list[idx][('QBladeOcean', 'DIRMEAN')]
+            # i_qb_vt['QBladeOcean']['GAMMA']        = case_list[idx][('QBladeOcean', 'GAMMA')]
+            i_qb_vt['QBladeOcean']['RANDSEED']     = case_list[idx][('QBladeOcean', 'RANDSEED')]
+
+            # add apendix based on wind speed to the file name
+            writer.qb_vt = i_qb_vt
+            writer.QBLADE_runDirectory  = self.QBLADE_runDirectory
+            writer.QBLADE_namingOut     = case_name[idx] # +'_U'+str(case_list[idx][('QSim', 'MEANINF')])+'_WindSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])+'_WaveSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])
+
+            writer.execute()
+
+            if modopt['General']['qblade_configuration']['store_iterations']:
+                writer.QBLADE_runDirectory = f"{self.QBLADE_runDirectory}/model_iterations"
+                iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
+                
+                if cases > 1:
+                    case = f"_case_{idx}"
+                else:
+                    case = ""
+                    
+                writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
+
+                writer.execute()    
+        
+        self.qb_inumber += 1 # update iteration counter
+
     def init_QBlade_model(self):
         modopt = self.options['modeling_options']
         qb_vt = modopt['General']['qblade_configuration']['qb_vt']
@@ -1493,7 +1708,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QTurbSim'][key] = modeling_options['Level4']['QTurbSim'][key]
         return qb_vt
 
-    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs):
+    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator):
         # leaning heavily on equivalent funtion in "openmdao_openfast.py"
         # TODO do the post-processing acutally for DLCs and not only idealized cases
         modopt = self.options['modeling_options']
@@ -1506,7 +1721,7 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']['monopile']:
                 outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
 
-            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs)
+            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator)
 
             outputs = self.get_weighted_DELs(DELs, damage, discrete_inputs, outputs)
             
@@ -1519,7 +1734,7 @@ class QBLADELoadCases(ExplicitComponent):
 
     def get_weighted_DELs(self, DELs, damage, discrete_inputs, outputs):
         modopt = self.options['modeling_options']
-        if self.qb_vt['QSim']['WNDTYPE'] == 1:
+        if self.qb_vt['QSim']['WNDTYPE'] == 1 or self.qb_vt['QSim']['DLCGenerator']:
             U = self.qb_vt['QTurbSim']['URef']    
         else:
             U = self.qb_vt['QSim']['MEANINF']
@@ -1587,12 +1802,27 @@ class QBLADELoadCases(ExplicitComponent):
 
         return outputs
     
-    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs):
-        if self.qb_vt['QSim']['WNDTYPE'] == 1:
+    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs, dlc_generator):
+        
+        modopts = self.options['modeling_options']
+        DLCs = [i_dlc['DLC'] for i_dlc in modopts['DLC_driver']['DLCs']]
+        if 'AEP' in DLCs:
+            DLC_label_for_AEP = 'AEP'
+        else:
+            DLC_label_for_AEP = '1.1'
+            logger.warning('WARNING: DLC 1.1 is being used for AEP calculations.  Use the AEP DLC for more accurate wind modeling with constant TI.')
+
+        if self.qb_vt['QSim']['DLCGenerator']:
+            U = []
+            for i_case in range(dlc_generator.n_cases):
+                if dlc_generator.cases[i_case].label == DLC_label_for_AEP:
+                    idx_pwrcrv = np.append(idx_pwrcrv, i_case)
+                    U = np.append(U, dlc_generator.cases[i_case].URef)
+        elif self.qb_vt['QSim']['WNDTYPE'] == 1:
             U = self.qb_vt['QTurbSim']['URef']    
         else:
             U = self.qb_vt['QSim']['MEANINF']
-            
+
         if len(U) > 1 and self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0:
             pp = PowerProduction(discrete_inputs['turbine_class'])
             

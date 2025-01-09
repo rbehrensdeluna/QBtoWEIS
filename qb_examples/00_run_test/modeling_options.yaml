@@ -10,6 +10,7 @@ General:
         QB_run_mod: qb_nrel5mw
         QB_run_dir: run_test/run_nrel5mw
         model_only: False
+        number_of_workers: 12
 
 WISDEM:
     RotorSE:
