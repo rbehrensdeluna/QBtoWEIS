@@ -84,31 +84,64 @@ Level3: # Options for WEIS fidelity level 3 = nonlinear time domain
         # PtfmMass_Init: 7.462e6
 
 ROSCO:
-    flag: False
+    flag: True
     SD_Mode: 0
     PS_Mode: 1
     Fl_Mode: 2
-    zeta_pc: [0.7]
-    omega_pc: [0.35]
-    twr_freq: 100                     # Frequency of notch in floating feedback (F_NotchCornerFreq)
-    ptfm_freq: .2                     # Frequency of LPF in floating feedback (F_FlCornerFreq)
+    U_pc : [10,15,20]
+    zeta_pc: [0.8,0.8,0.8]
+    omega_pc: [0.35,0.35,0.35]
+    Kp_float: -10
+    twr_freq: 100
+    ptfm_freq: .2 
     zeta_vs: 0.7
     omega_vs: 0.2
-    
+
 DLC_driver:
+    metocean_conditions:
+        wind_speed: [4., 6., 8., 10., 12., 14., 16., 18., 20., 22., 24.]
+        wave_height_NSS: [0.83, 0.88, 0.94, 1.03, 1.16, 1.34, 1.57, 1.86, 2.22, 2.62, 3.07]
+        wave_period_NSS: [6.9, 6.96, 7.02, 7.12, 7.25, 7.43, 7.66, 7.94, 8.27, 8.63, 9.01]
+        wave_height_SSS: [6.3, 8, 8, 8.1, 8.5, 8.5, 9.8, 9.8, 9.8, 9.8, 9.9]
+        wave_period_SSS: [11.5, 12.7, 12.7, 12.8, 13.1, 13.1, 14.1, 14.1, 14.1, 14.1, 14.1]
+        wave_height_1: 6.98
+        wave_period_1: 11.7
+        wave_height_50: 10.68
+        wave_period_50: 14.2
     DLCs:
-        - DLC: "1.1"
-          ws_bin_size: 1
-          wind_speed: [ 14.]
-          wave_height: [ 7.]
-          wave_period: [1.]
-          n_seeds: 1
-          analysis_time: 90.
-          transient_time: 0.
-          turbulent_wind:
-              HubHt: 90.0
-              GridHeight: 178.0
-              GridWidth: 178.0
-              Clockwise: True
-              RefHt: 90.0
-              PLExp: 0.11
+        - DLC: "1.6"    # local, lite
+          n_seeds: 2
+          wind_speed: [10,15,20]
+          wave_seeds: [1, 2, 3, 4, 5, 6]
+          transient_time: 120.0  # 0.
+          analysis_time: 600.0  # 10.
+          
+# ROSCO:
+#     flag: False
+#     SD_Mode: 0
+#     PS_Mode: 1
+#     Fl_Mode: 2
+#     zeta_pc: [0.7]
+#     omega_pc: [0.35]
+#     twr_freq: 100                     # Frequency of notch in floating feedback (F_NotchCornerFreq)
+#     ptfm_freq: .2                     # Frequency of LPF in floating feedback (F_FlCornerFreq)
+#     zeta_vs: 0.7
+#     omega_vs: 0.2
+    
+# DLC_driver:
+#     DLCs:
+#         - DLC: "1.1"
+#           ws_bin_size: 1
+#           wind_speed: [ 14.]
+#           wave_height: [ 7.]
+#           wave_period: [1.]
+#           n_seeds: 1
+#           analysis_time: 90.
+#           transient_time: 0.
+#           turbulent_wind:
+#               HubHt: 90.0
+#               GridHeight: 178.0
+#               GridWidth: 178.0
+#               Clockwise: True
+#               RefHt: 90.0
+#               PLExp: 0.11

@@ -34,8 +34,9 @@ Level4:                         # Options for WEIS fidelity level 4 = nonlinear 
         TMax: 120
         TIMESTEP: 0.05
         ISOFFSHORE: 1
-        STOREFROM: 60.0
+        STOREFROM: 60.0 
         PRESCRIBETYPE: 0        # should be 0 if Controllertype > 1
+        MEANINF: [6,10,14]
         RPMPRESCRIBED: [4, 7, 7]
         INITIAL_PITCH: [0, 0, 5]
         RAMPUP: 30

@@ -116,10 +116,18 @@ properties:
                         type: boolean
                         default: True
                         description: Keep timeseries in openmdao_qblade for post-processing
-                    store_iterations:
+                    store_iterations: #TODO: asd
                         type: boolean
                         default: False
                         description: store the qblade *.sim of each iteration (for visualization of optimization progress)
+                    save_timeseries:
+                        type: boolean
+                        default: True
+                        description: Save qblade output timeseries
+                    save_iterations:
+                        type: boolean
+                        default: True
+                        description: Save summary stats and other info for each qlade iteration.
                     store_qprs:
                         type: boolean
                         default: False

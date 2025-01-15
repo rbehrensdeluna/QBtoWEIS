@@ -413,10 +413,12 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('damage_tower_base',        val=0.0, desc="Miner's rule cumulative damage at tower base")
         self.add_output('damage_monopile_base',     val=0.0, desc="Miner's rule cumulative damage at monopile base")
         
+        self.add_discrete_output('ts_out_dir', val={})
+
         # iteration counter used as model name appendix
         self.qb_inumber = 0
 
-    def compute(self, inputs, outputs, discrete_inputs, discrete_ouputs=None):
+    def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
         print("############################################################")
         print(f"The WEIS-QBlade component with version number: {__version__} is called")
         print("############################################################")
@@ -438,7 +440,7 @@ class QBLADELoadCases(ExplicitComponent):
                 self.write_QBLADE(qb_vt, inputs, discrete_inputs)
             summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
-            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator)
+            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs)
 
     def update_QBLADE_model(self, qb_vt, inputs, discrete_inputs):
         modopt = self.options['modeling_options']
@@ -1114,6 +1116,8 @@ class QBLADELoadCases(ExplicitComponent):
         path2qb_dll     = modopt['General']['qblade_configuration']['path2qb_dll']
         path2qb_libs    = modopt['General']['qblade_configuration']['path2qb_libs']
         self.qb_vt = qb_vt 
+        
+        dlc_generator = None # Do this to avoid error when no DLCs are generated
 
         if qb_vt['QSim']['DLCGenerator']:
             modopt = self.options['modeling_options']
@@ -1138,6 +1142,7 @@ class QBLADELoadCases(ExplicitComponent):
 
             # Makes life easier in post-processing
             self.qb_vt['QTurbSim']['URef']  = DLCs[0]['wind_speed']
+            self.qb_vt['QSim']['STOREFROM'] = DLCs[0]['transient_time']
             # Necessary to make SIL run the appropriate number of timesteps
             self.qb_vt['QSim']['TMax'] = DLCs[0]['analysis_time'] + DLCs[0]['transient_time']
             
@@ -1254,9 +1259,9 @@ class QBLADELoadCases(ExplicitComponent):
             self.write_QBLADE_DLCGenerator(qb_vt, inputs, discrete_inputs,case_list,case_name)
 
             # Write the text table to a yaml, text file
-            # write_yaml(case_df.to_dict(),os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.yaml'))
-            # with open(os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.txt'), 'w') as file:
-                # file.write(text_table)
+            write_yaml(case_df.to_dict(),os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.yaml'))
+            with open(os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.txt'), 'w') as file:
+                file.write(text_table)
 
         # run TurbSim all cases
         elif qb_vt['QSim']['WNDTYPE'] == 1:
@@ -1637,7 +1642,7 @@ class QBLADELoadCases(ExplicitComponent):
             i_qb_vt['QBladeOcean']['PEAKPERIOD']   = case_list[idx][('QBladeOcean', 'PEAKPERIOD')]
             # i_qb_vt['QBladeOcean']['DIRMEAN']      = case_list[idx][('QBladeOcean', 'DIRMEAN')]
             # i_qb_vt['QBladeOcean']['GAMMA']        = case_list[idx][('QBladeOcean', 'GAMMA')]
-            i_qb_vt['QBladeOcean']['RANDSEED']     = case_list[idx][('QBladeOcean', 'RANDSEED')]
+            i_qb_vt['QBladeOcean']['RANDSEED']     = case_list[idx][('QBladeOcean', 'RANDSEED')] % 65535 # 65535 is the maximum rand seed QBladeOcean allows
 
             # add apendix based on wind speed to the file name
             writer.qb_vt = i_qb_vt
@@ -1708,7 +1713,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QTurbSim'][key] = modeling_options['Level4']['QTurbSim'][key]
         return qb_vt
 
-    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator):
+    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs):
         # leaning heavily on equivalent funtion in "openmdao_openfast.py"
         # TODO do the post-processing acutally for DLCs and not only idealized cases
         modopt = self.options['modeling_options']
@@ -1729,6 +1734,13 @@ class QBLADELoadCases(ExplicitComponent):
 
             if modopt['flags']['floating']: # TODO: or (modopt['Level4']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
+            # Save Data
+            if modopt['General']['qblade_configuration']['save_timeseries']:
+                self.save_timeseries(chan_time)
+
+            if modopt['General']['qblade_configuration']['save_iterations']:
+                self.save_iterations(summary_stats,DELs,discrete_outputs)
+
         else:
             outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs)
 
@@ -2219,3 +2231,30 @@ class QBLADELoadCases(ExplicitComponent):
         missing_stations = [station for station in required_stations if station not in station_array]
         if missing_stations:
             raise ValueError(f"{component} is missing the following required stations: {missing_stations}, please modify the modeling file accordingly")
+        
+    def save_iterations(self,summ_stats,DELs,discrete_outputs):
+
+        # Make iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber))
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Save dataframes as pickles
+        summ_stats.to_pickle(os.path.join(save_dir,'summary_stats.p'))
+        DELs.to_pickle(os.path.join(save_dir,'DELs.p'))
+
+        # Save qb_vt as pickle
+        with open(os.path.join(save_dir,'qb_vt.p'), 'wb') as f:
+            pickle.dump(self.qb_vt,f)
+
+        discrete_outputs['ts_out_dir'] = save_dir
+
+    def save_timeseries(self,chan_time):
+
+        # Make iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber),'timeseries')
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Save each timeseries as a pickled dataframe
+        for i_ts, timeseries in enumerate(chan_time):
+            output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
+            output.df.to_pickle(os.path.join(save_dir,self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))

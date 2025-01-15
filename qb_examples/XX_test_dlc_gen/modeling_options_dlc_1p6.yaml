@@ -10,7 +10,7 @@ General:
         QB_run_mod: nrel5mw
         QB_run_dir: test_dlc_gen_1p6/run_nrel5mw
         model_only: False
-        number_of_workers: 9
+        number_of_workers: 1
 
 WISDEM:
     RotorSE:
@@ -35,7 +35,7 @@ Level4: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         Simulate: True
         DLCGenerator: True
         ISOFFSHORE: 1
-        STOREFROM: 0.0
+        # STOREFROM: 10.0
         PRESCRIBETYPE: 1
         RPMPRESCRIBED: [12.1]
         TMax: 30

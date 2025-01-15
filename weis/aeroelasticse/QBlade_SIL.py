@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 
-def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible):
+def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from):
     bsim = sim.encode("utf-8")
     
     QBLIB = QBladeLibrary(QBlade_dll, QB_mp_compatible)
@@ -49,10 +49,11 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
         if i % (n_dt // 10) == 0:
             print(f"Simulation Progress: {i / n_dt * 100}% completed")
 
-        # extract channels from simulation     
-        for bchannel, channel in zip(bchannels, channels):
-                data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
-                output_dict[channel].append(data)
+        # extract channels from simulation    
+        if QBLIB.getCustomData_at_num(b'Time [s]', 0, 0) >= store_from:
+            for bchannel, channel in zip(bchannels, channels):
+                    data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
+                    output_dict[channel].append(data)
 
     print(f"QBlade Simulation Progress: 100% completed")
 
@@ -69,7 +70,7 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
     output_dict = scale_and_rename_channels(output_dict)
     export_to_OF_ASCII(output_dict, directory = QBLADE_runDirectory,  filename = sim_out_name + '_completed.out')
 
-def run_qblade_sil(QBlade_dll,QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible):
+def run_qblade_sil(QBlade_dll,QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible, store_from):
    
    simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
 
@@ -78,7 +79,7 @@ def run_qblade_sil(QBlade_dll,QBLADE_runDirectory, channels, n_dt, number_of_wor
         for sim in simulations:
                         
             futures.append(
-                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible)
+                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from)
             )
         for future in concurrent.futures.as_completed(futures):
             try:
@@ -153,8 +154,9 @@ if __name__ == "__main__":
     no_structure = sys.argv[6]
     store_qprs = sys.argv[7]
     QB_mp_compatible = sys.argv[8]
+    store_from =  float(sys.argv[9])
 
     # required inputs are converted back into the datatype that we need
     channels = channels_str.split(',') #convert back to list
 
-    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible)
+    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible, store_from)

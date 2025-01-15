@@ -1,0 +1,129 @@
+---------------------- file generated with WEIS QBlade API ----------------------
+
+---------------------- QBLADE STRUCTURAL MODEL INPUT FILE ----------------------
+nrel5mw
+------------------------------- CHRONO PARAMETERS -------------------------
+0.2                           GLBGEOEPS                 - Global geometry epsilon for node placement
+
+------------------------------- HAWT TURBINE CONFIGURATION ----------------
+2.49981                       PRECONE                   - Rotor PreCone (deg) (HAWT only)
+4.99963                       SHFTTILT                  - Turbine Shaft Tilt (deg) (HAWT only)
+5.0                           OVERHANG                  - Rotor Overhang (m) (HAWT only)
+1.86425                       TWR2SHFT                  - Tower to Shaft distance (m) (HAWT only)
+
+------------------------------- MASS AND INERTIA --------------------------
+6144.20363                    YAWBRMASS                 - Yaw Bearing Mass (kg) (HAWT only)
+115864.33423                  NACMASS                   - Nacelle Mass (kg) (HAWT only)
+0.30266                       NACCMX                    - Downwind distance from the tower-top to the nacelle CM (m) (HAWT only)
+-0.18117                      NACCMY                    - Lateral  distance from the tower-top to the nacelle CM (m) (HAWT only)
+0.99494                       NACCMZ                    - Vertical distance from the tower-top to the nacelle CM (m) (HAWT only)
+1375076.32177                 NACYINER                  - Nacelle Yaw Inertia (kg*m^2) (HAWT only)
+11492.04017                   HUBMASS                   - Hub Mass (kg)
+24411.81505                   HUBINER                   - Hub Inertia (kg*m^2)
+
+------------------------------- DRIVETRAIN MODEL --------------------------
+96.0                          GBRATIO                   - gearbox ratio (N)
+0.975                         GBOXEFF                   - gearbox efficiency (0-1)
+0.93934                       GENEFF                    - generator efficiency  (0-1)
+True                          DRTRDOF                   - Model drivetrain dynamics (true / false)
+3676.18614                    GENINER                   - Generator side (HSS) Inertia (kg*m^2)
+365374245.94612               DTTORSPR                  - Drivetrain torsional stiffness (N*m/rad)
+2281480.82287                 DTTORDMP                  - Drivetrain torsional damping (N*m*s/rad)
+
+------------------------------- BRAKE MODEL -------------------------------
+0.0                           BRKTORQUE                 - Maximum brake torque
+0.0                           BRKDEPLOY                 - Brake deploy time (s) (only used with DTU style controllers)
+0.0                           BRKDELAY                  - Brake delay time (s) (only used with DTU style controllers)
+
+------------------------------- SENSOR ERRORS -----------------------------
+0.0                           ERRORYAW                  - Yaw error (deg) (HAWT only)
+0.0                           ERRORPITCH_1              - Pitch error blade1 (deg)
+0.0                           ERRORPITCH_2              - Pitch error blade2 (deg)
+0.0                           ERRORPITCH_3              - Pitch error blade3 (deg)
+
+------------------------------- BLADES ------------------------------------
+3                             NUMBLD                    - Number of blades
+DLC1.6_0_nrel5mw_3_Blade.str  BLDFILE_1                 - Name of file containing properties for blade '+ str(blade) + '
+DLC1.6_0_nrel5mw_3_Blade.str  BLDFILE_2                 - Name of file containing properties for blade '+ str(blade) + '
+DLC1.6_0_nrel5mw_3_Blade.str  BLDFILE_3                 - Name of file containing properties for blade '+ str(blade) + '
+
+------------------------------- TOWER -------------------------------------
+77.7                          TWRHEIGHT                 - Height of the tower (m)
+DLC1.6_0_nrel5mw_3_Tower.str  TWRFILE                   - Name of file containing properties for the tower
+
+------------------------------- Substructure -------------------------------------
+DLC1.6_0_nrel5mw_3_Sub.str    SUBFILE                   - Name of file containing properties for the substructure
+
+------------------------------- DATA OUTPUT TYPES -------------------------
+True                          AER_OUT                   - Aerodynamic output
+True                          FOR_OUT                   - Structural output
+False                         ROT_OUT                   - Rotor output
+False                         MOM_OUT                   - Moments output
+False                         DEF_OUT                   - Deflections output
+False                         POS_OUT                   - Positions output
+False                         VEL_OUT                   - Velocities output
+False                         ACC_OUT                   - Accelerations output
+False                         LVE_OUT                   - Linear velocities output
+False                         LAC_OUT                   - Linear accelerations output
+
+------------------------------- DATA OUTPUT LOCATIONS -----------------------------
+BLD_1_0.00 - output position of blade 1 at 0% normalized radius
+BLD_1_0.05 - output position of blade 1 at 5% normalized radius
+BLD_1_0.10 - output position of blade 1 at 10% normalized radius
+BLD_1_0.15 - output position of blade 1 at 15% normalized radius
+BLD_1_0.20 - output position of blade 1 at 20% normalized radius
+BLD_1_0.30 - output position of blade 1 at 30% normalized radius
+BLD_1_0.40 - output position of blade 1 at 40% normalized radius
+BLD_1_0.50 - output position of blade 1 at 50% normalized radius
+BLD_1_0.60 - output position of blade 1 at 60% normalized radius
+BLD_1_0.70 - output position of blade 1 at 70% normalized radius
+BLD_1_0.80 - output position of blade 1 at 80% normalized radius
+BLD_1_0.85 - output position of blade 1 at 85% normalized radius
+BLD_1_0.90 - output position of blade 1 at 90% normalized radius
+BLD_1_0.95 - output position of blade 1 at 95% normalized radius
+BLD_1_1.00 - output position of blade 1 at 100% normalized radius
+
+BLD_2_0.00 - output position of blade 2 at 0% normalized radius
+BLD_2_0.05 - output position of blade 2 at 5% normalized radius
+BLD_2_0.10 - output position of blade 2 at 10% normalized radius
+BLD_2_0.15 - output position of blade 2 at 15% normalized radius
+BLD_2_0.20 - output position of blade 2 at 20% normalized radius
+BLD_2_0.30 - output position of blade 2 at 30% normalized radius
+BLD_2_0.40 - output position of blade 2 at 40% normalized radius
+BLD_2_0.50 - output position of blade 2 at 50% normalized radius
+BLD_2_0.60 - output position of blade 2 at 60% normalized radius
+BLD_2_0.70 - output position of blade 2 at 70% normalized radius
+BLD_2_0.80 - output position of blade 2 at 80% normalized radius
+BLD_2_0.85 - output position of blade 2 at 85% normalized radius
+BLD_2_0.90 - output position of blade 2 at 90% normalized radius
+BLD_2_0.95 - output position of blade 2 at 95% normalized radius
+BLD_2_1.00 - output position of blade 2 at 100% normalized radius
+
+BLD_3_0.00 - output position of blade 3 at 0% normalized radius
+BLD_3_0.05 - output position of blade 3 at 5% normalized radius
+BLD_3_0.10 - output position of blade 3 at 10% normalized radius
+BLD_3_0.15 - output position of blade 3 at 15% normalized radius
+BLD_3_0.20 - output position of blade 3 at 20% normalized radius
+BLD_3_0.30 - output position of blade 3 at 30% normalized radius
+BLD_3_0.40 - output position of blade 3 at 40% normalized radius
+BLD_3_0.50 - output position of blade 3 at 50% normalized radius
+BLD_3_0.60 - output position of blade 3 at 60% normalized radius
+BLD_3_0.70 - output position of blade 3 at 70% normalized radius
+BLD_3_0.80 - output position of blade 3 at 80% normalized radius
+BLD_3_0.85 - output position of blade 3 at 85% normalized radius
+BLD_3_0.90 - output position of blade 3 at 90% normalized radius
+BLD_3_0.95 - output position of blade 3 at 95% normalized radius
+BLD_3_1.00 - output position of blade 3 at 100% normalized radius
+
+TWR_0.00 - output position of the tower at 0% normalized radius
+TWR_0.10 - output position of the tower at 10% normalized radius
+TWR_0.20 - output position of the tower at 20% normalized radius
+TWR_0.30 - output position of the tower at 30% normalized radius
+TWR_0.40 - output position of the tower at 40% normalized radius
+TWR_0.50 - output position of the tower at 50% normalized radius
+TWR_0.60 - output position of the tower at 60% normalized radius
+TWR_0.70 - output position of the tower at 70% normalized radius
+TWR_0.80 - output position of the tower at 80% normalized radius
+TWR_0.90 - output position of the tower at 90% normalized radius
+TWR_1.00 - output position of the tower at 100% normalized radius
+

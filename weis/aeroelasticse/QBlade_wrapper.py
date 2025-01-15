@@ -134,6 +134,7 @@ class QBladeWrapper:
             str(self.no_structure),
             str(self.store_qprs),
             str(QB_mp_compatible),
+            str(self.qb_vt['QSim']['STOREFROM']),
             ]
         
         cmd = ['python', script_path] + sim_params
