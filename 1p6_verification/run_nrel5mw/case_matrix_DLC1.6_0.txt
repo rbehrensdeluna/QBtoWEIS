@@ -1,3 +1,0 @@
- Case_ID      AeroDyn15       HydroDyn  QBladeOcean  QBladeOcean  QBladeOcean       QSim          QSim       QSim          QSim            QSim    QSim   QTurbSim   Turbine  
-              tau1_const      WAVETYPE   PEAKPERIOD    RANDSEED    SIGHEIGHT   INITIAL_PITCH  INITIAL_YAW  MEANINF    RPMPRESCRIBED     STOREFROM  TMax  RandSeed1   WAKETYPE 
-    0     10.298340229562134     2          12.8      304524126       8.1           0.0            0         10.0   10.636921844601709     10.0    20.0  1501552846     1     

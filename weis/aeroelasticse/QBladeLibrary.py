@@ -15,7 +15,6 @@ and may not be used without authorization.
 """
 
 from ctypes import *
-from sys import platform
 
 class QBladeLibrary:
 
