@@ -112,14 +112,8 @@ class QBladeWrapper:
         print(f"Environment variables set. Library path: {libraries_path}")
 
     def execute(self):
-        print(sys.platform)
-        # add library ending if windows is used
-        if sys.platform == "win32":
-            self.QBlade_dll = self.QBlade_dll + '.dll'
-        # Set the environment variables if run on linux
-        elif sys.platform == "linux":
+        if sys.platform == "linux":
             self.set_environment()
-        # print(os.getcwd())
         # Run the Python script using subprocess
         script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QBlade_SIL.py')
 

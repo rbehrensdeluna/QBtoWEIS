@@ -22,6 +22,7 @@ import copy
 import glob
 import logging
 import pickle
+import subprocess
 from pathlib import Path
 from scipy.interpolate                      import PchipInterpolator
 from openmdao.api                           import ExplicitComponent
@@ -52,7 +53,6 @@ from wisdem.inputs import load_yaml, write_yaml
 import wisdem.commonse.cross_sections as cs
 
 from weis.aeroelasticse.QBlade_writer         import InputWriter_QBlade
-from weis.aeroelasticse.QTurbSim              import TurbSimRunner
 import weis.aeroelasticse.QBlade_wrapper as qbwrap
 import random
 import base64
@@ -333,7 +333,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
         self.QBLADE_runDirectory = QBLADE_directory_base
         self.QBLADE_namingOut = self.QBLADE_InputFile
-        if modopt['Level4']['simulation']['DLCGenerator']:
+        if modopt['Level4']['simulation']['DLCGenerator'] or modopt['Level4']['simulation']['WNDTYPE']== 1:
             self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
             if not os.path.exists(self.wind_directory):
                 os.makedirs(self.wind_directory, exist_ok=True) 
@@ -1214,12 +1214,20 @@ class QBLADELoadCases(ExplicitComponent):
                 WindFile_type[i_case] , WindFile_name[i_case] = generate_wind_files(
                         dlc_generator, self.QBLADE_namingOut, self.wind_directory, rotorD, hub_height, self.turbsim_exe, i_case, generate_for_qblade=True)
             
-            # Generate turbsim input files. This deviates a bit from the process used for openfast
-            turbsim = TurbSimRunner()
-            turbsim.run_dir = self.wind_directory
-            turbsim.qb_vt = qb_vt
-            turbsim.number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
-            turbsim.run_TurbSim(qb_vt['QSim']['DLCGenerator'])
+            script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script      
+            wind_directory = self.wind_directory    
+            number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
+
+            # Prepare command
+            turbsim_params = [
+                wind_directory,
+                str(number_of_workers),
+            ]
+
+            cmd = ['python', script_path] + turbsim_params
+
+            # Run TurbSim
+            subprocess.run(cmd, check=True)
 
             # Parameteric inputs
             case_name = []
@@ -1263,15 +1271,18 @@ class QBLADELoadCases(ExplicitComponent):
             with open(os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.txt'), 'w') as file:
                 file.write(text_table)
 
-        # run TurbSim all cases
         elif qb_vt['QSim']['WNDTYPE'] == 1:
-            # self.run_TurbSim(qb_vt)
-            turbsim = TurbSimRunner()
-            turbsim.QBLADE_runDirectory = self.QBLADE_runDirectory
-            turbsim.QBLADE_namingOut = self.QBLADE_namingOut
-            turbsim.qb_vt = qb_vt
-            turbsim.number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
-            turbsim.run_TurbSim(qb_vt['QSim']['DLCGenerator'])
+            script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script
+            wind_directory = self.wind_directory       
+            number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']                                        
+
+            turbsim_params = [
+                wind_directory,
+                str(number_of_workers),
+            ]
+            cmd = ['python', script_path] + turbsim_params
+            # Run TurbSim
+            subprocess.run(cmd, check=True)
 
                
         qblade                      = qbwrap.QBladeWrapper()

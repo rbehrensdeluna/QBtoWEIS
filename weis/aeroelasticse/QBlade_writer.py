@@ -974,19 +974,19 @@ class InputWriter_QBlade(object):
 
     def write_turbsim_input(self):
         # create "TurbSim" subfolder
-        if not os.path.isdir(os.path.join(self.turbine_directory,'wind')):
+        if not os.path.isdir(os.path.join(self.QBLADE_runDirectory,'wind')):
             try:
-                os.makedirs(os.path.join(self.turbine_directory,'wind'))
+                os.makedirs(os.path.join(self.QBLADE_runDirectory,'wind'))
             except:
                 try:
                     time.sleep(random.random())
-                    if not os.path.isdir(os.path.join(self.turbine_directory,'wind')):
-                        os.makedirs(os.path.join(self.turbine_directory,'wind'))
+                    if not os.path.isdir(os.path.join(self.QBLADE_runDirectory,'wind')):
+                        os.makedirs(os.path.join(self.QBLADE_runDirectory,'wind'))
                 except:
-                    print("Error tring to make '%s'!"%os.path.join(self.turbine_directory,'wind'))
+                    print("Error tring to make '%s'!"%os.path.join(self.QBLADE_runDirectory,'wind'))
 
-        self.qb_vt['QTurbSim']['TurbSimInp'] =  os.path.join(self.QBLADE_namingOut + '.inp')
-        turbsim_file = os.path.join(self.turbine_directory, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp'])
+        self.qb_vt['QTurbSim']['TurbSimInp'] =  os.path.join(self.QBLADE_namingOut + '_U'+ str(self.qb_vt['QTurbSim']['URef']) + '_Seed'+ str(self.qb_vt['QTurbSim']['RandSeed1']) + '.inp')
+        turbsim_file = os.path.join(self.QBLADE_runDirectory, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp'])
         object_length = 30 
         keyword_length = 25
 
@@ -1088,11 +1088,8 @@ class InputWriter_QBlade(object):
         elif self.qb_vt['QSim']['DLCGenerator'] and self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = self.qb_vt['QTurbSim']['TurbSimInp']
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
-            turbsim_file = os.path.join(self.QBLADE_namingOut, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp']).replace('.inp','.bts')
-        
-        
+            turbsim_file = os.path.join('wind' , self.qb_vt['QTurbSim']['TurbSimInp']).replace('.inp','.bts')
 
-            
         with open(sim_file, 'w') as f:
             f.write('---------------------------------------- file generated with WEIS QBlade API ----------------------------------------\n')
             f.write('\n')
