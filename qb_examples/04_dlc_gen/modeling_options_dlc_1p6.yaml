@@ -10,7 +10,7 @@ General:
         QB_run_mod: nrel5mw
         QB_run_dir: test_dlc_gen_1p6/run_nrel5mw
         model_only: False
-        number_of_workers: 1
+        number_of_workers: 6
 
 WISDEM:
     RotorSE:
@@ -93,8 +93,8 @@ Level4: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         HydroCpA: 0.0
         MCFC: 0
         IsBuoy: 1
-        # POT_RAD_FILE: ../../../../POTFLOW_files/spar.1
-        # POT_EXC_FILE: ../../../../POTFLOW_files/spar.3
+        POT_RAD_FILE: ../../../../POTFLOW_files/spar.1
+        POT_EXC_FILE: ../../../../POTFLOW_files/spar.3
         POT_SUM_FILE: ''
         POT_DIFF_FILE: ''
         DIFF_EVAL_TYPE: 0
@@ -125,5 +125,5 @@ DLC_driver:
         - DLC: "1.6"    # local, lite
           n_seeds: 2
           wind_speed: [12.0, 18.0, 24.0]
-          transient_time: 10.0  # 0.
-          analysis_time: 15.0  # 10.
+          transient_time: 60.0  # 0.
+          analysis_time: 120.0  # 10.

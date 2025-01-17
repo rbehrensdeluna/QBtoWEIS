@@ -1,0 +1,50 @@
+---------------------------------------- file generated with WEIS QBlade API ----------------------------------------
+
+----------------------------------------Object Name-----------------------------------------------------------------
+nrel5mw_WAVE                  OBJECTNAME                 - the name of the linear wave definition object
+
+----------------------------------------Main Parameters-------------------------------------------------------------
+0.0                           TIMEOFFSET                 - the time offset from t=0s [s]
+3                             WAVETYPE                   - wave type: 0=TIMESERIES, 1=COMPONENT, 2=SINGLE, 3=JONSWAP, 4=ISSC, 5=TORSETHAUGEN, 6=CUSTOM, 7=STREAMFUNCTION
+9.8                           SIGHEIGHT                  - the significant wave height (Hs) [m]
+14.1                          PEAKPERIOD                 - the peak period (Tp) [s]
+True                          AUTOGAMMA                  - use gamma according to IEC (bool): 0 = OFF, 1 = ON (JONSWAP & TORSE only) [bool]
+1.0                           GAMMA                      - custom gamma (JONSWAP & TORSE only)
+True                          AUTOSIGMA                  - use sigmas according to IEC (JONSWAP & TORSE only) [bool]
+0.07                          SIGMA1                     - sigma1 (JONSWAP & TORSE only)
+0.09                          SIGMA2                     - sigma2 (JONSWAP & TORSE only)
+0                             DOUBLEPEAK                 - if true a double peak TORSETHAUGEN spectrum will be created, if false only a single peak (TORSE only)
+True                          AUTOORCHI                  - automatic OCHI-HUBBLE parameters from significant wave height (OCHI only) [bool]
+0.064                         MODFREQ1                   - modal frequency 1, must be '< modalfreq1 * 0.5' (OCHI only)
+0.114                         MODFREQ2                   - modal frequency 2, should be larger than 0.096 (OCHI only)
+10.164                        SIGHEIGHT1                 - significant height 1, should be larger than height 2 (OCHI only)
+6.534                         SIGHEIGHT2                 - significant height 2 (OCHI only)
+3.0                           LAMBDA1                    - peak shape 1 (OCHI only)
+0.727                         LAMBDA2                    - peak shape 2 (OCHI only)
+
+----------------------------------------Frequency Discretization----------------------------------------------------
+0                             DISCTYPE                   - frequency discretization type: 0 = equal energy; 1 = equal frequency
+True                          AUTOFREQ                   - use automatic frequency range (f_in = 0.5*f_p, f_out = 10*f_p) [bool]
+0.039                         FCUTIN                     - cut-in frequency
+0.787                         FCUTOUT                    - cut-out frequency
+0.05                          MAXFBIN                    - maximum frequency bin width [Hz]
+150                           NUMFREQ                    - the number of frequency bins
+18791                         RANDSEED                   - the seed for the random phase generator range [0-65535]
+
+----------------------------------------Directional Discretization (Equal Energy)-----------------------------------
+0                             DIRTYPE                    - the directional type, 0 = UNIDIRECTIONAL, 1 = COSINESPREAD
+0.0                           DIRMEAN                    - mean wave direction [deg]
+50.0                          DIRMAX                     - directional spread [deg]
+5.0                           SPREADEXP                  - the spreading exponent
+40                            NUMDIR                     - the number of directional bins
+
+----------------------------------------Embedded Constrained Wave --------------------------------------------------
+False                         EMBEDWAVE                  - add a constrained wave [bool]
+10.0                          EMBEDELEV                  - the wave elevation of the embedded wave [m]
+0.0                           EMBEDTIME                  - the time at which the embedded wave occurs [s]
+0.0                           EMBEDXPOS                  - the x-position at which the embedded wave occurs [m]
+0.0                           EMBEDYPOS                  - the y-position at which the embedded wave occurs [m]
+False                         PASTESTREAM                - paste a streamfunction wave over the embedded linear wave [bool]
+8.1                           SIGHEIGHTSTREAM            - the significant height of the streamfunction wave [m]
+12.7                          PERIODSTREAM               - the period of the streamfunction wave [s]
+
