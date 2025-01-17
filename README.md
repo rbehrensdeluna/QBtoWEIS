@@ -41,6 +41,8 @@ The installation instructions below use the environment name, "qbweis-env," but 
 
 2. Add in final packages and install the software
 
+        conda env create --name qbweis-env -f environment.yml
+        conda activate qbweis-env
         conda install -y petsc4py mpi4py pyoptsparse     # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
         pip install -e .
 
