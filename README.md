@@ -38,12 +38,16 @@ The installation instructions below use the environment name, "qbweis-env," but 
         git clone https://github.com/rbehrensdeluna/QBtoWEIS.git
         cd QBtoWEIS
 
-        
-2. Create a virtual environment and install the software:
-   
-        conda env create --name qbweis-env -f environment.yml
-        conda activate qbweis-env   # (if this does not work, try source activate qbweis-env)
-        conda install -y petsc4py mpi4py 
+
+2. Add in final packages and install the software
+
+        conda install -y petsc4py mpi4py pyoptsparse     # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
+        pip install -e .
+
+3. Instructions specific for DOE HPC system Eagle.  Before executing the setup script, do:
+
+        module load comp-intel intel-mpi mkl
+        module unload gcc
         pip install --no-deps -e . -v
         conda install -c conda-forge pyoptsparse
 
