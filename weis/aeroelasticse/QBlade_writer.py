@@ -148,7 +148,10 @@ class InputWriter_QBlade(object):
         
         # write structure input files
         self.write_tower_file()
-        self.write_blade_files()
+        if not self.qb_vt['Blade_6x6']:
+            self.write_blade_files()
+        else:
+            self.write_blade_6x6_files()
         if self.qb_vt['QSim']['ISOFFSHORE'] == 1:
             self.write_sub_def()
         self.write_main_file()
@@ -365,7 +368,6 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['Tower']['INTPTYPE']):<{object_lenght}}INTPTYPE 0-LINEAR; 1-AKIMA; 2-HERMITE; 3-C2SPLINE \n")
             f.write(f"{str(self.qb_vt['Tower']['BEAMTYPE']):<{object_lenght}}BEAMTYPE 0-EULER; 1-TIMOSHENKO; 2-TIMOSHENKO_FPM \n")
             f.write(f"{str(self.qb_vt['Tower']['DISCTYPE']):<{object_lenght}}DISCTYPE 0-LINEAR; 1-COSINE; 2-STRUCT; 3-AERO \n")
-
             f.write(f"{str(self.qb_vt['Tower']['DISC']):<{object_lenght}}DISC \n")
             f.write('\n')
 
@@ -403,6 +405,74 @@ class InputWriter_QBlade(object):
             f.write('R	G	B\n')
             f.write('230	230	230\n')
 
+    def write_blade_6x6_files(self):
+        self.qb_vt['Blade']['BladeFile'] = os.path.join('Structure', self.QBLADE_namingOut + '_Blade.str')
+        blade_file = os.path.join(self.turbine_directory, self.qb_vt['Blade']['BladeFile'])
+
+        object_lenght = 30 
+        keyword_length = 25
+        with open(blade_file, 'w') as f:
+            f.write('---------------------- file generated with WEIS QBlade API ----------------------\n')
+            f.write('\n')
+            f.write('---------------------- QBLADE BLADE FPM INPUT FILE ----------------------\n')
+            f.write('\n')
+            if not self.qb_vt['Blade']['USERAYLEIGHDMP_ANISO']:
+                f.write(f"{str(self.qb_vt['Blade']['RAYLEIGHDMP']):<{object_lenght}}RAYLEIGHDMP \n")
+            else:
+                f.write(f"{' '.join(map(str, self.qb_vt['Blade']['RAYLEIGHDMP_ANISO'])):<{object_lenght}} RAYLEIGHDMP_ANISO \n")
+            f.write(f"{str(self.qb_vt['Blade']['STIFFTUNER']):<{object_lenght}}STIFFTUNER \n")
+            f.write(f"{str(self.qb_vt['Blade']['MASSTUNER']):<{object_lenght}}MASSTUNER \n")
+            f.write('\n')
+            
+            f.write(f"{str(self.qb_vt['Blade']['INTPTYPE']):<{object_lenght}}INTPTYPE 0-LINEAR; 1-AKIMA; 2-HERMITE; 3-C2SPLINE \n")
+            f.write(f"{str(self.qb_vt['Blade']['BEAMTYPE']):<{object_lenght}}BEAMTYPE 0-EULER; 1-TIMOSHENKO; 2-TIMOSHENKO_FPM \n")
+            f.write(f"{str(self.qb_vt['Blade']['DISCTYPE']):<{object_lenght}}DISCTYPE 0-LINEAR; 1-COSINE; 2-STRUCT; 3-AERO \n")
+            f.write(f"{str(self.qb_vt['Blade']['DISC']):<{object_lenght}}DISC \n")
+            f.write('\n')
+
+            f.write('LENFRACT_[-]  XCB_[-]       YCB_[-]       PITCH_[deg]   K11_[N]       K12_[N]       K13_[N]       K14_[Nm]      K15_[Nm]      K16_[Nm]      K22_[N]       K23_[N]       K24_[Nm]      K25_[Nm]      K26_[Nm]      K33_[N]       K34_[Nm]      K35_[Nm]      K36_[Nm]      K44_[Nm^2]    K45_[Nm^2]    K46_[Nm^2]    K55_[Nm^2]    K56_[Nm^2]    K66_[Nm^2]    M11_[kg]      M12_[kg]      M13_[kg]      M14_[kgm]     M15_[kgm]     M16_[kgm]     M22_[kg]      M23_[kg]      M24_[kgm]     M25_[kgm]     M26_[kgm]     M33_[kg]      M34_[kgm]     M35_[kgm]     M36_[kgm]     M44_[kgm^2]   M45_[kgm^2]   M46_[kgm^2]   M55_[kgm^2]   M56_[kgm^2]   M66_[kgm^2]\n')
+
+            # Access the values from the self.qb_vt['Blade_6x6'] dictionary
+            LENFRACT = self.qb_vt['Blade_6x6']['LENFRACT']
+            XCB      = self.qb_vt['Blade_6x6']['XCB']
+            YCB      = self.qb_vt['Blade_6x6']['YCB']
+            PITCH    = self.qb_vt['Blade_6x6']['PITCH']
+            
+            # Access all the stiffness and inertia components from self.qb_vt
+            K11, K12, K13, K14, K15, K16 = (self.qb_vt['Blade_6x6'][key] for key in ['K11', 'K12', 'K13', 'K14', 'K15', 'K16'])
+            K22, K23, K24, K25, K26 = (self.qb_vt['Blade_6x6'][key] for key in ['K22', 'K23', 'K24', 'K25', 'K26'])
+            K33, K34, K35, K36 = (self.qb_vt['Blade_6x6'][key] for key in ['K33', 'K34', 'K35', 'K36'])
+            K44, K45, K46 = (self.qb_vt['Blade_6x6'][key] for key in ['K44', 'K45', 'K46'])
+            K55, K56, K66 = (self.qb_vt['Blade_6x6'][key] for key in ['K55', 'K56', 'K66'])
+            
+            M11, M12, M13, M14, M15, M16 = (self.qb_vt['Blade_6x6'][key] for key in ['M11', 'M12', 'M13', 'M14', 'M15', 'M16'])
+            M22, M23, M24, M25, M26 = (self.qb_vt['Blade_6x6'][key] for key in ['M22', 'M23', 'M24', 'M25', 'M26'])
+            M33, M34, M35, M36 = (self.qb_vt['Blade_6x6'][key] for key in ['M33', 'M34', 'M35', 'M36'])
+            M44, M45, M46 = (self.qb_vt['Blade_6x6'][key] for key in ['M44', 'M45', 'M46'])
+            M55, M56, M66 = (self.qb_vt['Blade_6x6'][key] for key in ['M55', 'M56', 'M66'])
+
+            # Loop over all radial stations using zip to combine the lists
+            for LENFRACT, XCB, YCB, PITCH, K11, K12, K13, K14, K15, K16, K22, K23, K24, K25, K26, K33, K34, K35, K36, K44, K45, K46, K55, K56, K66, M11, M12, M13, M14, M15, M16, M22, M23, M24, M25, M26, M33, M34, M35, M36, M44, M45, M46, M55, M56, M66 in zip(
+                LENFRACT, XCB, YCB, PITCH, K11, K12, K13, K14, K15, K16, K22, K23, K24, K25, K26, K33, K34, K35, K36, K44, K45, K46, K55, K56, K66, M11, M12, M13, M14, M15, M16, M22, M23, M24, M25, M26, M33, M34, M35, M36, M44, M45, M46, M55, M56, M66):
+                
+                # Write the formatted line into the file
+                f.write('{:2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} '
+                        '{: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} '
+                        '{: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} '
+                        '{: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} '
+                        '{: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e} {: 2.8e}\n'.format(
+                            LENFRACT, XCB, YCB, PITCH,
+                            K11, K12, K13, K14, K15, K16,
+                            K22, K23, K24, K25, K26,
+                            K33, K34, K35, K36,
+                            K44, K45, K46,
+                            K55, K56, K66,
+                            M11, M12, M13, M14, M15, M16,
+                            M22, M23, M24, M25, M26,
+                            M33, M34, M35, M36,
+                            M44, M45, M46,
+                            M55, M56, M66))
+                
     def write_blade_files(self):
         self.qb_vt['Blade']['BladeFile'] = os.path.join('Structure', self.QBLADE_namingOut + '_Blade.str')
         blade_file = os.path.join(self.turbine_directory, self.qb_vt['Blade']['BladeFile'])

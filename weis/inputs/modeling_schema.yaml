@@ -1801,6 +1801,95 @@ properties:
                 type: string
                 default: 'Tower'
                 description: Main (.fst) OpenFAST input file name. No directory.
+    SONATA: &sntamodopt
+        type: object
+        default: {}
+        description: Options for SONATA
+        properties:
+            flag:
+                type: boolean
+                default: False
+                description: Whether or not to use Sonata to generate structural input files 
+            flag_wt_ontology:
+                type: boolean
+                default: True
+                description: Whether to use ontology definition of wind turbines for yaml files
+            flag_ref_axes_wt:
+                type: boolean
+                default: True
+                description: Whether to rotate reference axes from wind definition to comply with SONATA (rotorcraft definition)
+            attribute_str:
+                        type: string
+                        default: 'MatID'
+                        enum: ['MatID', 'theta_3', 'stress.sigma11', 'stressM.sigma11', 'strain.epsilon11', 'strainM.epsilon11']
+                        description: Turbulence model
+            flag_plotTheta11:
+                type: boolean
+                default: False
+                description: plane orientation angle
+            flag_recovery:
+                type: boolean
+                default: False
+                description: ''
+            flag_plotDisplacement:
+                type: boolean
+                default: False
+                description: Needs recovery flag to be activated - shows displacements from loadings in cross sectional plots
+            flag_wf:
+                type: boolean
+                default: False
+                description: plot wire-frame
+            flag_lft:
+                type: boolean
+                default: False
+                description: Plot lofted shape of blade surface (flag_wf=True obligatory). Create loft with grid refinement without too many radial stations, can also export STEP file of lofted shape.
+            flag_topo:
+                type: boolean
+                default: False
+                description: Plot mesh topology.
+            c2_axis:
+                type: boolean
+                default: False
+                description: Flag for c2 axis plotting.
+            flag_DeamDyn_def_transform:
+                type: boolean
+                default: True
+                description: Transform from SONATA to BeamDyn coordinate system.
+            flag_write_BeamDyn:
+                type: boolean
+                default: True
+                description: Write BeamDyn input files for follow-up OpenFAST analysis (requires flag_DeamDyn_def_transform=True).
+            flag_write_BeamDyn_unit_convert:
+                type: string
+                default: ''
+                description: Unit conversion when exporting to BeamDyn files (e.g., 'mm_to_m').
+            flag_3d:
+                type: boolean
+                default: False
+                description: Enable 3D plotting.
+            flag_csv_export:
+                type: boolean
+                default: False
+                description: Export CSV files with structural data.
+            choose_cutoff:
+                type: integer
+                default: 2
+                enum: [0, 1, 2]
+                description: Define the shape of corners [0 - step, 1 - ?, 2 - round 
+            mesh_resolution: 
+                type: integer
+                minimum: 10
+                default: 300
+                description: Define mesh resolution, i.e. the number of points along the profile that is used for out-to-inboard meshing of a 2D blade cross section
+            radial_stations:
+                type: array
+                description: Define the radial stations for cross sectional analysis (only used for flag_wt_ontology = True -> otherwise, sections from yaml file are used!)
+                default: [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
+                items:
+                    type: number
+                    uniqueItems: True
+                    minimum: 0.0
+                    maximum: 1.
     Level3: &ofmodopt
         type: object
         default: {}

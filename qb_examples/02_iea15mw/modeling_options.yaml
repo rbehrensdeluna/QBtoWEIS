@@ -3,8 +3,8 @@ General:
    
     qblade_configuration:
         flag: True
-        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.7.8_linux/QBladeCE_2.0.7.8/Libraries
-        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.7.8_linux/QBladeCE_2.0.7.8/libQBladeCE_2.0.7.8.so.1.0.0     
+        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8/Libraries/
+        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8/libQBladeCE_2.0.8.so.1.0.0   
         QB_run_mod: IEA-15-240-RWT_VolturnUS-S
         QB_run_dir: model_output/IEA-15-240-RWT_VolturnUS-S
         number_of_workers: 3
@@ -58,7 +58,7 @@ Level4:                         # Options for WEIS fidelity level 4 = nonlinear 
         DISC: 50
     Turbine:
         CONTROLLERTYPE: 1
-        CONTROLLERFILE: 'libdiscon'         # must match the name of the controller file in QBlade/ControllerFiles
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0'         # must match the name of the controller file in QBlade/ControllerFiles
         NUMPANELS: 30
         WAKETYPE: 1
         BEMSPEEDUP: 30

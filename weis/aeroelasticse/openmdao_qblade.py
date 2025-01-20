@@ -52,6 +52,8 @@ from wisdem.inputs import load_yaml, write_yaml
 ## neccessary inputs:
 import wisdem.commonse.cross_sections as cs
 
+from weis.aeroelasticse.FAST_reader import InputReader_OpenFAST
+
 from weis.aeroelasticse.QBlade_writer         import InputWriter_QBlade
 import weis.aeroelasticse.QBlade_wrapper as qbwrap
 import random
@@ -568,29 +570,148 @@ class QBLADELoadCases(ExplicitComponent):
                 logger.warning(f"Tower RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Blade']['CRITDAMP']/100) / (np.pi * inputs['flap_freq'])
             qb_vt['Blade']['RAYLEIGHDMP'] = float(beta)
-        strpit    =  inputs['beam:Tw_iner'] - inputs['theta']
-       
-        qb_vt['Blade']['r_curved'], qb_vt['Blade']['LENFRACT'] = self.calc_fractional_curved_length(inputs['ref_axis_blade'])
-        qb_vt['Blade']['MASSD']     =  inputs['beam:rhoA']
-        # rotation_angle = np.radians(90.0 - strpit) # Calculate the rotation angle for coordinate transformation from OpenFAST to QBlade Chrono
-        # qb_vt['Blade']['EIx']       =  abs(inputs['beam:EIxx'] * np.cos(rotation_angle) - inputs['beam:EIyy'] * np.sin(rotation_angle))
-        # qb_vt['Blade']['EIy']       =  abs(inputs['beam:EIxx'] * np.sin(rotation_angle) + inputs['beam:EIyy'] * np.cos(rotation_angle))
-        qb_vt['Blade']['EIx']       =  inputs['beam:EIyy']
-        qb_vt['Blade']['EIy']       =  inputs['beam:EIxx']
-        qb_vt['Blade']['EA']        =  inputs['beam:EA']
-        qb_vt['Blade']['GJ']        =  inputs['beam:GJ'] # np.ones_like(inputs['beam:EA'])*1e11 
-        qb_vt['Blade']['GA']        =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now 
-        qb_vt['Blade']['STRPIT']    =  strpit
-        qb_vt['Blade']['KSX']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
-        qb_vt['Blade']['KSY']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
-        qb_vt['Blade']['RGX']       =  np.sqrt(inputs['beam:flap_iner'] / inputs['beam:rhoA']) / inputs['chord']
-        qb_vt['Blade']['RGY']       =  np.sqrt(inputs['beam:edge_iner'] / inputs['beam:rhoA']) / inputs['chord']
-        qb_vt['Blade']['XCM']       =  inputs['beam:y_cg'] / inputs['chord'] 
-        qb_vt['Blade']['YCM']       =  inputs['beam:x_cg'] / inputs['chord']
-        qb_vt['Blade']['XCE']       =  inputs['beam:y_ec'] / inputs['chord']
-        qb_vt['Blade']['YCE']       =  inputs['beam:x_ec'] / inputs['chord']
-        qb_vt['Blade']['XCS']       =  inputs['beam:y_sc'] / inputs['chord']
-        qb_vt['Blade']['YCS']       =  inputs['beam:x_sc'] / inputs['chord']
+
+        if not modopt['SONATA']['flag']:
+            strpit    =  inputs['beam:Tw_iner'] - inputs['theta']
+        
+            qb_vt['Blade']['r_curved'], qb_vt['Blade']['LENFRACT'] = self.calc_fractional_curved_length(inputs['ref_axis_blade'])
+            qb_vt['Blade']['MASSD']     =  inputs['beam:rhoA']
+            # rotation_angle = np.radians(90.0 - strpit) # Calculate the rotation angle for coordinate transformation from OpenFAST to QBlade Chrono
+            # qb_vt['Blade']['EIx']       =  abs(inputs['beam:EIxx'] * np.cos(rotation_angle) - inputs['beam:EIyy'] * np.sin(rotation_angle))
+            # qb_vt['Blade']['EIy']       =  abs(inputs['beam:EIxx'] * np.sin(rotation_angle) + inputs['beam:EIyy'] * np.cos(rotation_angle))
+            qb_vt['Blade']['EIx']       =  inputs['beam:EIyy']
+            qb_vt['Blade']['EIy']       =  inputs['beam:EIxx']
+            qb_vt['Blade']['EA']        =  inputs['beam:EA']
+            qb_vt['Blade']['GJ']        =  inputs['beam:GJ']
+            qb_vt['Blade']['GA']        =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now 
+            qb_vt['Blade']['STRPIT']    =  strpit
+            qb_vt['Blade']['KSX']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
+            qb_vt['Blade']['KSY']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
+            qb_vt['Blade']['RGX']       =  np.sqrt(inputs['beam:flap_iner'] / inputs['beam:rhoA']) / inputs['chord']
+            qb_vt['Blade']['RGY']       =  np.sqrt(inputs['beam:edge_iner'] / inputs['beam:rhoA']) / inputs['chord']
+            qb_vt['Blade']['XCM']       =  inputs['beam:y_cg'] / inputs['chord'] # careful with the reference system conversion between QBlade CHRONO and OpenFAST
+            qb_vt['Blade']['YCM']       =  inputs['beam:x_cg'] / inputs['chord']
+            qb_vt['Blade']['XCE']       =  inputs['beam:y_ec'] / inputs['chord']
+            qb_vt['Blade']['YCE']       =  inputs['beam:x_ec'] / inputs['chord']
+            qb_vt['Blade']['XCS']       =  inputs['beam:y_sc'] / inputs['chord']
+            qb_vt['Blade']['YCS']       =  inputs['beam:x_sc'] / inputs['chord']
+        else:
+            # path to beamdyn file in temporary folder, created by running sonata
+            beamdyn_blade_file = os.path.join(weis_dir,'sonata_temp', self.QBLADE_namingOut + '_BeamDyn_Blade.dat')
+            
+            # read sonata output with fast beam dyn reader
+            fast = InputReader_OpenFAST()
+            fast.read_BeamDynBlade(beamdyn_blade_file)
+            
+            if os.path.exists(os.path.join(weis_dir, 'sonata_temp')):
+                shutil.rmtree(os.path.join(weis_dir, 'sonata_temp'))
+                print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} has been deleted.")
+            else:
+                print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} does not exist.")
+            
+            blade_6x6 = fast.fst_vt['BeamDynBlade']
+
+            # Map beamdyn matrices to qblade format
+
+            qb_vt['Blade_6x6']['LENFRACT'] = np.array(blade_6x6['radial_stations'])
+            qb_vt['Blade_6x6']['XCB'] = np.zeros_like(qb_vt['Blade_6x6']['LENFRACT'])
+            qb_vt['Blade_6x6']['YCB'] = np.zeros_like(qb_vt['Blade_6x6']['LENFRACT'])
+            qb_vt['Blade_6x6']['PITCH'] = np.zeros_like(qb_vt['Blade_6x6']['LENFRACT'])
+            # Initialize lists for each K and M component
+            qb_vt['Blade_6x6']['K11'] = []
+            qb_vt['Blade_6x6']['K12'] = []
+            qb_vt['Blade_6x6']['K13'] = []
+            qb_vt['Blade_6x6']['K14'] = []
+            qb_vt['Blade_6x6']['K15'] = []
+            qb_vt['Blade_6x6']['K16'] = []
+            qb_vt['Blade_6x6']['K22'] = []
+            qb_vt['Blade_6x6']['K23'] = []
+            qb_vt['Blade_6x6']['K24'] = []
+            qb_vt['Blade_6x6']['K25'] = []
+            qb_vt['Blade_6x6']['K26'] = []
+            qb_vt['Blade_6x6']['K33'] = []
+            qb_vt['Blade_6x6']['K34'] = []
+            qb_vt['Blade_6x6']['K35'] = []
+            qb_vt['Blade_6x6']['K36'] = []
+            qb_vt['Blade_6x6']['K44'] = []
+            qb_vt['Blade_6x6']['K45'] = []
+            qb_vt['Blade_6x6']['K46'] = []
+            qb_vt['Blade_6x6']['K55'] = []
+            qb_vt['Blade_6x6']['K56'] = []
+            qb_vt['Blade_6x6']['K66'] = []
+
+            qb_vt['Blade_6x6']['M11'] = []
+            qb_vt['Blade_6x6']['M12'] = []
+            qb_vt['Blade_6x6']['M13'] = []
+            qb_vt['Blade_6x6']['M14'] = []
+            qb_vt['Blade_6x6']['M15'] = []
+            qb_vt['Blade_6x6']['M16'] = []
+            qb_vt['Blade_6x6']['M22'] = []
+            qb_vt['Blade_6x6']['M23'] = []
+            qb_vt['Blade_6x6']['M24'] = []
+            qb_vt['Blade_6x6']['M25'] = []
+            qb_vt['Blade_6x6']['M26'] = []
+            qb_vt['Blade_6x6']['M33'] = []
+            qb_vt['Blade_6x6']['M34'] = []
+            qb_vt['Blade_6x6']['M35'] = []
+            qb_vt['Blade_6x6']['M36'] = []
+            qb_vt['Blade_6x6']['M44'] = []
+            qb_vt['Blade_6x6']['M45'] = []
+            qb_vt['Blade_6x6']['M46'] = []
+            qb_vt['Blade_6x6']['M55'] = []
+            qb_vt['Blade_6x6']['M56'] = []
+            qb_vt['Blade_6x6']['M66'] = []
+
+            # Loop over each radial station and extract K and M values
+            for i in range(len(blade_6x6['radial_stations'])):
+                stiff_matrix = blade_6x6['beam_stiff'][i]
+                inertia_matrix = blade_6x6['beam_inertia'][i]
+
+                # Extract stiffness values (K values)
+                qb_vt['Blade_6x6']['K11'].append(stiff_matrix[0, 0])
+                qb_vt['Blade_6x6']['K12'].append(stiff_matrix[0, 1])
+                qb_vt['Blade_6x6']['K13'].append(stiff_matrix[0, 2])
+                qb_vt['Blade_6x6']['K14'].append(stiff_matrix[0, 3])
+                qb_vt['Blade_6x6']['K15'].append(stiff_matrix[0, 4])
+                qb_vt['Blade_6x6']['K16'].append(stiff_matrix[0, 5])
+                qb_vt['Blade_6x6']['K22'].append(stiff_matrix[1, 1])
+                qb_vt['Blade_6x6']['K23'].append(stiff_matrix[1, 2])
+                qb_vt['Blade_6x6']['K24'].append(stiff_matrix[1, 3])
+                qb_vt['Blade_6x6']['K25'].append(stiff_matrix[1, 4])
+                qb_vt['Blade_6x6']['K26'].append(stiff_matrix[1, 5])
+                qb_vt['Blade_6x6']['K33'].append(stiff_matrix[2, 2])
+                qb_vt['Blade_6x6']['K34'].append(stiff_matrix[2, 3])
+                qb_vt['Blade_6x6']['K35'].append(stiff_matrix[2, 4])
+                qb_vt['Blade_6x6']['K36'].append(stiff_matrix[2, 5])
+                qb_vt['Blade_6x6']['K44'].append(stiff_matrix[3, 3])
+                qb_vt['Blade_6x6']['K45'].append(stiff_matrix[3, 4])
+                qb_vt['Blade_6x6']['K46'].append(stiff_matrix[3, 5])
+                qb_vt['Blade_6x6']['K55'].append(stiff_matrix[4, 4])
+                qb_vt['Blade_6x6']['K56'].append(stiff_matrix[4, 5])
+                qb_vt['Blade_6x6']['K66'].append(stiff_matrix[5, 5])
+
+                # Extract inertia values (M values)
+                qb_vt['Blade_6x6']['M11'].append(inertia_matrix[0, 0])
+                qb_vt['Blade_6x6']['M12'].append(inertia_matrix[0, 1])
+                qb_vt['Blade_6x6']['M13'].append(inertia_matrix[0, 2])
+                qb_vt['Blade_6x6']['M14'].append(inertia_matrix[0, 3])
+                qb_vt['Blade_6x6']['M15'].append(inertia_matrix[0, 4])
+                qb_vt['Blade_6x6']['M16'].append(inertia_matrix[0, 5])
+                qb_vt['Blade_6x6']['M22'].append(inertia_matrix[1, 1])
+                qb_vt['Blade_6x6']['M23'].append(inertia_matrix[1, 2])
+                qb_vt['Blade_6x6']['M24'].append(inertia_matrix[1, 3])
+                qb_vt['Blade_6x6']['M25'].append(inertia_matrix[1, 4])
+                qb_vt['Blade_6x6']['M26'].append(inertia_matrix[1, 5])
+                qb_vt['Blade_6x6']['M33'].append(inertia_matrix[2, 2])
+                qb_vt['Blade_6x6']['M34'].append(inertia_matrix[2, 3])
+                qb_vt['Blade_6x6']['M35'].append(inertia_matrix[2, 4])
+                qb_vt['Blade_6x6']['M36'].append(inertia_matrix[2, 5])
+                qb_vt['Blade_6x6']['M44'].append(inertia_matrix[3, 3])
+                qb_vt['Blade_6x6']['M45'].append(inertia_matrix[3, 4])
+                qb_vt['Blade_6x6']['M46'].append(inertia_matrix[3, 5])
+                qb_vt['Blade_6x6']['M55'].append(inertia_matrix[4, 4])
+                qb_vt['Blade_6x6']['M56'].append(inertia_matrix[4, 5])
+                qb_vt['Blade_6x6']['M66'].append(inertia_matrix[5, 5])
 
         ## Tower structural definition inputs
         # TODO OpenFAST seperates the tower dfinition in sectional and nodal properties. Nodal being the description used for Aerodyn while the sectional 
@@ -1500,15 +1621,15 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Aero. Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "HSS Rpm [rpm]", "Yaw Angle [deg]", "LSS Azimuthal Pos. [deg]"]
             channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
-            channels_out += ["X_g Wind Vel. at Hub [m/s]", "Y_g Wind Vel. at Hub [m/s]", "Z_g Wind Vel. at Hub [m/s]"]
-            # channels_out += [] ["RtVAvgxh", "RtVAvgyh", "RtVAvgzh"]
+            channels_out += ["Abs Inflow Vel. at Hub [m/s]", "X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
+            channels_out += ["X_g Inflow Vel. Rotor Avg. [m/s]", "Y_g Inflow Vel. Rotor Avg. [m/s]", "Z_g Inflow Vel. Rotor Avg. [m/s]"]
             channels_out += ["X_tb For. TWR Bot. Constr. [N]", "Y_tb For. TWR Bot. Constr. [N]", "Z_tb For. TWR Bot. Constr. [N]", "X_tb Mom. TWR Bot. Constr. [Nm]", "Y_tb Mom. TWR Bot. Constr. [Nm]", "Z_tb Mom. TWR Bot. Constr. [Nm]"]
             channels_out += ["X_tt For. TWR Top Constr. [N]", "Y_tt For. TWR Top Constr. [N]", "Z_tt For. TWR Top Constr. [N]", "X_tt Mom. TWR Top Constr. [Nm]", "Y_tt Mom. TWR Top Constr. [Nm]", "Z_tt Mom. TWR Top Constr. [Nm]"]
             channels_out += ["X_h For. Hub Const. [N]", "Y_h For. Hub Const. [N]", "Z_h For. Hub Const. [N]"] # equivalent to "LSShftFxa", "LSShftFya", "LSShftFza"] rotating 
             channels_out += ["X_s For. Shaft Const. [N]", "Y_s For. Shaft Const. [N]", "Z_s For. Shaft Const. [N]"]  # ["LSShftFxs", "LSShftFys", "LSShftFzs" non-rotating
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
-            channels_out += ["Aero. Power [W]", "NP Wave Elevation [m]"]
+            channels_out += ["Aero. Power [W]", "Wave Elev. HYDRO WavekinEval. Pos. [m]"]
 
             if self.n_blades == 3:
                 channels_out += ["X_c Tip Trl.Def. (OOP) BLD 3 [m]", "Y_c Tip Trl.Def. (IP) BLD 3 [m]", "Z_c Tip Trl.Def. BLD 3 [m]"]
@@ -1545,7 +1666,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "Yaw Angle [deg]"]
             channels_out += ["Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
-            channels_out += ["X_g Wind Vel. at Hub [m/s]", "Y_g Wind Vel. at Hub [m/s]", "Z_g Wind Vel. at Hub [m/s]"]
+            channels_out += ["X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
             channels_out += ["Aerodynamic Power [W]"]
 
             if self.n_blades == 3:
@@ -1689,6 +1810,7 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['Turbine']          = {}
         qb_vt['QBladeOcean']      = {}
         qb_vt['QTurbSim']         = {}
+        qb_vt['Blade_6x6']        = {}
 
         qb_vt = self.load_QBlade_model_opts(qb_vt)
         return qb_vt
@@ -1881,12 +2003,12 @@ class QBLADELoadCases(ExplicitComponent):
             outputs['pitch_out']    = sum_stats['Pitch Angle Blade 1']['mean'].mean()                   
             logger.warning('WARNING: QBlade is not run using DLC 1.1/1.2. AEP cannot be estimated. Using average power instead.')
 
-            outputs['V_out'] = sum_stats['X_g Wind Vel. at Hub']['mean'].iloc[0]
+            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean'].iloc[0]
         
         if len(U)>0:
             outputs['V_out'] = np.unique(U)
         else:
-            outputs['V_out'] = sum_stats['X_g Wind Vel. at Hub']['mean']
+            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean']
 
         return outputs
           	

@@ -27,6 +27,7 @@ from wisdem.inputs import load_yaml
 from wisdem.commonse.cylinder_member import get_nfull
 
 from weis.aeroelasticse.openmdao_qblade import QBLADELoadCases
+from weis.gebt.sonata_wrapper import SONATA_WEIS
 
 weis_dir = os.path.realpath(os.path.join(os.path.dirname(__file__),'../../'))
 
@@ -227,6 +228,9 @@ class WindPark(om.Group):
             if modeling_options['ROSCO']['Flp_Mode'] > 0:
                 self.connect('tune_rosco_ivc.flp_kp_norm',    'sse_tune.tune_rosco.flp_kp_norm')
                 self.connect('tune_rosco_ivc.flp_tau',     'sse_tune.tune_rosco.flp_tau')
+
+        if modeling_options['SONATA']['flag']:
+            self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init))
 
         if modeling_options['Level1']['flag']:
             self.add_subsystem('raft', RAFT_WEIS(modeling_options = modeling_options, analysis_options=opt_options))
@@ -1232,6 +1236,46 @@ class WindPark(om.Group):
                 self.connect('nacelle.overhang',                            'tcons_post.overhang')
                 self.connect('tower.ref_axis',                              'tcons_post.ref_axis_tower')
                 self.connect('tower.diameter',                              'tcons_post.outer_diameter_full')
+
+                if modeling_options['SONATA']['flag']:
+                    self.connect('blade.outer_shape_bem.s',                 'sonata.grid')
+                    self.connect('blade.pa.chord_param',                    'sonata.chord')
+                    self.connect('rotorse.theta',                           'sonata.twist')
+                    self.connect('blade.outer_shape_bem.ref_axis',          'sonata.ref_axis_blade')
+                    self.connect('blade.outer_shape_bem.pitch_axis',        'sonata.pitch_axis')
+                    self.connect('blade.interp_airfoils.r_thick_interp',    'sonata.r_thick')
+                    # self.connect('airfoils.name',                           'sonata.airfoils_name')
+                    self.connect('blade.opt_var.af_position',               'sonata.airfoils_position')
+                    spars_tereinf = modeling_options["WISDEM"]["RotorSE"]["spars_tereinf"]
+                    self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[0], "sonata.s_opt_spar_cap_ss")
+                    self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[1], "sonata.s_opt_spar_cap_ps")
+                    self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[0],   'sonata.spar_cap_ss_opt')
+                    self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[1],   'sonata.spar_cap_ps_opt')
+                    self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[2], "sonata.s_opt_te_ss")
+                    self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[3], "sonata.s_opt_te_ps")
+                    self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[2],   'sonata.te_ss_opt')
+                    self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[3],   'sonata.te_ps_opt')
+                    # self.connect('blade.opt_var.s_opt_spar_cap_ps',         'sonata.s_opt_spar_cap_ps')
+                    # self.connect('blade.opt_var.spar_cap_ps_opt',           'sonata.spar_cap_ps_opt')
+                    # self.connect('blade.opt_var.s_opt_spar_cap_ss',         'sonata.s_opt_spar_cap_ss')
+                    # self.connect('blade.opt_var.spar_cap_ss_opt',           'sonata.spar_cap_ss_opt')
+                    # self.connect('blade.opt_var.s_opt_te_ps',               'sonata.s_opt_te_ps')
+                    # self.connect('blade.opt_var.te_ps_opt',                 'sonata.te_ps_opt')
+                    # self.connect('blade.opt_var.s_opt_te_ss',               'sonata.s_opt_te_ss')
+                    # self.connect('blade.opt_var.te_ss_opt',                 'sonata.te_ss_opt') 
+                    
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa',     'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_start_nd',        'sonata.2d_fem_web_start_nd')
+                    # self.connect('blade.internal_structure_2d_fem.web_end_nd',          'sonata.2d_fem_web_end_nd')
+
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
 
 
             # Inputs to plantfinancese from wt group

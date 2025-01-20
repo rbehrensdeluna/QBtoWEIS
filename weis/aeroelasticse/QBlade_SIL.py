@@ -70,22 +70,37 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
     output_dict = scale_and_rename_channels(output_dict)
     export_to_OF_ASCII(output_dict, directory = QBLADE_runDirectory,  filename = sim_out_name + '_completed.out')
 
-def run_qblade_sil(QBlade_dll,QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible, store_from):
-   
-   simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
+def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from, max_retries=2, delay=2):
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            print(f"Running simulation attempt {attempt + 1} for {sim}...")
+            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from)
+            return  # Exit if successful
+        except Exception as e:
+            print(f"Simulation attempt {attempt + 1} failed with exception: {e}")
+            attempt += 1
+            if attempt < max_retries:
+                print("Retrying...")
+                time.sleep(delay)
+            else:
+                print(f"Max retries reached for {sim}. Moving on.")
 
-   with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
+def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible, store_from):
+    simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []
         for sim in simulations:
-                        
+            time.sleep(1)  # Introduce a one-second pause before submitting the next task
             futures.append(
-                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from)
+                executor.submit(run_with_retry, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from)
             )
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()
             except Exception as e:
-                print(f"Simulation failed with exception: {e}")
+                print(f"Simulation failed after retrying with exception: {e}")
     
 def export_to_OF_ASCII(data, directory=None, filename=None):
     """

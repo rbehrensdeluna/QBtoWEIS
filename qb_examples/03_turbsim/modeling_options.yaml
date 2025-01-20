@@ -3,8 +3,8 @@ General:
    
     qblade_configuration:
         flag: True
-        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.7.8_linux/QBladeCE_2.0.7.8/Libraries
-        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.7.8_linux/QBladeCE_2.0.7.8/libQBladeCE_2.0.7.8.so.1.0.0
+        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8/Libraries/
+        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8/libQBladeCE_2.0.8.so.1.0.0
         QB_run_mod: nrel5mw_oc3
         QB_run_dir: turbsim/nrel5mw_oc3
         model_only: False

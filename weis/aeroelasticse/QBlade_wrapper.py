@@ -172,7 +172,9 @@ class QBladeWrapper:
             raise ValueError("Version number not found in QBlade_dll path.")
         
         mp_version = "2.0.7.8" # version that includes mp capability and allows for number_of_workers > 1
-            
+
+        print(version.parse(qb_version))
+
         if version.parse(qb_version) < version.parse(mp_version):
             self.number_of_workers = 1
             QB_mp_compatible = False
