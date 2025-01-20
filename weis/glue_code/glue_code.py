@@ -27,7 +27,7 @@ from wisdem.inputs import load_yaml
 from wisdem.commonse.cylinder_member import get_nfull
 
 from weis.aeroelasticse.openmdao_qblade import QBLADELoadCases
-from weis.gebt.sonata_wrapper import SONATA_WEIS
+# from weis.gebt.sonata_wrapper import SONATA_WEIS
 
 weis_dir = os.path.realpath(os.path.join(os.path.dirname(__file__),'../../'))
 
@@ -229,8 +229,8 @@ class WindPark(om.Group):
                 self.connect('tune_rosco_ivc.flp_kp_norm',    'sse_tune.tune_rosco.flp_kp_norm')
                 self.connect('tune_rosco_ivc.flp_tau',     'sse_tune.tune_rosco.flp_tau')
 
-        if modeling_options['SONATA']['flag']:
-            self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init))
+        # if modeling_options['SONATA']['flag']:
+            # self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init))
 
         if modeling_options['Level1']['flag']:
             self.add_subsystem('raft', RAFT_WEIS(modeling_options = modeling_options, analysis_options=opt_options))
