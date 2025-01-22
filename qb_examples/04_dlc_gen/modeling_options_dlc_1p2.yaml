@@ -5,7 +5,7 @@ General:
         flag: True
         path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
         path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
-        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.1.1/Libraries>
+        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.8.1/Libraries>
         # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
         QB_run_mod: nrel5mw
         QB_run_dir: test_dlc_gen_1p2/run_nrel5mw
