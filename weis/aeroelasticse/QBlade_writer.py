@@ -614,6 +614,9 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR']):<{object_length}}{'ZONE1FACTOR':<{keyword_length}} - the wake zone 1 factor (integer!) [-]\n")
             f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR']):<{object_length}}{'ZONE2FACTOR':<{keyword_length}} - the wake zone 2 factor (integer!) [-]\n")
             f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR']):<{object_length}}{'ZONE3FACTOR':<{keyword_length}} - the wake zone 3 factor (integer!) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR_S']):<{object_length}}{'ZONE1FACTOR':<{keyword_length}} - the wake zone 1 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR_S']):<{object_length}}{'ZONE2FACTOR':<{keyword_length}} - the wake zone 2 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR_S']):<{object_length}}{'ZONE3FACTOR':<{keyword_length}} - the wake zone 3 spanwise factor (integer) [-]\n")
             f.write('\n')
 
             f.write('----------------------------------------Vortex Core Parameters----------------------------------------------------------\n')

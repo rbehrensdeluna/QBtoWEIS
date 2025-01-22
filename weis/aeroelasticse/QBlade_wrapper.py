@@ -122,7 +122,7 @@ class QBladeWrapper:
         if self.qb_vt['QSim']['TMax'] > 0:
             self.qb_vt['QSim']['NUMTIMESTEPS'] = int(self.qb_vt['QSim']['TMax'] / self.qb_vt['QSim']['TIMESTEP'])
         
-        QB_mp_compatible = self.qblade_version_check()
+        self.qblade_version_check()
 
         sim_params = [
             self.QBlade_dll, 
@@ -132,7 +132,6 @@ class QBladeWrapper:
             str(self.number_of_workers),
             str(self.no_structure),
             str(self.store_qprs),
-            str(QB_mp_compatible),
             str(self.qb_vt['QSim']['STOREFROM']),
             ]
         
@@ -171,18 +170,14 @@ class QBladeWrapper:
         else:
             raise ValueError("Version number not found in QBlade_dll path.")
         
-        mp_version = "2.0.7.8" # version that includes mp capability and allows for number_of_workers > 1
-
-        print(version.parse(qb_version))
+        mp_version = "2.0.8" # version that includes mp capability and allows for number_of_workers > 1
 
         if version.parse(qb_version) < version.parse(mp_version):
-            self.number_of_workers = 1
-            QB_mp_compatible = False
-            logger.warning("WARNING: This QBlade version is older than v2.0.7.8 and does not support mp, hence the number of workers is forced to be 1!!")
+            print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.8 or newer.")
+            sys.exit(1)
         else:
-            QB_mp_compatible = True
+            print("QBlade version: ", version.parse(qb_version), "was found!")
 
-        return QB_mp_compatible
 # for testing
 if __name__ == "__main__":
     dll_path = "/home/robert/GitHub/QBtoWEIS-Coupling/QBlade/QBladeCE_2.0.7_linux/QBladeCE_2.0.7/libQBladeCE_2.0.7.so.1.0.0"

@@ -23,13 +23,12 @@ import numpy as np
 import pandas as pd
 
 
-def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from):
+def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from):
     bsim = sim.encode("utf-8")
     
-    QBLIB = QBladeLibrary(QBlade_dll, QB_mp_compatible)
-    if not 'False' in QB_mp_compatible:
-        QBLIB.setOmpNumThreads(1)
-    QBLIB.createInstance(1,32)    
+    QBLIB = QBladeLibrary(QBlade_dll)
+    QBLIB.createInstance(1,32) 
+    QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
     
@@ -70,12 +69,12 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
     output_dict = scale_and_rename_channels(output_dict)
     export_to_OF_ASCII(output_dict, directory = QBLADE_runDirectory,  filename = sim_out_name + '_completed.out')
 
-def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from, max_retries=2, delay=2):
+def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, max_retries=2, delay=2):
     attempt = 0
     while attempt < max_retries:
         try:
             print(f"Running simulation attempt {attempt + 1} for {sim}...")
-            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from)
+            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from)
             return  # Exit if successful
         except Exception as e:
             print(f"Simulation attempt {attempt + 1} failed with exception: {e}")
@@ -86,7 +85,7 @@ def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_stru
             else:
                 print(f"Max retries reached for {sim}. Moving on.")
 
-def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible, store_from):
+def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from):
     simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
@@ -94,7 +93,7 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_wo
         for sim in simulations:
             time.sleep(1)  # Introduce a one-second pause before submitting the next task
             futures.append(
-                executor.submit(run_with_retry, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible, store_from)
+                executor.submit(run_with_retry, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from)
             )
         for future in concurrent.futures.as_completed(futures):
             try:
@@ -168,10 +167,9 @@ if __name__ == "__main__":
     number_of_workers = int(sys.argv[5])
     no_structure = sys.argv[6]
     store_qprs = sys.argv[7]
-    QB_mp_compatible = sys.argv[8]
-    store_from =  float(sys.argv[9])
+    store_from =  float(sys.argv[8])
 
     # required inputs are converted back into the datatype that we need
     channels = channels_str.split(',') #convert back to list
 
-    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible, store_from)
+    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from)

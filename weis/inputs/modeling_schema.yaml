@@ -1074,6 +1074,21 @@ properties:
                         default: 2
                         min: 1
                         description: the wake zone 3 factor [-]
+                    ZONE1FACTOR_S:
+                        type: integer
+                        default: 2
+                        min: 1
+                        description: the wake zone 1 spanwise factor (integer) [-]
+                    ZONE2FACTOR_S:
+                        type: integer
+                        default: 2
+                        min: 1
+                        description: the wake zone 2 spanwise factor (integer) [-]
+                    ZONE3FACTOR_S:
+                        type: integer
+                        default: 2
+                        min: 1
+                        description: the wake zone 3 spanwise factor (integer) [-]
                     BOUNDCORERADIUS:
                         type: number
                         default: 0.05
@@ -1233,7 +1248,7 @@ properties:
                         description: Frequency spacing for the interpolation of the excitation IRFs
                     DELTA_DIR_EXC:
                         type: number
-                        default: 0.50
+                        default: 1
                         description: Direction spacing for excitation IRFs
                     TRUNC_TIME_EXC:
                         type: number

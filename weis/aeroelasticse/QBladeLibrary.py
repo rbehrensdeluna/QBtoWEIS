@@ -18,7 +18,7 @@ from ctypes import *
 
 class QBladeLibrary:
 
-    def __init__(self, shared_lib_path, QB_mp_compatible):
+    def __init__(self, shared_lib_path):
         
         try:
             self.lib = CDLL(shared_lib_path)
@@ -41,10 +41,9 @@ class QBladeLibrary:
         self.loadSimDefinition.argtype = c_char_p
         self.loadSimDefinition.restype = c_void_p
 
-        if not 'False' in QB_mp_compatible:
-            self.setOmpNumThreads = self.lib.setOmpNumThreads
-            self.setOmpNumThreads.argtype = [c_int]
-            self.setOmpNumThreads.restype = c_void_p
+        self.setOmpNumThreads = self.lib.setOmpNumThreads
+        self.setOmpNumThreads.argtype = [c_int]
+        self.setOmpNumThreads.restype = c_void_p
         
         self.getCustomData_at_num = self.lib.getCustomData_at_num
         self.getCustomData_at_num.argtypes = [c_char_p, c_double, c_int]
