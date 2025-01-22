@@ -37,8 +37,8 @@ def run_TurbSim(wind_directory, number_of_workers):
         for turbsim_input_file in turbsim_input_files:
             # Check if the corresponding .bts file exists
             bts_file = os.path.splitext(turbsim_input_file)[0] + '.bts'
-            if os.path.exists(bts_file):
-                print(f"Skipping {turbsim_input_file} as {bts_file} already exists.")
+            if os.path.exists(bts_file) and os.path.getsize(bts_file) > 0:
+                print(f"Skipping {turbsim_input_file} as {bts_file} already exists and is non-empty.")
                 continue
 
             # If .bts file doesn't exist, add to the execution queue
