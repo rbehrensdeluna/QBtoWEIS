@@ -164,7 +164,7 @@ class QBladeWrapper:
         return case_name, sum_stats, extremes, dels, damage, output_dict        
 
     def qblade_version_check(self):
-        match = re.search(r'QBladeCE_(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll
+        match = re.search(r'(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll
         if match:
             qb_version = match.group(1)
         else:
