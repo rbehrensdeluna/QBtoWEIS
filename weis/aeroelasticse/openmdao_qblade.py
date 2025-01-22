@@ -359,6 +359,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('max_nac_accel',        val=0.0,                    units='m/s**2', desc='Maximum nacelle acceleration magnitude all OpenFAST simulations')  # is this over a set of sims?
         self.add_output('avg_pitch_travel',     val=0.0,                    units='deg/s',  desc='Average pitch travel')  # is this over a set of sims?
         self.add_output('pitch_duty_cycle',     val=0.0,                    units='deg/s',  desc='Average pitch travel')  # is this over a set of sims?
+        self.add_output('max_pitch_rate_sim',   val=0.0,                    units='deg/s',  desc='Maximum pitch command rate over all simulations')  # is this over a set of sims?
 
         # Blade related outputs
         self.add_output('max_TipDxc',           val=0.0,                    units='m',      desc='Maximum of channel TipDxc, i.e. out of plane tip deflection. For upwind rotors, the max value is tower the tower')
@@ -1630,6 +1631,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
             channels_out += ["Aero. Power [W]", "Wave Elev. HYDRO WavekinEval. Pos. [m]"]
+            channels_out += ["Pitch Vel. BLD 1 [deg/s]", "Pitch Vel. BLD 2 [deg/s]"]
 
             if self.n_blades == 3:
                 channels_out += ["X_c Tip Trl.Def. (OOP) BLD 3 [m]", "Y_c Tip Trl.Def. (IP) BLD 3 [m]", "Z_c Tip Trl.Def. BLD 3 [m]"]
@@ -1639,6 +1641,7 @@ class QBLADELoadCases(ExplicitComponent):
                 channels_out += ["X_c Root For. BLD 3 [N]","Y_c Root For. BLD 3 [N]","Z_c Root For. BLD 3 [N]"]
                 channels_out += ["X_b Root For. BLD 3 [N]",  "Y_b Root For. BLD 3 [N]", "Z_b Root For. BLD 3 [N]"]
                 channels_out += ["Pitch Angle Blade 3 [deg]"]
+                channels_out += ["Pitch Vel. BLD 3 [deg/s]"]
             
             if modopt['flags']['floating']:
                 channels_out += ["NP Trans. X_g [m]", "NP Trans. Y_g [m]", "NP Trans. Z_g [m]", "NP Roll X_l [deg]", "NP Pitch Y_l [deg]", "NP Yaw Z_l [deg]"]
@@ -2281,6 +2284,10 @@ class QBLADELoadCases(ExplicitComponent):
 
         # nacelle accelleration
         outputs['max_nac_accel'] = sum_stats['NcIMUTA']['max'].max()
+
+        # Max pitch rate
+        max_pitch_rates = np.r_[sum_stats['Pitch Vel. BLD 1']['max'],sum_stats['Pitch Vel. BLD 2']['max'],sum_stats['Pitch Vel. BLD 3']['max']]
+        outputs['max_pitch_rate_sim'] = max(max_pitch_rates)  / np.rad2deg(self.qb_vt['DISCON_in']['PC_MaxRat'])        # normalize by ROSCO pitch rate
 
         # pitch travel and duty cycle
         if self.options['modeling_options']['General']['qblade_configuration']['keep_time']: # TODO keep time is a dummy variable in QBlade for now

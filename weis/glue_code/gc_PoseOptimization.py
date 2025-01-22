@@ -459,12 +459,12 @@ class PoseOptimizationWEIS(PoseOptimization):
         if control_constraints['Max_TwrBsMyt']['flag']:
             if self.modeling['Level3']['flag'] != True:
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize Max_TwrBsMyt constraints.')
-            wt_opt.model.add_constraint('aeroelastic.max_TwrBsMyt_ratio', 
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.max_TwrBsMyt_ratio', 
                 upper = 1.0)
         if control_constraints['DEL_TwrBsMyt']['flag']:
             if self.modeling['Level3']['flag'] != True:
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize Max_TwrBsMyt constraints.')
-            wt_opt.model.add_constraint('aeroelastic.DEL_TwrBsMyt_ratio', 
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.DEL_TwrBsMyt_ratio', 
                 upper = 1.0)
             
         # Blade pitch travel
@@ -478,7 +478,7 @@ class PoseOptimizationWEIS(PoseOptimization):
         if control_constraints['pitch_duty_cycle']['flag']:
             if self.modeling['Level3']['flag'] != True:
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize pitch_duty_cycle constraints.')
-            wt_opt.model.add_constraint('aeroelastic.pitch_duty_cycle',
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.pitch_duty_cycle',
                 upper = control_constraints['pitch_duty_cycle']['max'])
 
         # OpenFAST failure
@@ -539,7 +539,7 @@ class PoseOptimizationWEIS(PoseOptimization):
             if damage_constraints['tower_base']['log']:
                 tower_base_damage_max = np.log(tower_base_damage_max)
 
-            wt_opt.model.add_constraint('aeroelastic.damage_tower_base',upper = tower_base_damage_max)
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.damage_tower_base',upper = tower_base_damage_max)
 
         return wt_opt
 
