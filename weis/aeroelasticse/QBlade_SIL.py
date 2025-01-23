@@ -25,12 +25,17 @@ import pandas as pd
 
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from):
     bsim = sim.encode("utf-8")
-    
+    # dll_directory = dll_directory = os.path.dirname(QBlade_dll)
+
+    # if sys.platform == 'win32':  # 'nt' indicates Windows
+    #     os.environ["PATH"] = os.path.abspath(dll_directory) + ";" + os.environ.get("PATH", "")
+
     QBLIB = QBladeLibrary(QBlade_dll)
     QBLIB.createInstance(1,32) 
     QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
+
     
     # Convert each item in the list to a bytes-like object
     bchannels = [bytes(channel, 'utf-8') for channel in channels]
@@ -38,12 +43,12 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
 
     for i in range(n_dt):
 
-        QBLIB.advanceTurbineSimulation()
+        QBLIB.advanceTurbineSimulation() 
 
         if 'False' in no_structure: # we can only advance the controller as long as a structural model is included in the simulation
             ctr_vars = (c_double * 5)(0) 
             QBLIB.advanceController_at_num(ctr_vars,0) 
-            QBLIB.setControlVars_at_num(ctr_vars,0) 
+            # QBLIB.setControlVars_at_num(ctr_vars,0) 
 
         if i % (n_dt // 10) == 0:
             print(f"Simulation Progress: {i / n_dt * 100}% completed")

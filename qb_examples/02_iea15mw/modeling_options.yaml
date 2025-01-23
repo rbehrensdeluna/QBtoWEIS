@@ -3,14 +3,16 @@ General:
    
     qblade_configuration:
         flag: True
-        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
-        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
+        # path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
+        # path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
+        path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.1\QBladeEE_2.0.8.1.dll
         # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.1.1/Libraries>
         # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
         QB_run_mod: IEA-15-240-RWT_VolturnUS-S
         QB_run_dir: model_output/IEA-15-240-RWT_VolturnUS-S
         number_of_workers: 3
         model_only: False
+        store_qprs: False
         
 WISDEM:
     RotorSE:
@@ -36,7 +38,7 @@ Level4:                         # Options for WEIS fidelity level 4 = nonlinear 
         TMax: 120
         TIMESTEP: 0.05
         ISOFFSHORE: 1
-        STOREFROM: 60.0 
+        STOREFROM: 0.0 
         PRESCRIBETYPE: 0        # should be 0 if Controllertype > 1
         MEANINF: [6,10,14]
         RPMPRESCRIBED: [4, 7, 7]
@@ -95,6 +97,7 @@ Level4:                         # Options for WEIS fidelity level 4 = nonlinear 
         GridHeight: 290
         GridWidth: 290
         URef: [6,10,14]
+        RandSeed1: [10, 10, 10]
 ROSCO:
     flag: True
     # SD_Mode: 0

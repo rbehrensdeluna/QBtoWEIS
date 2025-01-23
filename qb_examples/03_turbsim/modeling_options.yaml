@@ -3,8 +3,9 @@ General:
    
     qblade_configuration:
         flag: True
-        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
-        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
+        # path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
+        # path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
+        path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.1\QBladeEE_2.0.8.1.dll
         QB_run_mod: nrel5mw_oc3
         QB_run_dir: turbsim/nrel5mw_oc3
         model_only: False
@@ -102,7 +103,7 @@ Level4: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         SUB_HYDROSTIFFNESS5: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         SUB_HYDROSTIFFNESS6: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     QTurbSim:
-        RandSeed1: [12345, 54321]
+        RandSeed1: [1234, 1234]
         TimeStep: 0.05
         AnalysisTime: 100
         GridHeight: 178

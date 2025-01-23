@@ -75,9 +75,9 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
 
         # BEM dir, all levels
         if self.modeling_options['General']['qblade_configuration']['flag']:
-            base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
-        else:
             base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['qblade_configuration']['QB_run_dir'])
+        else:
+            base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
 
         if MPI:
             rank    = MPI.COMM_WORLD.Get_rank()
@@ -85,6 +85,7 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
         else:
             bemDir = osp.join(base_run_dir,'BEM')
 
+        self.modeling_options["Level1"]['BEM_dir'] = bemDir
 
 
         # Openfast
@@ -201,18 +202,19 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
                 self.modeling_options['Level3']['openfast_dir'] = osp.realpath(osp.join(
                     mod_opt_dir, self.modeling_options['Level3']['openfast_dir'] ))
         
-        # BEM dir, all levels
-        base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
-        if MPI:
-            rank    = MPI.COMM_WORLD.Get_rank()
-            bemDir = osp.join(base_run_dir,'rank_%000d'%int(rank),'BEM')
-        else:
-            bemDir = osp.join(base_run_dir,'BEM')
+        # I am not sure why this comes up again. We'll use the snippet above and comment this out
+        # # BEM dir, all levels 
+        # base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
+        # if MPI:
+        #     rank    = MPI.COMM_WORLD.Get_rank()
+        #     bemDir = osp.join(base_run_dir,'rank_%000d'%int(rank),'BEM')
+        # else:
+        #     bemDir = osp.join(base_run_dir,'BEM')
 
-        self.modeling_options["Level1"]['BEM_dir'] = bemDir
-        if MPI:
-            # If running MPI, RAFT won't be able to save designs in parallel
-            self.modeling_options["Level1"]['save_designs'] = False
+        # self.modeling_options["Level1"]['BEM_dir'] = bemDir
+        # if MPI:
+        #     # If running MPI, RAFT won't be able to save designs in parallel
+        #     self.modeling_options["Level1"]['save_designs'] = False
         
         # RAFT
         if self.modeling_options["flags"]["floating"]:
