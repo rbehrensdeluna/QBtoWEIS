@@ -884,7 +884,7 @@ class WindPark(om.Group):
             if not modeling_options['Level3']['from_openfast']:
 
                 # Connect computed AEP only if DLC 1.1 is used, otherwise use rotorse
-                if modeling_options['DLC_driver']['n_ws_aep'] > 0:
+                if modeling_options['DLC_driver']['n_ws_dlc11'] > 0:
                     self.connect('aeroelastic.AEP', 'financese_post.turbine_aep')
                 else:
                     self.connect('rotorse.rp.AEP', 'financese_post.turbine_aep')
@@ -909,7 +909,7 @@ class WindPark(om.Group):
                 self.connect('costs.wake_loss_factor',  'financese_post.wake_loss_factor')
                 self.connect('costs.fixed_charge_rate', 'financese_post.fixed_charge_rate')
 
-            if modeling_options['DLC_driver']['n_ws_aep'] > 0:
+            if modeling_options['DLC_driver']['n_ws_dlc11'] > 0:
                 self.connect('aeroelastic.AEP',     'outputs_2_screen_weis.aep')
 
             # Connections to outputs to screen
