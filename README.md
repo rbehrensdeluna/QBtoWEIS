@@ -76,8 +76,6 @@ If you are having trouble creating the virtual environment try allocating more R
 
 Verify if correct package versions were installed
 
-        conda list wisdem # (check if wisdem version equals 3.13.0 otherwise uninstall and revert)
+        conda list wisdem # (check if wisdem version equals 3.18.1 otherwise uninstall and revert)
         pip uninstall wisdem
-        pip install wisdem==3.16.4
-
-        The same should be done for rosco (2.9.4), scipy (1.13.0), openfast (3.5.2), openmdao (3.35.0)
+        pip install wisdem==3.18.1

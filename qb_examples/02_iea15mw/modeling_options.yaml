@@ -1,0 +1,120 @@
+General:
+    verbosity: False  # When set to True, the code prints to screen many infos
+   
+    qblade_configuration:
+        flag: True
+        # Linux
+        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
+        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
+        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.8.1/Libraries>
+        # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
+        # Windows
+        # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.1\QBladeEE_2.0.8.1.dll
+        QB_run_mod: IEA-15-240-RWT_VolturnUS-S
+        QB_run_dir: model_output/IEA-15-240-RWT_VolturnUS-S
+        number_of_workers: 3
+        model_only: False
+        store_qprs: False
+        
+WISDEM:
+    RotorSE:
+        flag: True
+        n_pitch_perf_surfaces: 10
+        n_tsr_perf_surfaces: 10
+        spar_cap_ss: spar_cap_ss
+        spar_cap_ps: spar_cap_ps
+        te_ss: te_reinforcement_ss
+        te_ps: te_reinforcement_ps
+    TowerSE:
+        flag: True
+    DriveSE:
+        flag: True
+    FloatingSE:
+        flag: True
+    
+Level4:                         # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
+    flag: True
+    simulation:
+        Simulate: True
+        wave_flag: True
+        TMax: 120
+        TIMESTEP: 0.05
+        ISOFFSHORE: 1
+        STOREFROM: 00.0 
+        PRESCRIBETYPE: 0        # should be 0 if Controllertype > 1
+        MEANINF: [6,10,14]
+        RPMPRESCRIBED: [4, 7, 7]
+        INITIAL_PITCH: [0, 0, 5]
+        RAMPUP: 30
+        WNDTYPE: 1              # 1 - To use Turbsim, 0 - for steady wind
+    Aero:
+        ROTORTYPE: HAWT         # only option for now
+    Main:
+        GLBGEOEPS: 0.2
+        DRTRDOF: False
+    Tower:
+        RAYLEIGHDMP: 0.0161
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISC: 30
+    Blade:
+        RAYLEIGHDMP: 0.0172
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISC: 50
+    Turbine:
+        CONTROLLERTYPE: 1
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0'         # must match the name of the controller file in QBlade/ControllerFiles
+        NUMPANELS: 30
+        WAKETYPE: 1
+        BEMSPEEDUP: 30
+    QBladeOcean:
+        USEADVANCEDBUOYANCY: True
+        ADVANCEDBUOYANCY: 50.0
+        override_morison_coefficients: True # use the morison coefficients defined in this file like "HydroCdN" etc.
+        override_wave: False                # override Hs and Tp from windIO with "SIGHEIGHT" and "PEAKPERIOD"
+        SIGHEIGHT:  [3,4,5]
+        PEAKPERIOD: [10,10.5,11]
+        POTFLOW: False                      # To deactivate potential flow, override_morison_coefficients should be true if set to 0
+        DIFF_EVAL_TYPE: 0   
+        HydroCdN: 1.0
+        HydroCaN: 1.0
+        HydroCpN: 0.0
+        HydroCdA: 1.6
+        HydroCaA: 1.0
+        HydroCpA: 0.0
+        MCFC: 1                             # MacCamey-Fuchs correction to account for diffraction without potential flow
+        IsBuoy: 1                           # to calculate the buoyancy based on submerged volume
+        SUB_HYDROSTIFFNESS1: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS2: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS3: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS4: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS5: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS6: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    QTurbSim:                               # TurbSim settings 
+        TimeStep: 0.05
+        AnalysisTime: 100
+        HubHt: 185
+        RefHt: 185
+        GridHeight: 290
+        GridWidth: 290
+        URef: [6,10,14]
+        RandSeed1: [10, 10, 10]
+ROSCO:
+    flag: True
+    # SD_Mode: 0
+    # PS_Mode: 1
+    # ps_percent: 0.85
+    # F_LPFType: 2
+    # F_NotchType: 2
+    # Fl_Mode: 2 
+    # zeta_pc: [1,1]
+    # omega_pc: [0.2,0.2]
+    # U_pc: [12,18]
+    # zeta_vs: 0.85
+    # omega_vs: 0.12  
+    # twr_freq: 3.2
+    # ptfm_freq: 0.2
+    # Kp_float: -10
+    
+

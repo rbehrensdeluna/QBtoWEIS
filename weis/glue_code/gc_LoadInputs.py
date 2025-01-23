@@ -74,9 +74,9 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
 
         # BEM dir, all levels
         if self.modeling_options['General']['qblade_configuration']['flag']:
-            base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
-        else:
             base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['qblade_configuration']['QB_run_dir'])
+        else:
+            base_run_dir = os.path.join(mod_opt_dir,self.modeling_options['General']['openfast_configuration']['OF_run_dir'])
 
         if MPI:
             rank    = MPI.COMM_WORLD.Get_rank()

@@ -22,6 +22,7 @@ import copy
 import glob
 import logging
 import pickle
+import subprocess
 from pathlib import Path
 from scipy.interpolate                      import PchipInterpolator
 from openmdao.api                           import ExplicitComponent
@@ -38,7 +39,7 @@ from functools import partial
 from pCrunch import PowerProduction
 from weis.aeroelasticse import FileTools
 from weis.aeroelasticse.turbsim_util import Turbsim_wrapper
-
+from weis.aeroelasticse.turbsim_util import generate_wind_files
 from weis.aeroelasticse.utils import OLAFParams
 from rosco.toolbox import control_interface as ROSCO_ci
 from pCrunch.io import OpenFASTOutput
@@ -46,12 +47,12 @@ from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
 from weis.control.dtqp_wrapper          import dtqp_wrapper
 from weis.aeroelasticse.StC_defaults        import default_StC_vt
 from weis.aeroelasticse.CaseGen_General import case_naming
-from wisdem.inputs import load_yaml
+from wisdem.inputs import load_yaml, write_yaml
 ## neccessary inputs:
 import wisdem.commonse.cross_sections as cs
 
+from weis.aeroelasticse.FAST_reader import InputReader_OpenFAST
 from weis.aeroelasticse.QBlade_writer         import InputWriter_QBlade
-from weis.aeroelasticse.QTurbSim              import TurbSimRunner
 import weis.aeroelasticse.QBlade_wrapper as qbwrap
 import random
 import base64
@@ -307,12 +308,12 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('U',             val=np.zeros(n_pc), units='m/s', desc='wind speeds')
             self.add_input('Omega',         val=np.zeros(n_pc), units='rpm', desc='rotation speeds to run')
             self.add_input('pitch',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
+            self.add_input("Ct_aero",       val=np.zeros(n_pc),              desc="rotor aerodynamic thrust coefficient")
 
-        # TODO is this really the best way?
         if modopt['Level4']['simulation']['WNDTYPE'] == 1:
-             n_ws = len(modopt['Level4']['QTurbSim']['URef'])  
+            n_ws = len(modopt['Level4']['QTurbSim']['URef'])  
         else:
-             n_ws = len(modopt['Level4']['simulation']['MEANINF'])
+            n_ws = len(modopt['Level4']['simulation']['MEANINF'])
 
         # QBlade options
         QBmgmt = modopt['General']['qblade_configuration']
@@ -326,6 +327,11 @@ class QBLADELoadCases(ExplicitComponent):
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
         self.QBLADE_runDirectory = QBLADE_directory_base
         self.QBLADE_namingOut = self.QBLADE_InputFile
+        if modopt['Level4']['simulation']['WNDTYPE']== 1:
+            self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
+            if not os.path.exists(self.wind_directory):
+                os.makedirs(self.wind_directory, exist_ok=True) 
+        self.turbsim_exe = shutil.which('turbsim')
 
         # Outpus
 
@@ -344,6 +350,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('max_nac_accel',        val=0.0,                    units='m/s**2', desc='Maximum nacelle acceleration magnitude all OpenFAST simulations')  # is this over a set of sims?
         self.add_output('avg_pitch_travel',     val=0.0,                    units='deg/s',  desc='Average pitch travel')  # is this over a set of sims?
         self.add_output('pitch_duty_cycle',     val=0.0,                    units='deg/s',  desc='Average pitch travel')  # is this over a set of sims?
+        self.add_output('max_pitch_rate_sim',   val=0.0,                    units='deg/s',  desc='Maximum pitch command rate over all simulations') # is this over a set of sims?
 
         # Blade related outputs
         self.add_output('max_TipDxc',           val=0.0,                    units='m',      desc='Maximum of channel TipDxc, i.e. out of plane tip deflection. For upwind rotors, the max value is tower the tower')
@@ -399,11 +406,13 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('damage_lss',               val=0.0, desc="Miner's rule cumulative damage to low speed shaft at hub attachment")
         self.add_output('damage_tower_base',        val=0.0, desc="Miner's rule cumulative damage at tower base")
         self.add_output('damage_monopile_base',     val=0.0, desc="Miner's rule cumulative damage at monopile base")
+
+        self.add_discrete_output('ts_out_dir', val={})
         
         # iteration counter used as model name appendix
         self.qb_inumber = 0
 
-    def compute(self, inputs, outputs, discrete_inputs, discrete_ouputs=None):
+    def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
         print("############################################################")
         print(f"The WEIS-QBlade component with version number: {__version__} is called")
         print("############################################################")
@@ -424,7 +433,7 @@ class QBLADELoadCases(ExplicitComponent):
             self.write_QBLADE(qb_vt, inputs, discrete_inputs)
             summary_stats, extreme_table, DELs, Damage, chan_time = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
-            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs)
+            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, discrete_outputs)
 
     def update_QBLADE_model(self, qb_vt, inputs, discrete_inputs):
         modopt = self.options['modeling_options']
@@ -1102,13 +1111,17 @@ class QBLADELoadCases(ExplicitComponent):
 
         # run TurbSim all cases
         if qb_vt['QSim']['WNDTYPE'] == 1:
-            # self.run_TurbSim(qb_vt)
-            turbsim = TurbSimRunner()
-            turbsim.QBLADE_runDirectory = self.QBLADE_runDirectory
-            turbsim.QBLADE_namingOut = self.QBLADE_namingOut
-            turbsim.qb_vt = qb_vt
-            turbsim.number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
-            turbsim.run_TurbSim()
+            script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script
+            wind_directory = self.wind_directory       
+            number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']                                        
+
+            turbsim_params = [
+                wind_directory,
+                str(number_of_workers),
+            ]
+            cmd = ['python', script_path] + turbsim_params
+            # Run TurbSim
+            subprocess.run(cmd, check=True)
 
                
         qblade                      = qbwrap.QBladeWrapper()
@@ -1116,7 +1129,7 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.QBlade_libs          = os.path.join(weis_dir,path2qb_libs)
         qblade.QBLADE_runDirectory  = self.QBLADE_runDirectory
         qblade.QBLADE_namingOut     = self.QBLADE_namingOut
-        qblade.qb_vt                = modopt['General']['qblade_configuration']['qb_vt']
+        qblade.qb_vt                = self.qb_vt
         qblade.number_of_workers    = modopt['General']['qblade_configuration']['number_of_workers']
         qblade.no_structure         = modopt['Level4']['Turbine']['NOSTRUCTURE']
         qblade.store_qprs           = modopt['General']['qblade_configuration']['store_qprs']
@@ -1326,15 +1339,16 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Aero. Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "HSS Rpm [rpm]", "Yaw Angle [deg]", "LSS Azimuthal Pos. [deg]"]
             channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
-            channels_out += ["X_g Wind Vel. at Hub [m/s]", "Y_g Wind Vel. at Hub [m/s]", "Z_g Wind Vel. at Hub [m/s]"]
-            # channels_out += [] ["RtVAvgxh", "RtVAvgyh", "RtVAvgzh"]
+            channels_out += ["Abs Inflow Vel. at Hub [m/s]", "X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
+            channels_out += ["X_g Inflow Vel. Rotor Avg. [m/s]", "Y_g Inflow Vel. Rotor Avg. [m/s]", "Z_g Inflow Vel. Rotor Avg. [m/s]"]
             channels_out += ["X_tb For. TWR Bot. Constr. [N]", "Y_tb For. TWR Bot. Constr. [N]", "Z_tb For. TWR Bot. Constr. [N]", "X_tb Mom. TWR Bot. Constr. [Nm]", "Y_tb Mom. TWR Bot. Constr. [Nm]", "Z_tb Mom. TWR Bot. Constr. [Nm]"]
             channels_out += ["X_tt For. TWR Top Constr. [N]", "Y_tt For. TWR Top Constr. [N]", "Z_tt For. TWR Top Constr. [N]", "X_tt Mom. TWR Top Constr. [Nm]", "Y_tt Mom. TWR Top Constr. [Nm]", "Z_tt Mom. TWR Top Constr. [Nm]"]
             channels_out += ["X_h For. Hub Const. [N]", "Y_h For. Hub Const. [N]", "Z_h For. Hub Const. [N]"] # equivalent to "LSShftFxa", "LSShftFya", "LSShftFza"] rotating 
             channels_out += ["X_s For. Shaft Const. [N]", "Y_s For. Shaft Const. [N]", "Z_s For. Shaft Const. [N]"]  # ["LSShftFxs", "LSShftFys", "LSShftFzs" non-rotating
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
-            channels_out += ["Aero. Power [W]", "NP Wave Elevation [m]"]
+            channels_out += ["Aero. Power [W]", "Wave Elev. HYDRO WavekinEval. Pos. [m]"]
+            channels_out += ["Pitch Vel. BLD 1 [deg/s]", "Pitch Vel. BLD 2 [deg/s]"]
 
             if self.n_blades == 3:
                 channels_out += ["X_c Tip Trl.Def. (OOP) BLD 3 [m]", "Y_c Tip Trl.Def. (IP) BLD 3 [m]", "Z_c Tip Trl.Def. BLD 3 [m]"]
@@ -1344,6 +1358,7 @@ class QBLADELoadCases(ExplicitComponent):
                 channels_out += ["X_c Root For. BLD 3 [N]","Y_c Root For. BLD 3 [N]","Z_c Root For. BLD 3 [N]"]
                 channels_out += ["X_b Root For. BLD 3 [N]",  "Y_b Root For. BLD 3 [N]", "Z_b Root For. BLD 3 [N]"]
                 channels_out += ["Pitch Angle Blade 3 [deg]"]
+                channels_out += ["Pitch Vel. BLD 3 [deg/s]"]
             
             if modopt['flags']['floating']:
                 channels_out += ["NP Trans. X_g [m]", "NP Trans. Y_g [m]", "NP Trans. Z_g [m]", "NP Roll X_l [deg]", "NP Pitch Y_l [deg]", "NP Yaw Z_l [deg]"]
@@ -1371,7 +1386,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "Yaw Angle [deg]"]
             channels_out += ["Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
-            channels_out += ["X_g Wind Vel. at Hub [m/s]", "Y_g Wind Vel. at Hub [m/s]", "Z_g Wind Vel. at Hub [m/s]"]
+            channels_out += ["X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
             channels_out += ["Aerodynamic Power [W]"]
 
             if self.n_blades == 3:
@@ -1434,16 +1449,16 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['General']['qblade_configuration']['store_iterations']:
                 writer.QBLADE_runDirectory = f"{self.QBLADE_runDirectory}/model_iterations"
                 iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
-                
+
                 if cases > 1:
                     case = f"_case_{idx}"
                 else:
                     case = ""
-                    
+
                 writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
 
                 writer.execute()    
-        
+
         self.qb_inumber += 1 # update iteration counter
 
     def init_QBlade_model(self):
@@ -1493,7 +1508,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QTurbSim'][key] = modeling_options['Level4']['QTurbSim'][key]
         return qb_vt
 
-    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs):
+    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, discrete_outputs):
         # leaning heavily on equivalent funtion in "openmdao_openfast.py"
         # TODO do the post-processing acutally for DLCs and not only idealized cases
         modopt = self.options['modeling_options']
@@ -1514,6 +1529,13 @@ class QBLADELoadCases(ExplicitComponent):
 
             if modopt['flags']['floating']: # TODO: or (modopt['Level4']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
+            
+            # Save Data
+            if modopt['General']['qblade_configuration']['save_timeseries']:
+                self.save_timeseries(chan_time)
+
+            if modopt['General']['qblade_configuration']['save_iterations']:
+                self.save_iterations(summary_stats,DELs,discrete_outputs)
         else:
             outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs)
 
@@ -1588,6 +1610,14 @@ class QBLADELoadCases(ExplicitComponent):
         return outputs
     
     def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs):
+        modopts = self.options['modeling_options']
+        DLCs = [i_dlc['DLC'] for i_dlc in modopts['DLC_driver']['DLCs']]
+        if 'AEP' in DLCs:
+            DLC_label_for_AEP = 'AEP'
+        else:
+            DLC_label_for_AEP = '1.1'
+            logger.warning('WARNING: DLC 1.1 is being used for AEP calculations.  Use the AEP DLC for more accurate wind modeling with constant TI.')
+
         if self.qb_vt['QSim']['WNDTYPE'] == 1:
             U = self.qb_vt['QTurbSim']['URef']    
         else:
@@ -1628,12 +1658,12 @@ class QBLADELoadCases(ExplicitComponent):
             outputs['pitch_out']    = sum_stats['Pitch Angle Blade 1']['mean'].mean()                   
             logger.warning('WARNING: QBlade is not run using DLC 1.1/1.2. AEP cannot be estimated. Using average power instead.')
 
-            outputs['V_out'] = sum_stats['X_g Wind Vel. at Hub']['mean'].iloc[0]
+            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean'].iloc[0]
         
         if len(U)>0:
             outputs['V_out'] = np.unique(U)
         else:
-            outputs['V_out'] = sum_stats['X_g Wind Vel. at Hub']['mean']
+            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean']
 
         return outputs
           	
@@ -1907,6 +1937,9 @@ class QBLADELoadCases(ExplicitComponent):
         # nacelle accelleration
         outputs['max_nac_accel'] = sum_stats['NcIMUTA']['max'].max()
 
+        max_pitch_rates = np.r_[sum_stats['Pitch Vel. BLD 1']['max'],sum_stats['Pitch Vel. BLD 2']['max'],sum_stats['Pitch Vel. BLD 3']['max']]
+        outputs['max_pitch_rate_sim'] = max(max_pitch_rates)  / np.rad2deg(self.qb_vt['DISCON_in']['PC_MaxRat'])        # normalize by ROSCO pitch rate
+
         # pitch travel and duty cycle
         if self.options['modeling_options']['General']['qblade_configuration']['keep_time']: # TODO keep time is a dummy variable in QBlade for now
             tot_time = 0
@@ -1989,3 +2022,30 @@ class QBLADELoadCases(ExplicitComponent):
         missing_stations = [station for station in required_stations if station not in station_array]
         if missing_stations:
             raise ValueError(f"{component} is missing the following required stations: {missing_stations}, please modify the modeling file accordingly")
+
+    def save_iterations(self,summ_stats,DELs,discrete_outputs):
+
+        # Make iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber))
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Save dataframes as pickles
+        summ_stats.to_pickle(os.path.join(save_dir,'summary_stats.p'))
+        DELs.to_pickle(os.path.join(save_dir,'DELs.p'))
+
+        # Save qb_vt as pickle
+        with open(os.path.join(save_dir,'qb_vt.p'), 'wb') as f:
+            pickle.dump(self.qb_vt,f)
+
+        discrete_outputs['ts_out_dir'] = save_dir
+
+    def save_timeseries(self,chan_time):
+
+        # Make iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber),'timeseries')
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Save each timeseries as a pickled dataframe
+        for i_ts, timeseries in enumerate(chan_time):
+            output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
+            output.df.to_pickle(os.path.join(save_dir,self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))

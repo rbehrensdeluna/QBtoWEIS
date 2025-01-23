@@ -377,26 +377,26 @@ class PoseOptimizationWEIS(PoseOptimization):
             if name in wt_opt.model._static_responses:
                 wt_opt.model._static_responses.pop( name )
                 
-            if blade_opt['structure']['spar_cap_ss']['flag'] or blade_opt['structure']['spar_cap_ps']['flag']:
+            if any(layer['layer_name'] in ['spar_cap_ss', 'spar_cap_ps'] for layer in blade_opt['structure']):
                 wt_opt.model.add_constraint('tcons_post.tip_deflection_ratio', upper=1.0)
             else:
                 print('WARNING: the tip deflection is set to be constrained, but spar caps thickness is not an active design variable. The constraint is not enforced.')
 
-        if blade_constr["strains_spar_cap_ss"]["flag"]:
+        if any(layer['layer_name'] in ['spar_cap_ps'] for layer in blade_opt['structure']):
             # Remove generic WISDEM one
             name = 'rotorse.rs.constr.constr_max_strainU_spar'
             if name in wt_opt.model._responses:
                 wt_opt.model._responses.pop( name )
             if name in wt_opt.model._static_responses:
                 wt_opt.model._static_responses.pop( name )
-            if blade_opt["structure"]["spar_cap_ss"]["flag"]:
+            if any(layer['layer_name'] in ['spar_cap_ss'] for layer in blade_opt['structure']):
                 indices_strains_spar_cap_ss = range(blade_constr["strains_spar_cap_ss"]["index_start"], blade_constr["strains_spar_cap_ss"]["index_end"])
                 wt_opt.model.add_constraint("rlds_post.constr.constr_max_strainU_spar", indices = indices_strains_spar_cap_ss, upper=1.0)
 
         if blade_constr["strains_spar_cap_ps"]["flag"]:
             if (
-                blade_opt["structure"]["spar_cap_ps"]["flag"]
-                or blade_opt["structure"]["spar_cap_ps"]["equal_to_suction"]
+                any(layer['layer_name'] in ['spar_cap_ps'] for layer in blade_opt['structure'])
+                or any(layer['layer_name'] == 'spar_cap_ps' and layer.get('equal_to_suction') for layer in blade_opt['structure'])
             ):
                 # Remove generic WISDEM one
                 name = 'rotorse.rs.constr.constr_max_strainL_spar'
@@ -459,12 +459,12 @@ class PoseOptimizationWEIS(PoseOptimization):
         if control_constraints['Max_TwrBsMyt']['flag']:
             if self.modeling['Level3']['flag'] != True:
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize Max_TwrBsMyt constraints.')
-            wt_opt.model.add_constraint('aeroelastic.max_TwrBsMyt_ratio', 
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.max_TwrBsMyt_ratio', 
                 upper = 1.0)
         if control_constraints['DEL_TwrBsMyt']['flag']:
             if self.modeling['Level3']['flag'] != True:
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize Max_TwrBsMyt constraints.')
-            wt_opt.model.add_constraint('aeroelastic.DEL_TwrBsMyt_ratio', 
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.DEL_TwrBsMyt_ratio', 
                 upper = 1.0)
             
         # Blade pitch travel
@@ -478,7 +478,7 @@ class PoseOptimizationWEIS(PoseOptimization):
         if control_constraints['pitch_duty_cycle']['flag']:
             if self.modeling['Level3']['flag'] != True:
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize pitch_duty_cycle constraints.')
-            wt_opt.model.add_constraint('aeroelastic.pitch_duty_cycle',
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.pitch_duty_cycle',
                 upper = control_constraints['pitch_duty_cycle']['max'])
 
         # OpenFAST failure
@@ -539,7 +539,7 @@ class PoseOptimizationWEIS(PoseOptimization):
             if damage_constraints['tower_base']['log']:
                 tower_base_damage_max = np.log(tower_base_damage_max)
 
-            wt_opt.model.add_constraint('aeroelastic.damage_tower_base',upper = tower_base_damage_max)
+            wt_opt.model.add_constraint(f'{self.floating_solve_component}.damage_tower_base',upper = tower_base_damage_max)
 
         return wt_opt
 

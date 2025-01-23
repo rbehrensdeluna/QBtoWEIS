@@ -23,13 +23,17 @@ import numpy as np
 import pandas as pd
 
 
-def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible):
+def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from):
     bsim = sim.encode("utf-8")
+    # We don't need this at the moment but it will live here in case we do:
+    # dll_directory = dll_directory = os.path.dirname(QBlade_dll)
+
+    # if sys.platform == 'win32':  # 'nt' indicates Windows
+    #     os.environ["PATH"] = os.path.abspath(dll_directory) + ";" + os.environ.get("PATH", "")
     
-    QBLIB = QBladeLibrary(QBlade_dll, QB_mp_compatible)
-    if not 'False' in QB_mp_compatible:
-        QBLIB.setOmpNumThreads(1)
-    QBLIB.createInstance(1,32)    
+    QBLIB = QBladeLibrary(QBlade_dll)
+    QBLIB.createInstance(1,32) 
+    QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
     
@@ -44,15 +48,16 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
         if 'False' in no_structure: # we can only advance the controller as long as a structural model is included in the simulation
             ctr_vars = (c_double * 5)(0) 
             QBLIB.advanceController_at_num(ctr_vars,0) 
-            QBLIB.setControlVars_at_num(ctr_vars,0) 
+            # QBLIB.setControlVars_at_num(ctr_vars,0) 
 
         if i % (n_dt // 10) == 0:
             print(f"Simulation Progress: {i / n_dt * 100}% completed")
 
-        # extract channels from simulation     
-        for bchannel, channel in zip(bchannels, channels):
-                data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
-                output_dict[channel].append(data)
+        # extract channels from simulation    
+        if QBLIB.getCustomData_at_num(b'Time [s]', 0, 0) >= store_from:
+            for bchannel, channel in zip(bchannels, channels):
+                    data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
+                    output_dict[channel].append(data)
 
     print(f"QBlade Simulation Progress: 100% completed")
 
@@ -69,22 +74,53 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
     output_dict = scale_and_rename_channels(output_dict)
     export_to_OF_ASCII(output_dict, directory = QBLADE_runDirectory,  filename = sim_out_name + '_completed.out')
 
-def run_qblade_sil(QBlade_dll,QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible):
-   
-   simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
+def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, max_retries=2, delay=2):
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            print(f"Running simulation attempt {attempt + 1} for {sim}...")
+            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from)
+            return  # Exit if successful
+        except Exception as e:
+            print(f"Simulation attempt {attempt + 1} failed with exception: {e}")
+            attempt += 1
+            if attempt < max_retries:
+                print("Retrying...")
+                time.sleep(delay)
+            else:
+                print(f"Max retries reached for {sim}. Moving on.")
 
-   with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
+def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, max_retries=2, delay=2):
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            print(f"Running simulation attempt {attempt + 1} for {sim}...")
+            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from)
+            return  # Exit if successful
+        except Exception as e:
+            print(f"Simulation attempt {attempt + 1} failed with exception: {e}")
+            attempt += 1
+            if attempt < max_retries:
+                print("Retrying...")
+                time.sleep(delay)
+            else:
+                print(f"Max retries reached for {sim}. Moving on.")
+
+def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from):
+    simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []
         for sim in simulations:
-                        
+            time.sleep(1)  # Introduce a one-second pause before submitting the next task
             futures.append(
-                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, QB_mp_compatible)
+                executor.submit(run_with_retry, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from)
             )
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()
             except Exception as e:
-                print(f"Simulation failed with exception: {e}")
+                print(f"Simulation failed after retrying with exception: {e}")
     
 def export_to_OF_ASCII(data, directory=None, filename=None):
     """
@@ -152,9 +188,9 @@ if __name__ == "__main__":
     number_of_workers = int(sys.argv[5])
     no_structure = sys.argv[6]
     store_qprs = sys.argv[7]
-    QB_mp_compatible = sys.argv[8]
+    store_from = float(sys.argv[8])
 
     # required inputs are converted back into the datatype that we need
     channels = channels_str.split(',') #convert back to list
 
-    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, QB_mp_compatible)
+    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from)

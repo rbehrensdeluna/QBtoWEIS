@@ -220,16 +220,16 @@ class Turbsim_wrapper(object):
         subprocess.call(exec_string)
         os.chdir(olddir)
 
-def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, hub_height, turbsim_exe, i_case):
+def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, hub_height, turbsim_exe, i_case, generate_for_qblade=False):
 
     if dlc_generator.cases[i_case].turbulent_wind:
         # Write out turbsim input file
         turbsim_input_file_name = FAST_namingOut + '_' + dlc_generator.cases[i_case].IEC_WindType + (
                                 '_U%1.6f'%dlc_generator.cases[i_case].URef +
-                                '_Seed%1.1f'%dlc_generator.cases[i_case].RandSeed1) + '.in'
+                                '_Seed%1.1f'%dlc_generator.cases[i_case].RandSeed1) + '.inp'
+        wind_file_path_InflowWind = os.path.join("wind", turbsim_input_file_name[:-4] + '.bts')
         turbsim_input_file_path = os.path.join(wind_directory, turbsim_input_file_name)
         wind_file_name = turbsim_input_file_path[:-3] + '.bts'
-
 
         runTS = True
         if os.path.exists(wind_file_name) and os.path.exists(turbsim_input_file_path):
@@ -246,18 +246,33 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
                         runTS = True
                         break
 
+        if generate_for_qblade:
+            if runTS:
+                ts_writer = TurbsimWriter(dlc_generator.cases[i_case])
+                ts_writer.execute(turbsim_input_file_path)
 
-        if runTS:
-            ts_writer = TurbsimWriter(dlc_generator.cases[i_case])
-            ts_writer.execute(turbsim_input_file_path)
+                # Run TurbSim in sequence
+                wrapper = Turbsim_wrapper()
+                wrapper.run_dir = wind_directory
+                #run_dir = os.path.dirname( os.path.dirname( os.path.dirname( os.path.realpath(__file__) ) ) ) + os.sep
+                wrapper.turbsim_exe = turbsim_exe
+                wrapper.turbsim_input = turbsim_input_file_name
+                # wrapper.execute() # we execute this beforhand in Qblade
 
-            # Run TurbSim in sequence
-            wrapper = Turbsim_wrapper()
-            wrapper.run_dir = wind_directory
-            #run_dir = os.path.dirname( os.path.dirname( os.path.dirname( os.path.realpath(__file__) ) ) ) + os.sep
-            wrapper.turbsim_exe = turbsim_exe
-            wrapper.turbsim_input = turbsim_input_file_name
-            wrapper.execute()
+            # a turbulent wind field in qblade equals a wind_type of 1
+            wind_file_type = 1 
+        else:
+            if runTS:
+                ts_writer = TurbsimWriter(dlc_generator.cases[i_case])
+                ts_writer.execute(turbsim_input_file_path)
+
+                # Run TurbSim in sequence
+                wrapper = Turbsim_wrapper()
+                wrapper.run_dir = wind_directory
+                #run_dir = os.path.dirname( os.path.dirname( os.path.dirname( os.path.realpath(__file__) ) ) ) + os.sep
+                wrapper.turbsim_exe = turbsim_exe
+                wrapper.turbsim_input = turbsim_input_file_name
+                wrapper.execute()
 
         # Pass data to CaseGen_General to call OpenFAST
         wind_file_type = 3
@@ -269,12 +284,16 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
             gusts.HH = hub_height
             gusts.dt = dlc_generator.cases[i_case].TimeStep
             gusts.TStart = dlc_generator.cases[i_case].transient_time + 10.  # start gust 10 seconds after OpenFAST starts recording
-            gusts.TF = dlc_generator.cases[i_case].analysis_time + dlc_generator.cases[i_case].transient_time
+            gusts.TF = dlc_generator.cases[i_case].total_time
             gusts.Vert_Slope = dlc_generator.cases[i_case].VFlowAng
             wind_file_name = gusts.execute(wind_directory, FAST_namingOut, dlc_generator.cases[i_case])
+            if not os.path.isabs(wind_file_name):
+                wind_file_path_InflowWind = os.path.join("wind", os.path.basename(wind_file_name))
+            else:
+                wind_file_path_InflowWind = wind_file_name
             wind_file_type = 2
         else:
             wind_file_type = 1
-            wind_file_name = 'unused'
+            wind_file_path_InflowWind = 'unused'
 
-    return wind_file_type, wind_file_name
+    return wind_file_type, wind_file_path_InflowWind

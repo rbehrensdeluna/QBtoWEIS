@@ -1,0 +1,134 @@
+General:
+    verbosity: False  # When set to True, the code prints to screen many infos
+   
+    qblade_configuration:
+        flag: True
+        # Linux
+        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.1/Libraries
+        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0
+        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.8.1/Libraries>
+        # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
+        # Windows
+        # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.1\QBladeEE_2.0.8.1.dll
+        QB_run_mod: nrel5mw_oc3
+        QB_run_dir: turbsim/nrel5mw_oc3
+        model_only: False
+        number_of_workers: 2
+        
+WISDEM:
+    RotorSE:
+        flag: True
+        n_pitch_perf_surfaces: 10
+        n_tsr_perf_surfaces: 10
+        spar_cap_ss: Spar_Cap_SS
+        spar_cap_ps: Spar_Cap_PS
+        te_ss: TE_reinforcement_SS
+        te_ps: TE_reinforcement_PS
+    TowerSE:
+        flag: True
+    DriveSE:
+        flag: True
+    FloatingSE:
+        flag: True
+        rank_and_file: True
+
+Level4: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
+    flag: True
+    simulation:
+        Simulate: True
+        TMax: 100
+        PRESCRIBETYPE: 0
+        TIMESTEP: 0.05
+        ISOFFSHORE: 1
+        STOREFROM: 0.0
+        # MEANINF: [10] # This Input is ignored when WNDTYPE = 1
+        WNDTYPE: 1      # To activate TurbSim
+        # DELETEBTS: True	# To Delete the BTS File after the simulation
+    Aero:
+        ROTORTYPE: HAWT         # only option for now
+        INVERTEDFOILS: False    # dummy variable, only used for VAWTs
+    Main:
+        GLBGEOEPS: 0.2
+        DRTRDOF: True
+        BRKTORQUE: 0.0
+        BRKDEPLOY: 0.0
+        BRKDELAY: 0.0
+        ERRORYAW: 0.0   
+        ERRORPITCH_1: 0.0
+        ERRORPITCH_2: 0.0
+        ERRORPITCH_3: 0.0
+    Tower:
+        RAYLEIGHDMP: 0.0127
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISC: 30
+        CD: 0.0
+    Blade:
+        RAYLEIGHDMP: 0.0024
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISC: 50
+    Turbine:
+        NOSTRUCTURE: False
+        CONTROLLERTYPE: 1
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0'
+        TURBTYPE: 0   
+        ROTORCONFIG: 0
+        ROTATIONALDIR: 0
+        DISCTYPE: 0 
+        INTPTYPE: 0
+        NUMPANELS: 30
+        WAKETYPE: 1
+        BEMSPEEDUP: 30
+    QBladeOcean:
+        USEADVANCEDBUOYANCY: True
+        ADVANCEDBUOYANCY: 50.0
+        override_morison_coefficients: True
+        HydroCdN: 1.0
+        HydroCaN: 1.0
+        HydroCpN: 0.0
+        HydroCdA: 1.6
+        HydroCaA: 1.0
+        HydroCpA: 0.0
+        MCFC: 1
+        POTFLOW: False
+        IsBuoy: 1
+        # POT_RAD_FILE: ../../../../POTFLOW_files/spar.1
+        # POT_EXC_FILE: ../../../../POTFLOW_files/spar.3
+        POT_SUM_FILE: ''
+        POT_DIFF_FILE: ''
+        DIFF_EVAL_TYPE: 0
+        USE_SUM_FREQS: False
+        USE_RAD_ADDMASS: True
+        SUB_HYDROSTIFFNESS1: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS2: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS3: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS4: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS5: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        SUB_HYDROSTIFFNESS6: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    QTurbSim:
+        RandSeed1: [1234, 1234]
+        TimeStep: 0.05
+        AnalysisTime: 100
+        GridHeight: 178
+        GridWidth: 178
+        URef: [10, 12]
+        
+ROSCO:
+    flag: True
+    SD_Mode: 0
+    PS_Mode: 1
+    ps_percent: 0.85
+    F_LPFType: 1
+    F_NotchType: 1
+    F_NotchFreqs: 1.4799
+    Fl_Mode: 2 
+    U_pc : [10,12]
+    zeta_pc: [1,1]
+    omega_pc: [0.2,0.2]
+    zeta_vs: 0.85                     # Torque controller desired damping ratio [-]
+    omega_vs: 0.12
+    twr_freq: 3.2
+    ptfm_freq: 0.2
+    Kp_float: -10
+

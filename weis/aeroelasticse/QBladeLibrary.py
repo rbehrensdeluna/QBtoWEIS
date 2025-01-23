@@ -1,156 +1,90 @@
-
-"""
-
-Copyright © 2024 Robert Behrens de Luna. All rights reserved.
-
-This software project and all associated files are protected by copyright and may not
-be copied, distributed, or modified without the express written permission of the 
-copyright holder.
-
-A significant portion of this project relies on code from the WISDEM/WEIS repository (https://github.com/WISDEM/WEIS),
-which is licensed under the Apache 2.0 License. The terms of the Apache 2.0 License apply to those parts and can be
-found in the LICENSE file. The remainder of the code, as indicated by this copyright notice, is protected by copyright
-and may not be used without authorization.
-
-"""
-
 from ctypes import *
-from sys import platform
+from typing import Dict, Any
 
 class QBladeLibrary:
+    def __init__(self, shared_lib_path: str):
+        """Initialize and load the QBlade shared library."""
+        self.lib_path = shared_lib_path
+        self.lib = None
 
-    def __init__(self, shared_lib_path, QB_mp_compatible):
+        # Define all functions with argument types and return types
+        self.functions: Dict[str, Dict[str, Any]] = {
+            "createInstance": {"argtypes": [c_int, c_int], "restype": c_void_p},
+            "closeInstance": {"argtypes": None, "restype": c_void_p},
+            "loadProject": {"argtypes": [c_char_p], "restype": c_void_p},
+            "loadSimDefinition": {"argtypes": [c_char_p], "restype": c_void_p},
+            "setOmpNumThreads": {"argtypes": [c_int], "restype": c_void_p},
+            "getCustomData_at_num": {"argtypes": [c_char_p, c_double, c_int], "restype": c_double},
+            "getCustomSimulationTimeData": {"argtypes": [c_char_p], "restype": c_double},
+            "getWindspeed": {"argtypes": [c_double, c_double, c_double, POINTER(c_double * 3)], "restype": c_void_p},
+            "getWindspeedArray": {"argtypes": [POINTER(c_double), POINTER(c_double), POINTER(c_double),POINTER(c_double), POINTER(c_double), POINTER(c_double), c_int],"restype": c_void_p,},
+            "storeProject": {"argtypes": [c_char_p], "restype": c_void_p},
+            "exportResults": {"argtypes": [c_int, c_char_p, c_char_p, c_char_p], "restype": c_void_p},
+            "setLibraryPath": {"argtypes": [c_char_p], "restype": c_void_p},
+            "setLogFile": {"argtypes": [c_char_p], "restype": c_void_p},
+            "addTurbulentWind": {"argtypes": [c_double, c_double, c_double, c_double, c_int, c_double,c_double, c_char_p, c_char_p, c_int, c_double, c_double, c_bool,],"restype": c_void_p,},
+            "setExternalAction": {"argtypes": [c_char_p, c_char_p, c_double, c_double, c_char_p, c_bool, c_int],"restype": c_void_p,},
+            "setMooringStiffness": {"argtypes": [c_double, c_double, c_int, c_int], "restype": c_void_p},
+            "loadTurbulentWindBinary": {"argtypes": [c_char_p], "restype": c_void_p},
+            "setTimestepSize": {"argtypes": [c_double], "restype": c_void_p},
+            "setInitialConditions_at_num": {"argtypes": [c_double, c_double, c_double, c_double, c_int],"restype": c_void_p,},
+            "setRPMPrescribeType_at_num": {"argtypes": [c_int, c_int], "restype": c_void_p},
+            "setRPM_at_num": {"argtypes": [c_double, c_int], "restype": c_void_p},
+            "setRampupTime": {"argtypes": [c_double], "restype": c_void_p},
+            "setTurbinePosition_at_num": {"argtypes": [c_double, c_double, c_double, c_double, c_double, c_double, c_int],"restype": c_void_p,},
+            "getTowerBottomLoads_at_num": {"argtypes": [POINTER(c_double * 6), c_int], "restype": c_void_p},
+            "initializeSimulation": {"argtypes": None, "restype": c_void_p},
+            "advanceTurbineSimulation": {"argtypes": None, "restype": c_bool},
+            "advanceController_at_num": {"argtypes": [POINTER(c_double * 5), c_int], "restype": c_void_p},
+            "setDebugInfo": {"argtypes": [c_bool], "restype": c_void_p},
+            "setUseOpenCl": {"argtypes": [c_bool], "restype": c_void_p},
+            "setGranularDebug": {"argtypes": [c_bool, c_bool, c_bool, c_bool, c_bool], "restype": c_void_p},
+            "setControlVars_at_num": {"argtypes": [POINTER(c_double * 5), c_int], "restype": c_void_p},
+            "getTurbineOperation_at_num": {"argtypes": [POINTER(c_double * 41), c_int], "restype": c_void_p},
+            "setPowerLawWind": {"argtypes": [c_double, c_double, c_double, c_double, c_double], "restype": c_void_p},
+            "runFullSimulation": {"argtypes": None, "restype": c_void_p},
+            "setAutoClearTemp": {"argtypes": [c_bool], "restype": c_void_p},
+        }
         
+        # Automatically load the library
+        self.load_library()
+
+    def load_library(self):
+        """Load the shared library and dynamically bind all functions."""
         try:
-            self.lib = CDLL(shared_lib_path)
-            print("Successfully loaded ", shared_lib_path)
+            self.lib = CDLL(self.lib_path)
+            print(f"Successfully loaded library from: {self.lib_path}")
         except Exception as e:
-            print("Could not load the file ", shared_lib_path)
-            print(e)
-            return
-            
-        #setting the library Path, so that the Library knows about its location!
-        self.lib.setLibraryPath(shared_lib_path.encode('utf-8')) #setting the library Path, so that the DLL knows about its location!
-        
-        #here the imported functions are defined
-        
-        self.loadProject = self.lib.loadProject
-        self.loadProject.argtype = c_char_p
-        self.loadProject.restype = c_void_p
-        
-        self.loadSimDefinition = self.lib.loadSimDefinition
-        self.loadSimDefinition.argtype = c_char_p
-        self.loadSimDefinition.restype = c_void_p
+            raise RuntimeError(f"Could not load the library at {self.lib_path}: {e}")
 
-        if not 'False' in QB_mp_compatible:
-            self.setOmpNumThreads = self.lib.setOmpNumThreads
-            self.setOmpNumThreads.argtype = [c_int]
-            self.setOmpNumThreads.restype = c_void_p
+        # Bind functions dynamically
+        for func_name, config in self.functions.items():
+            try:
+                func = getattr(self.lib, func_name)
+                func.argtypes = config.get("argtypes")
+                func.restype = config.get("restype")
+                setattr(self, func_name, func)  # Bind the function to the instance
+            except AttributeError as e:
+                raise RuntimeError(f"Failed to bind function '{func_name}': {e}")
+
+        # Call setLibraryPath after the library is loaded
+        try:
+            self.setLibraryPath(self.lib_path.encode('utf-8'))
+            print(f"Library path set to: {self.lib_path}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to set library path: {e}")
+
+    def unload(self):
         
-        self.getCustomData_at_num = self.lib.getCustomData_at_num
-        self.getCustomData_at_num.argtypes = [c_char_p, c_double, c_int]
-        self.getCustomData_at_num.restype = c_double
+        # Close the QBlade instance if it exists
+        try:
+            self.closeInstance()
+            print("QBlade instance closed.")
+        except Exception as e:
+            print(f"Warning: Failed to close QBlade instance: {e}")
         
-        self.getCustomSimulationData = self.lib.getCustomSimulationData
-        self.getCustomSimulationData.argtype = c_char_p
-        self.getCustomSimulationData.restype = c_double
-        
-        self.getWindspeed = self.lib.getWindspeed
-        self.getWindspeed.argtypes = [c_double, c_double, c_double, c_double * 3]
-        self.getWindspeed.restype = c_void_p
-        
-        self.getWindspeedArray = self.lib.getWindspeedArray
-        self.getWindspeedArray.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double), c_int]
-        self.getWindspeedArray.restype = c_void_p
-        
-        self.storeProject = self.lib.storeProject
-        self.storeProject.argtype = c_char_p
-        self.storeProject.restype = c_void_p
-        
-        self.setLibraryPath = self.lib.setLibraryPath
-        self.setLibraryPath.argtype = c_char_p
-        self.setLibraryPath.restype = c_void_p
-        
-        self.setLogFile = self.lib.setLogFile
-        self.setLogFile.argtype = c_char_p
-        self.setLogFile.restype = c_void_p
-        
-        self.createInstance = self.lib.createInstance
-        self.createInstance.argtypes = [c_int, c_int]
-        self.createInstance.restype = c_void_p
-        
-        self.closeInstance = self.lib.closeInstance
-        self.closeInstance.restype = c_void_p
-        
-        self.addTurbulentWind = self.lib.addTurbulentWind
-        self.addTurbulentWind.argtypes = [c_double, c_double, c_double, c_double, c_int, c_double, c_double, c_char_p, c_char_p, c_int, c_double, c_double, c_bool]
-        self.addTurbulentWind.restype = c_void_p
-        
-        self.setExternalAction = self.lib.setExternalAction
-        self.setExternalAction.argtypes = [c_char_p, c_char_p, c_double, c_double, c_char_p, c_bool, c_int]
-        self.setExternalAction.restype = c_void_p
-        
-        self.loadTurbulentWindBinary = self.lib.loadTurbulentWindBinary
-        self.loadTurbulentWindBinary.argtype = c_char_p
-        self.loadTurbulentWindBinary.restype = c_void_p
-        
-        self.setTimestepSize = self.lib.setTimestepSize
-        self.setTimestepSize.argtype = c_double
-        self.setTimestepSize.restype = c_void_p
-        
-        self.setInitialConditions_at_num = self.lib.setInitialConditions_at_num
-        self.setInitialConditions_at_num.argtypes = [c_double, c_double, c_double, c_double, c_int]
-        self.setInitialConditions_at_num.restype = c_void_p
-        
-        self.setRPMPrescribeType_at_num = self.lib.setRPMPrescribeType_at_num
-        self.setRPMPrescribeType_at_num.argtypes = [c_int, c_int]
-        self.setRPMPrescribeType_at_num.restype = c_void_p
-        
-        self.setRampupTime = self.lib.setRampupTime
-        self.setRampupTime.argtype = c_double
-        self.setRampupTime.restype = c_void_p
-        
-        self.setTurbinePosition_at_num = self.lib.setTurbinePosition_at_num
-        self.setTurbinePosition_at_num.argtypes = [c_double, c_double, c_double, c_double, c_double, c_double, c_int]
-        self.setTurbinePosition_at_num.restype = c_void_p
-        
-        self.getTowerBottomLoads_at_num = self.lib.getTowerBottomLoads_at_num
-        self.getTowerBottomLoads_at_num.argtypes = [c_double * 6, c_int]
-        self.getTowerBottomLoads_at_num.restype = c_void_p
-        
-        self.initializeSimulation = self.lib.initializeSimulation
-        self.initializeSimulation.restype = c_void_p
-        
-        self.advanceTurbineSimulation = self.lib.advanceTurbineSimulation
-        self.advanceTurbineSimulation.restype = c_void_p
-        
-        self.advanceController_at_num = self.lib.advanceController_at_num
-        self.advanceController_at_num.argtypes = [c_double * 5, c_int]
-        self.advanceController_at_num.restype = c_void_p
-        
-        self.setDebugInfo = self.lib.setDebugInfo
-        self.setDebugInfo.argtype = c_bool
-        self.setDebugInfo.restype = c_void_p
-        
-        self.setUseOpenCl = self.lib.setUseOpenCl
-        self.setUseOpenCl.argtype = c_bool
-        self.setUseOpenCl.restype = c_void_p
-        
-        self.setGranularDebug = self.lib.setGranularDebug
-        self.setGranularDebug.argtypes = [c_bool, c_bool, c_bool, c_bool, c_bool]
-        self.setGranularDebug.restype = c_void_p
-        
-        self.setControlVars_at_num = self.lib.setControlVars_at_num
-        self.setControlVars_at_num.argtypes = [c_double * 5, c_int]
-        self.setControlVars_at_num.restype = c_void_p
-        
-        self.getTurbineOperation_at_num = self.lib.getTurbineOperation_at_num
-        self.getTurbineOperation_at_num.argtypes = [c_double * 41, c_int]
-        self.getTurbineOperation_at_num.restype = c_void_p
-        
-        self.setPowerLawWind = self.lib.setPowerLawWind
-        self.setPowerLawWind.argtypes = [c_double, c_double, c_double, c_double, c_double]
-        self.setPowerLawWind.restype = c_void_p
-        
-        self.runFullSimulation = self.lib.runFullSimulation
-        self.runFullSimulation.restype = c_void_p
+        # Clean up resources and unload the library
+        if self.lib:
+            del self.lib
+            self.lib = None
+            print("Library unloaded successfully.")

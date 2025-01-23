@@ -22,6 +22,7 @@ from pCrunch import LoadsAnalysis, FatigueParams
 from packaging import version
 import logging
 import re
+import sys
 
 
 weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -112,10 +113,9 @@ class QBladeWrapper:
         print(f"Environment variables set. Library path: {libraries_path}")
 
     def execute(self):
-        # Set the environment variables
-        self.set_environment()
-        # print(os.getcwd())
-        # Run the Python script using subprocess
+        if sys.platform == "linux":
+            self.set_environment()
+
         script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QBlade_SIL.py')
 
         channels_str = ','.join(self.channels)  # convert channels to csv
@@ -123,7 +123,7 @@ class QBladeWrapper:
         if self.qb_vt['QSim']['TMax'] > 0:
             self.qb_vt['QSim']['NUMTIMESTEPS'] = int(self.qb_vt['QSim']['TMax'] / self.qb_vt['QSim']['TIMESTEP'])
         
-        QB_mp_compatible = self.qblade_version_check()
+        self.qblade_version_check()
 
         sim_params = [
             self.QBlade_dll, 
@@ -133,7 +133,7 @@ class QBladeWrapper:
             str(self.number_of_workers),
             str(self.no_structure),
             str(self.store_qprs),
-            str(QB_mp_compatible),
+            str(self.qb_vt['QSim']['STOREFROM']),
             ]
         
         cmd = ['python', script_path] + sim_params
@@ -165,22 +165,20 @@ class QBladeWrapper:
         return case_name, sum_stats, extremes, dels, damage, output_dict        
 
     def qblade_version_check(self):
-        match = re.search(r'QBladeCE_(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll
+        match = re.search(r'(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll
         if match:
             qb_version = match.group(1)
         else:
             raise ValueError("Version number not found in QBlade_dll path.")
         
-        mp_version = "2.0.7.8" # version that includes mp capability and allows for number_of_workers > 1
-            
-        if version.parse(qb_version) < version.parse(mp_version):
-            self.number_of_workers = 1
-            QB_mp_compatible = False
-            logger.warning("WARNING: This QBlade version is older than v2.0.7.8 and does not support mp, hence the number of workers is forced to be 1!!")
-        else:
-            QB_mp_compatible = True
+        mp_version = "2.0.8" # version that includes mp capability and allows for number_of_workers > 1
 
-        return QB_mp_compatible
+        if version.parse(qb_version) < version.parse(mp_version):
+            print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.8 or newer.")
+            sys.exit(1)
+        else:
+            print("QBlade version: ", version.parse(qb_version), "was found!")
+
 # for testing
 if __name__ == "__main__":
     dll_path = "/home/robert/GitHub/QBtoWEIS-Coupling/QBlade/QBladeCE_2.0.7_linux/QBladeCE_2.0.7/libQBladeCE_2.0.7.so.1.0.0"

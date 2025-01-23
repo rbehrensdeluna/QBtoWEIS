@@ -544,6 +544,9 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR']):<{object_length}}{'ZONE1FACTOR':<{keyword_length}} - the wake zone 1 factor (integer!) [-]\n")
             f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR']):<{object_length}}{'ZONE2FACTOR':<{keyword_length}} - the wake zone 2 factor (integer!) [-]\n")
             f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR']):<{object_length}}{'ZONE3FACTOR':<{keyword_length}} - the wake zone 3 factor (integer!) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR_S']):<{object_length}}{'ZONE1FACTOR':<{keyword_length}} - the wake zone 1 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR_S']):<{object_length}}{'ZONE2FACTOR':<{keyword_length}} - the wake zone 2 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR_S']):<{object_length}}{'ZONE3FACTOR':<{keyword_length}} - the wake zone 3 spanwise factor (integer) [-]\n")
             f.write('\n')
 
             f.write('----------------------------------------Vortex Core Parameters----------------------------------------------------------\n')
@@ -877,7 +880,7 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['QBladeOcean']['GAMMA']):<{object_length}}{'GAMMA':<{keyword_length}}  - custom gamma (JONSWAP & TORSE only)\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['AUTOSIGMA']):<{object_length}}{'AUTOSIGMA':<{keyword_length}}  - use sigmas according to IEC (JONSWAP & TORSE only) [bool]\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['SIGMA1']):<{object_length}}{'SIGMA1':<{keyword_length}}  - sigma1 (JONSWAP & TORSE only)\n")
-            f.write(f"{str(self.qb_vt['QBladeOcean']['SIGMA2']):<{object_length}}{'SIGMA2':<{keyword_length}}  - sigma1 (JONSWAP & TORSE only)\n")
+            f.write(f"{str(self.qb_vt['QBladeOcean']['SIGMA2']):<{object_length}}{'SIGMA2':<{keyword_length}}  - sigma2 (JONSWAP & TORSE only)\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['DOUBLEPEAK']):<{object_length}}{'DOUBLEPEAK':<{keyword_length}}  - if true a double peak TORSETHAUGEN spectrum will be created, if false only a single peak (TORSE only)\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['AUTOORCHI']):<{object_length}}{'AUTOORCHI':<{keyword_length}}  - automatic OCHI-HUBBLE parameters from significant wave height (OCHI only) [bool]\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['MODFREQ1']):<{object_length}}{'MODFREQ1':<{keyword_length}}  - modal frequency 1, must be '< modalfreq1 * 0.5' (OCHI only)\n")
@@ -974,19 +977,19 @@ class InputWriter_QBlade(object):
 
     def write_turbsim_input(self):
         # create "TurbSim" subfolder
-        if not os.path.isdir(os.path.join(self.turbine_directory,'wind')):
+        if not os.path.isdir(os.path.join(self.QBLADE_runDirectory,'wind')):
             try:
-                os.makedirs(os.path.join(self.turbine_directory,'wind'))
+                os.makedirs(os.path.join(self.QBLADE_runDirectory,'wind'))
             except:
                 try:
                     time.sleep(random.random())
-                    if not os.path.isdir(os.path.join(self.turbine_directory,'wind')):
-                        os.makedirs(os.path.join(self.turbine_directory,'wind'))
+                    if not os.path.isdir(os.path.join(self.QBLADE_runDirectory,'wind')):
+                        os.makedirs(os.path.join(self.QBLADE_runDirectory,'wind'))
                 except:
-                    print("Error tring to make '%s'!"%os.path.join(self.turbine_directory,'wind'))
+                    print("Error tring to make '%s'!"%os.path.join(self.QBLADE_runDirectory,'wind'))
 
-        self.qb_vt['QTurbSim']['TurbSimInp'] =  os.path.join(self.QBLADE_namingOut + '.inp')
-        turbsim_file = os.path.join(self.turbine_directory, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp'])
+        self.qb_vt['QTurbSim']['TurbSimInp'] =  os.path.join(self.QBLADE_namingOut + '_U'+ str(self.qb_vt['QTurbSim']['URef']) + '_Seed'+ str(self.qb_vt['QTurbSim']['RandSeed1']) + '.inp')
+        turbsim_file = os.path.join(self.QBLADE_runDirectory, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp'])
         object_length = 30 
         keyword_length = 25
 
@@ -1086,7 +1089,7 @@ class InputWriter_QBlade(object):
         if not self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = ''
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
-            turbsim_file = os.path.join(self.QBLADE_namingOut, 'wind' , self.qb_vt['QTurbSim']['TurbSimInp']).replace('.inp','.bts')
+            turbsim_file = os.path.join('wind' , self.qb_vt['QTurbSim']['TurbSimInp']).replace('.inp','.bts')
         
 
             
