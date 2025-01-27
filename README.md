@@ -4,6 +4,7 @@
 
 ## Cite as 
 If you use QBtoWEIS in your research or projects, please cite it as follows:
+
 [Behrens de Luna, QBtoWEIS, GitHub repository, https://github.com/rbehrensdeluna/QBtoWEIS.git, 2025.]
 
 ## WEIS
