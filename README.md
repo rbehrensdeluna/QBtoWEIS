@@ -1,6 +1,7 @@
 # QBtoWEIS
 
 **QBtoWEIS** is an extension of the WEIS (Wind Energy with Integrated Servo-control) framework that integrates the capabilities of QBlade to expand the design and optimization process for floating offshore wind turbines. By adding computationally highly optimized methods for wake aerodynamics and structural modeling, QBtoWEIS creates an even more versatile and powerful multi-fidelity toolchain, offering greater flexibility in co-design and optimization.
+
 **NOTE:** To use the DLC Generation capabilities of WEIS within QBtoWEIS, please switch to the test-develop branch.
 ## WEIS
 
