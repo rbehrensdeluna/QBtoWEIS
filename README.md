@@ -2,11 +2,6 @@
 
 **QBtoWEIS** is an extension of the WEIS (Wind Energy with Integrated Servo-control) framework that integrates the capabilities of QBlade to expand the design and optimization process for floating offshore wind turbines. By adding computationally highly optimized methods for wake aerodynamics and structural modeling, QBtoWEIS creates an even more versatile and powerful multi-fidelity toolchain, offering greater flexibility in co-design and optimization.
 
-## Cite as 
-If you use QBtoWEIS in your research or projects, please cite it as follows:
-
-[Behrens de Luna, QBtoWEIS, GitHub repository, https://github.com/rbehrensdeluna/QBtoWEIS.git, 2025.]
-
 ## WEIS
 
 [WEIS](https://github.com/WISDEM/WEIS) is a comprehensive framework developed by the National Renewable Energy Laboratory (NREL) that integrates several NREL-developed tools for the design optimization of floating offshore wind turbines. It facilitates aero-servo-hydro-elastic modeling, structural analysis, and control system design, enabling a holistic approach to floating wind turbine development.
