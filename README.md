@@ -1,6 +1,3 @@
-# Under Development
-This tool is currently under active development and will be released with full functionality, including example test cases, in January 2025.
-
 # QBtoWEIS
 
 **QBtoWEIS** is an extension of the WEIS (Wind Energy with Integrated Servo-control) framework that integrates the capabilities of QBlade to expand the design and optimization process for floating offshore wind turbines. By adding computationally highly optimized methods for wake aerodynamics and structural modeling, QBtoWEIS creates an even more versatile and powerful multi-fidelity toolchain, offering greater flexibility in co-design and optimization.
@@ -65,17 +62,15 @@ The installation instructions below use the environment name, "qbweis-env," but 
    Make QBladeCE executable
    
         chmod +x run_qblade.sh
-        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.7.8 
+        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.1 
 
-**NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.7.8 or newer to enable for multi-processing capabilities (number_of_workers > 1)
+**NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.8 or newer
         
 ## Troubleshoot.
 If you are having trouble creating the virtual environment try allocating more RAM to the WSL2 (e.g. https://learn.microsoft.com/en-us/answers/questions/1296124/how-to-increase-memory-and-cpu-limits-for-wsl2-win)
 
 Verify if correct package versions were installed
 
-        conda list wisdem # (check if wisdem version equals 3.13.0 otherwise uninstall and revert)
-        pip uninstall wisdem
-        pip install wisdem==3.16.4
-
-        The same should be done for rosco (2.9.4), scipy (1.13.0), openfast (3.5.2), openmdao (3.35.0)
+        conda list openfast # (check if openfast version equals 3.5.2 otherwise uninstall and revert)
+        pip uninstall openfast
+        pip install wisdem==3.5.2
