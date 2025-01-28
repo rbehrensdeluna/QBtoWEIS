@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Behrens de Luna"
+    given-names: "Robert"
+    orcid: "0000-0002-0360-7399"
+title: "QBtoWEIS"
+version: "1.0.0"
+doi: 10.5281/zenodo.14754213
+date-released: "2025-01-01"
+repository-code: "https://github.com/rbehrensdeluna/QBtoWEIS"
