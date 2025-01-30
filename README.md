@@ -46,11 +46,11 @@ The installation instructions below use the environment name, "qbweis-env," but 
 
 **NOTE:** To use QBtoWEIS again after installation is complete, you will always need to activate the conda environment first with conda activate qbweis-env (or source activate qbweis-env).
 
-## Download and configure QBladeCE executables (Linux/WSL2 only)
+## Download and configure QBladeCE
 
-   Download QBladeCE from https://qblade.org/downloads/ and place it in the WSL2 directory.
+   Download QBladeCE from https://qblade.org/downloads/ and place it in your prefered directory # (Linux/WSL2 & Windows).
    
-   install some libraries that are required to run qblade:
+   install some libraries that are required to run qblade # (Linux/WSL2 only):
        	
         sudo apt-get update -y
         sudo apt-get install -y libqt5opengl5 libqt5xml5 libquadmath0 libglu1-mesa
@@ -58,7 +58,7 @@ The installation instructions below use the environment name, "qbweis-env," but 
    Make QBladeCE executable
    
         chmod +x run_qblade.sh
-        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.1 
+        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.3
 
 **NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.8 or newer
         
