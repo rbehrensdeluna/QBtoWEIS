@@ -61,6 +61,28 @@ The installation instructions below use the environment name, "qbweis-env," but 
         chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.3
 
 **NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.8 or newer
+
+## Instructions for Running Simulations/Optimizations with QBalde
+
+   Before running simulations or optimizations using QBalde within WEIS, you must configure the paths to the necessary shared library files (.dll for Windows or .so for Linux/WSL2) within the `modeling_options.yaml` file of your WEIS problem. For example: `qb_examples\00_run_test\modeling_options.yaml`.
+
+### **Linux/WSL2**
+   Specify both `path2qb_libs` and `path2qb_dll` as shown below:
+
+        path2qb_libs: /home/user/qblade/software/QBladeCE_2.0.8.3/Libraries
+        path2qb_dll: /home/user/qblade/software/QBladeCE_2.0.8.3/libQBladeCE_2.0.8.3.so.1.0.0
+
+### **Windows**
+   in Windows only "path2qb_dll" has to be specified:
+
+        path2qb_dll: C:\Users\User\QBladeCE_2.0.8.3\QBladeEE_2.0.8.3.dll
+
+### **Default Path**
+   To avoid modifying the path in every new WEIS problem you can specify your default path in the modeling_schema.yaml:
+   
+        QBtoWEIS/weis/inputs/modeling_schema.yaml 
+        
+   "path2qb_libs" & "path2qb_dll" are found below the "qblade_configuration" object.
         
 ## Troubleshoot.
 If you are having trouble creating the virtual environment try allocating more RAM to the WSL2 (e.g. https://learn.microsoft.com/en-us/answers/questions/1296124/how-to-increase-memory-and-cpu-limits-for-wsl2-win)
