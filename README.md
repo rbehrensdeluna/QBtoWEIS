@@ -44,13 +44,6 @@ The installation instructions below use the environment name, "qbweis-env," but 
         conda install -y petsc4py mpi4py pyoptsparse     # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
         pip install -e .
 
-3. Instructions specific for DOE HPC system Eagle.  Before executing the setup script, do:
-
-        module load comp-intel intel-mpi mkl
-        module unload gcc
-        pip install --no-deps -e . -v
-        conda install -c conda-forge pyoptsparse
-
 **NOTE:** To use QBtoWEIS again after installation is complete, you will always need to activate the conda environment first with conda activate qbweis-env (or source activate qbweis-env).
 
 ## Download and configure QBladeCE executables under WSL2
