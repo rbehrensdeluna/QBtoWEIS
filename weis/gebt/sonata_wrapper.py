@@ -24,10 +24,11 @@ class SONATA_WEIS(ExplicitComponent):
         n_span = modeling_options['WISDEM']['RotorSE']['n_span']
         n_af = modeling_options["WISDEM"]["RotorSE"]["n_af"]
         n_af_span = modeling_options["WISDEM"]["RotorSE"]["n_af_span"]
-        n_opt_spar_cap_ss = next((layer['n_opt'] for layer in analysis_options['design_variables']['blade']['structure'] if layer['layer_name'].lower() == 'spar_cap_ss'), None) # analysis_options["design_variables"]["blade"]["structure"]["spar_cap_ss"]["n_opt"]
-        n_opt_spar_cap_ps = next((layer['n_opt'] for layer in analysis_options['design_variables']['blade']['structure'] if layer['layer_name'].lower() == 'spar_cap_ps'), None) # analysis_options["design_variables"]["blade"]["structure"]["spar_cap_ps"]["n_opt"]
-        n_opt_te_ss = next((layer['n_opt'] for layer in analysis_options['design_variables']['blade']['structure'] if layer['layer_name'].lower() == 'te_reinforcement_ss'), None) # analysis_options["design_variables"]["blade"]["structure"]["te_ss"]["n_opt"]
-        n_opt_te_ps = next((layer['n_opt'] for layer in analysis_options['design_variables']['blade']['structure'] if layer['layer_name'].lower() == 'te_reinforcement_ps'), None) # analysis_options["design_variables"]["blade"]["structure"]["te_ps"]["n_opt"]
+
+        n_opt_spar_cap_ss = self.get_n_opt(analysis_options, modeling_options, 'spar_cap_ss')
+        n_opt_spar_cap_ps = self.get_n_opt(analysis_options, modeling_options, 'spar_cap_ps')
+        n_opt_te_ss = self.get_n_opt(analysis_options, modeling_options, 'te_reinforcement_ss')
+        n_opt_te_ps = self.get_n_opt(analysis_options, modeling_options, 'te_reinforcement_ps')
 
         # Blade Aero Definition Inputs
         self.add_input('grid',                  val=np.zeros(n_span),       units='deg',    desc='non-dimensional grdi along the span of the blade')
@@ -223,3 +224,9 @@ class SONATA_WEIS(ExplicitComponent):
         # job.blade_plot_sections(attribute=attribute_str, plotTheta11=flag_plotTheta11, plotDisplacement=flag_plotDisplacement, savepath=run_dir)
         # if flag_3d:
         #     job.blade_post_3dtopo(flag_wf=flags_dict['flag_wf'], flag_lft=flags_dict['flag_lft'], flag_topo=flags_dict['flag_topo'])
+
+    def get_n_opt(self, analysis_options, modeling_options, layer_name):
+        return next(
+            (layer['n_opt'] for layer in analysis_options['design_variables']['blade']['structure'] if layer['layer_name'].lower() == layer_name), 
+            modeling_options['WISDEM']['RotorSE']['n_span']
+        )

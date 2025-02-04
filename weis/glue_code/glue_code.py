@@ -230,7 +230,7 @@ class WindPark(om.Group):
                 self.connect('tune_rosco_ivc.flp_tau',     'sse_tune.tune_rosco.flp_tau')
 
         # if modeling_options['SONATA']['flag']:
-        #     self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init))
+            # self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init))
 
         if modeling_options['Level1']['flag']:
             self.add_subsystem('raft', RAFT_WEIS(modeling_options = modeling_options, analysis_options=opt_options))
@@ -1255,14 +1255,6 @@ class WindPark(om.Group):
                     self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[3], "sonata.s_opt_te_ps")
                     self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[2],   'sonata.te_ss_opt')
                     self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[3],   'sonata.te_ps_opt')
-                    # self.connect('blade.opt_var.s_opt_spar_cap_ps',         'sonata.s_opt_spar_cap_ps')
-                    # self.connect('blade.opt_var.spar_cap_ps_opt',           'sonata.spar_cap_ps_opt')
-                    # self.connect('blade.opt_var.s_opt_spar_cap_ss',         'sonata.s_opt_spar_cap_ss')
-                    # self.connect('blade.opt_var.spar_cap_ss_opt',           'sonata.spar_cap_ss_opt')
-                    # self.connect('blade.opt_var.s_opt_te_ps',               'sonata.s_opt_te_ps')
-                    # self.connect('blade.opt_var.te_ps_opt',                 'sonata.te_ps_opt')
-                    # self.connect('blade.opt_var.s_opt_te_ss',               'sonata.s_opt_te_ss')
-                    # self.connect('blade.opt_var.te_ss_opt',                 'sonata.te_ss_opt') 
                     
                     # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa',     'sonata.2d_fem_web_offset_y_pa')
                     # self.connect('blade.internal_structure_2d_fem.web_start_nd',        'sonata.2d_fem_web_start_nd')
