@@ -1961,10 +1961,11 @@ class QBLADELoadCases(ExplicitComponent):
             logger.warning('WARNING: DLC 1.1 is being used for AEP calculations.  Use the AEP DLC for more accurate wind modeling with constant TI.')
 
         if self.qb_vt['QSim']['DLCGenerator']:
+            # idx_pwrcrv = []
             U = []
             for i_case in range(dlc_generator.n_cases):
                 if dlc_generator.cases[i_case].label == DLC_label_for_AEP:
-                    idx_pwrcrv = np.append(idx_pwrcrv, i_case)
+                    # idx_pwrcrv = np.append(idx_pwrcrv, i_case)
                     U = np.append(U, dlc_generator.cases[i_case].URef)
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
             U = self.qb_vt['QTurbSim']['URef']    

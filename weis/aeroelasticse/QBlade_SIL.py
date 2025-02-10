@@ -160,6 +160,11 @@ def scale_and_rename_channels(output_dict):
             output_dict[channel] = [value * 1e-03 for value in output_dict[channel]]
             new_channel_name = channel.replace("[Nm]", "[kNm]")
             output_dict[new_channel_name] = output_dict.pop(channel)
+
+        elif "[W]" in channel:
+            output_dict[channel] = [value * 1e-03 for value in output_dict[channel]]
+            new_channel_name = channel.replace("[W]", "[kW]")
+            output_dict[new_channel_name] = output_dict.pop(channel)
         
     return output_dict
         
