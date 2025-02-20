@@ -35,6 +35,7 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
     QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
+    QBLIB.setAutoClearTemp(False)
 
     
     # Convert each item in the list to a bytes-like object
