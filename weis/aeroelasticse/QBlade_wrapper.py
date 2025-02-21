@@ -91,16 +91,19 @@ class QBladeWrapper:
         dam = {}
         ct = []
         
-        for c in os.listdir(self.QBLADE_runDirectory):
-            if c.endswith(".out"):
-                QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
+        # Filter only .out files and sort them
+        all_files_in_dir = os.listdir(self.QBLADE_runDirectory)
+        out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
 
-                _name, _ss, _et, _dl, _dam, _ct = self.analyze_cases(QBLADE_Output_txt)
-                ss[_name] = _ss
-                et[_name] = _et
-                dl[_name] = _dl
-                dam[_name] = _dam
-                ct.append(_ct)
+        for c in out_files:
+            QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
+
+            _name, _ss, _et, _dl, _dam, _ct = self.analyze_cases(QBLADE_Output_txt)
+            ss[_name] = _ss
+            et[_name] = _et
+            dl[_name] = _dl
+            dam[_name] = _dam
+            ct.append(_ct)
         
         summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
         
