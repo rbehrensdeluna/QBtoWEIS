@@ -17,6 +17,8 @@ from ctypes import *
 from QBladeLibrary import QBladeLibrary
 import sys
 import concurrent.futures
+import shutil
+import stat
 import time
 import os
 import numpy as np
@@ -108,6 +110,9 @@ def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_stru
                 print(f"Max retries reached for {sim}. Moving on.")
 
 def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from):
+    
+    clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
+
     simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
@@ -184,6 +189,50 @@ def scale_and_rename_channels(output_dict):
             output_dict[new_channel_name] = output_dict.pop(channel)
         
     return output_dict
+
+def handle_remove_error(func, path, exc_info):
+    """Handles file/folder removal errors by adjusting permissions and retrying."""
+    try:
+        # Remove read-only flag (Windows) or add write permission (Linux)
+        if os.name == "nt":  # Windows
+            os.chmod(path, stat.S_IWRITE)
+        else:  # Linux/macOS
+            os.chmod(path, stat.S_IWUSR)  # User write permission
+
+        func(path)  # Retry deletion
+    except Exception as e:
+        print(f"Failed to remove {path}: {e}")
+
+def clear_and_delete_temp(qblade_dll):
+    """Removes the read-only attribute, clears TEMP folder contents, and deletes it."""
+    qblade_dir = os.path.dirname(qblade_dll)
+    temp_path = os.path.join(qblade_dir, "TEMP")
+
+    if os.path.exists(temp_path) and os.path.isdir(temp_path):
+        try:
+            # Remove all files and subdirectories first
+            for root, dirs, files in os.walk(temp_path, topdown=False):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    try:
+                        os.chmod(file_path, stat.S_IWRITE)  # Remove read-only attribute
+                        os.remove(file_path)  # Delete file
+                    except Exception as e:
+                        print(f"Failed to delete file {file_path}: {e}")
+                        
+                for dir in dirs:
+                    dir_path = os.path.join(root, dir)
+                    try:
+                        os.chmod(dir_path, stat.S_IWRITE)  # Remove read-only attribute
+                        os.rmdir(dir_path)  # Remove empty directory
+                    except Exception as e:
+                        print(f"Failed to delete directory {dir_path}: {e}")
+
+            # Now delete the TEMP folder itself, using onexc to handle errors
+            shutil.rmtree(temp_path, onexc=handle_remove_error)
+            print("TEMP folder successfully deleted.")
+        except Exception as e:
+            print(f"Failed to delete TEMP folder: {e}")
         
 if __name__ == "__main__":
     
