@@ -3,8 +3,11 @@ General:
    
     qblade_configuration:
         flag: True
-        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.1.1/Libraries>
-        # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
+        # Linux
+        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.8.5/Libraries>
+        # path2qb_dll: # enter path to "libQBladeCE_2.0.8.5.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.5.so.1.0.0>  
+        # Windows
+        # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.5\QBladeEE_2.0.8.5.dll
         QB_run_mod: IEA-15-240-RWT_VolturnUS-S
         QB_run_dir: model_output/IEA-15-240-RWT_VolturnUS-S
         number_of_workers: 3

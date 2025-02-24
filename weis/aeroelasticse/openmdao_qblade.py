@@ -312,16 +312,12 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('pitch',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
             self.add_input("Ct_aero",       val=np.zeros(n_pc), desc="rotor aerodynamic thrust coefficient")
 
-        # TODO is this really the best way?
-
-        if modopt['Level4']['simulation']['WNDTYPE'] == 1:
-            n_ws = len(modopt['Level4']['QTurbSim']['URef'])  
-        elif modopt['Level4']['simulation']['DLCGenerator']:
+        if modopt['Level4']['simulation']['DLCGenerator']:
             n_ws = modopt['DLC_driver']['n_cases']
+        elif modopt['Level4']['simulation']['WNDTYPE'] == 1:
+            n_ws = len(modopt['Level4']['QTurbSim']['URef'])
         else:
             n_ws = len(modopt['Level4']['simulation']['MEANINF'])
-        
-        
         
         # QBlade options
         QBmgmt = modopt['General']['qblade_configuration']
