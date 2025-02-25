@@ -27,6 +27,7 @@ import pandas as pd
 
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from):
     bsim = sim.encode("utf-8")
+    sim_name = os.path.basename(sim)
     # dll_directory = dll_directory = os.path.dirname(QBlade_dll)
 
     # if sys.platform == 'win32':  # 'nt' indicates Windows
@@ -41,12 +42,22 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
 
     
     # Convert each item in the list to a bytes-like object
+    channels += ['qblade_failed [-]']
     bchannels = [bytes(channel, 'utf-8') for channel in channels]
     output_dict = {channel: [] for channel in channels}
 
+    simulation_completed = True
+    start_time = time.time()
     for i in range(n_dt):
 
-        QBLIB.advanceTurbineSimulation() 
+        success = QBLIB.advanceTurbineSimulation() 
+
+        # Check if the simulation step was successful
+        if not success:
+            print(f"Simulation {sim_name} failed at timestep {i}, exiting simulation loop", flush=True)
+            simulation_completed = False
+            output_dict['qblade_failed [-]'] = np.ones_like(output_dict['Time [s]'])
+            break
 
         if 'False' in no_structure: # we can only advance the controller as long as a structural model is included in the simulation
             ctr_vars = (c_double * 5)(0) 
@@ -54,7 +65,9 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
             # QBLIB.setControlVars_at_num(ctr_vars,0) 
 
         if i % (n_dt // 10) == 0:
-            print(f"Simulation Progress: {i / n_dt * 100}% completed")
+            progress_percentage = i / n_dt * 100
+            elapsed_time = time.time() - start_time
+            print(f"Simulation Progress: {sim_name} at {progress_percentage:3.0f}% (time elapsed: {elapsed_time:.1f} s)", flush=True)
 
         # extract channels from simulation    
         if QBLIB.getCustomData_at_num(b'Time [s]', 0, 0) >= store_from:
@@ -62,7 +75,9 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structur
                     data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
                     output_dict[channel].append(data)
 
-    print(f"QBlade Simulation Progress: 100% completed")
+    if simulation_completed:
+        print(f"Simulation Progress: {sim_name} complete (time elapsed: {elapsed_time:.1f} s)", flush=True)
+        output_dict['qblade_failed [-]'] = np.zeros_like(output_dict['Time [s]'])
 
     sim_out_name = sim.strip('.sim')
     

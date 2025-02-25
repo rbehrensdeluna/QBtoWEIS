@@ -412,6 +412,9 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('damage_tower_base',        val=0.0, desc="Miner's rule cumulative damage at tower base")
         self.add_output('damage_monopile_base',     val=0.0, desc="Miner's rule cumulative damage at monopile base")
         
+        # Simulation output
+        self.add_output('qblade_failed',             val=0.0, desc="Numerical value for whether any qblade runs failed. 0 if false, 2 if true")
+
         self.add_discrete_output('ts_out_dir', val={})
 
         # iteration counter used as model name appendix
@@ -440,6 +443,8 @@ class QBLADELoadCases(ExplicitComponent):
             summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
             self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs)
+
+            self.qb_inumber += 1
 
     def update_QBLADE_model(self, qb_vt, inputs, discrete_inputs):
         modopt = self.options['modeling_options']
@@ -1737,8 +1742,6 @@ class QBLADELoadCases(ExplicitComponent):
                 writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
 
                 writer.execute()    
-        
-        self.qb_inumber += 1 # update iteration counter
 
     def write_QBLADE_DLCGenerator(self, qb_vt, inputs, discrete_inputs,case_list,case_name):
         modopt = self.options['modeling_options']
@@ -1794,8 +1797,6 @@ class QBLADELoadCases(ExplicitComponent):
                 writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
 
                 writer.execute()    
-        
-        self.qb_inumber += 1 # update iteration counter
 
     def init_QBlade_model(self):
         modopt = self.options['modeling_options']
@@ -1866,6 +1867,10 @@ class QBLADELoadCases(ExplicitComponent):
 
             if modopt['flags']['floating']: # TODO: or (modopt['Level4']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
+
+            if any(summary_stats['qblade_failed']['mean'] > 0):
+                outputs['qblade_failed'] = 2
+
             # Save Data
             if modopt['General']['qblade_configuration']['save_timeseries']:
                 self.save_timeseries(chan_time)
