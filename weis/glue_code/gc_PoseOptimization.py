@@ -487,6 +487,12 @@ class PoseOptimizationWEIS(PoseOptimization):
                 raise Exception('Please turn on the call to OpenFAST if you are trying to optimize with openfast_failed constraint.')
             wt_opt.model.add_constraint('aeroelastic.openfast_failed',upper = 1.)
 
+        # QBlade failure
+        if self.opt['constraints']['qblade_failed']['flag']:
+            if self.modeling['Level4']['flag'] != True:
+                raise Exception('Please turn on the call to QBlade if you are trying to optimize with qblade_failed constraint.')
+            wt_opt.model.add_constraint('aeroelastic_qblade.qblade_failed',upper = 1.)
+            
         # Max offset
         if self.opt['constraints']['floating']['Max_Offset']['flag']:
             if not any(self.level_flags):

@@ -4364,6 +4364,17 @@
                             "default": false
                         }
                     }
+                },
+                "qblade_failed": {
+                    "type": "object",
+                    "default": {},
+                    "properties": {
+                        "flag": {
+                            "type": "boolean",
+                            "description": "Constrain design to one where QBlade simulations don't fail_value",
+                            "default": false
+                        }
+                    }
                 }
             }
         },
