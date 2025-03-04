@@ -132,6 +132,19 @@ properties:
                         type: boolean
                         default: False
                         description: store the .qpr of a simulation (should not be used for optimizations)
+                    out_file_format:
+                        type: integer
+                        default: 2
+                        enum: [1, 2]
+                        description: Format for tabular output file (switch) {1 text file [<RootName>.out], 2 binary file [<RootName>.outb]}
+                    delete_out_files:
+                        type: boolean
+                        default: True
+                        description: delete .out file of a of a simulation after it was interpreted for (should not be used for optimizations)
+                    chunk_size:
+                        type: integer
+                        default: 30000
+                        description: Defines the number of timesteps stored in each chunk of simulation results before being written to disk. Increasing the chunk size reduces the frequency of write operations but requires more memory. A smaller chunk size minimizes memory usage but may result in more frequent writes. (only available with ASCII type .out files)
             goodman_correction:
                 type: boolean
                 default: False
