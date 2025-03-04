@@ -1,4 +1,3 @@
-
 """
 
 Copyright © 2024 Robert Behrens de Luna. All rights reserved.
@@ -65,6 +64,9 @@ class QBladeWrapper:
         self.no_structure       = False
         self.store_qprs         = False
         self.turbsim_params     = {}
+        self.chunk_size         = 30000
+        self.out_file_format    = 2
+        self.delete_out_files   = True
 
         self.goodman            = False
         self.magnitude_channels = magnitude_channels_default
@@ -92,7 +94,10 @@ class QBladeWrapper:
         
         # Filter only .out files and sort them
         all_files_in_dir = os.listdir(self.QBLADE_runDirectory)
-        out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
+        if self.out_file_format == 1:   # ASCII
+            out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
+        elif self.out_file_format == 2: # Binary
+            out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
 
         for c in out_files:
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
@@ -103,6 +108,12 @@ class QBladeWrapper:
             dl[_name] = _dl
             dam[_name] = _dam
             ct.append(_ct)
+            
+        # Delete the .out files after processing
+        if self.delete_out_files:
+            for f in out_files:
+                os.remove(os.path.join(self.QBLADE_runDirectory, f))
+                print(f"Successfully deleted {f}.")
     
         summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
         
@@ -136,6 +147,8 @@ class QBladeWrapper:
             str(self.no_structure),
             str(self.store_qprs),
             str(self.qb_vt['QSim']['STOREFROM']),
+            str(self.chunk_size),
+            str(self.out_file_format),
             ]
         
         cmd = ['python', script_path] + sim_params
@@ -143,8 +156,12 @@ class QBladeWrapper:
 
 
     def analyze_cases(self, case):
-        if os.path.exists(case):
+        if self.out_file_format == 1 and os.path.exists(case):
             output_init = OpenFASTAscii(case, magnitude_channels=self.magnitude_channels)
+        if self.out_file_format == 2 and  os.path.exists(case):
+            chan_char_length = max(len(channel[:channel.index(' [')]) for channel in self.channels)
+            unit_char_length = max(len(channel[channel.index('['):]) for channel in self.channels)
+            output_init = OpenFASTBinary(case,chan_char_length=chan_char_length, unit_char_length=unit_char_length, magnitude_channels=self.magnitude_channels)
 
         output_init.read()
 

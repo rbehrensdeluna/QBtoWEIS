@@ -1417,6 +1417,9 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.number_of_workers    = modopt['General']['qblade_configuration']['number_of_workers']
         qblade.no_structure         = modopt['Level4']['Turbine']['NOSTRUCTURE']
         qblade.store_qprs           = modopt['General']['qblade_configuration']['store_qprs']
+        qblade.chunk_size           = modopt['General']['qblade_configuration']['chunk_size']
+        qblade.out_file_format      = modopt['General']['qblade_configuration']['out_file_format']
+        qblade.delete_out_files     = modopt['General']['qblade_configuration']['delete_out_files']
         
         qblade.channels = self.output_channels()
         magnitude_channels = dict( qbwrap.magnitude_channels_default )
@@ -1868,7 +1871,7 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']['floating']: # TODO: or (modopt['Level4']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
 
-            if any(summary_stats['qblade_failed']['mean'] > 0):
+            if any(summary_stats['qblade_failed']['max'] > 0):
                 outputs['qblade_failed'] = 2
 
             # Save Data
