@@ -1,4 +1,3 @@
-
 """
 
 Copyright © 2024 Robert Behrens de Luna. All rights reserved.
@@ -19,11 +18,12 @@ import subprocess
 
 from pCrunch.io import OpenFASTOutput, OpenFASTBinary, OpenFASTAscii
 from pCrunch import LoadsAnalysis, FatigueParams
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from packaging import version
 import logging
 import re
 import sys
-
+import time
 
 weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -83,23 +83,74 @@ class QBladeWrapper:
                 fatigue_channels=self.fatigue_channels,
                 #extreme_channels=channel_extremes_default,
             )
-    def run_qblade_cases(self): #equivalent to run_serial/run_multi 
-        
+    def run_qblade_cases(self):
         self.execute()
+
+        if self.number_of_workers == 1:
+            summary_stats, extreme_table, DELs, Damage, ct =  self.run_serial()	
+        else :
+            summary_stats, extreme_table, DELs, Damage, ct =  self.run_multi()
+        
+        return summary_stats, extreme_table, DELs, Damage, ct
+    
+    def run_multi(self,): 
         self.init_crunch()
-        
-        ss = {}
-        et = {}
-        dl = {}
-        dam = {}
-        ct = []
-        
+
         # Filter only .out files and sort them
         all_files_in_dir = os.listdir(self.QBLADE_runDirectory)
         if self.out_file_format == 1:   # ASCII
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
         elif self.out_file_format == 2: # Binary
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
+
+        t0_ppe = time.time()
+        with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
+            results = list(executor.map(self.parallel_analyze_cases, out_files))
+        t1_ppe = time.time()
+        print(f"Time taken for ProcessPoolExecutor: {t1_ppe - t0_ppe} seconds")
+
+        ss = {}
+        et = {}
+        dl = {}
+        dam = {}
+        ct = []
+
+        for (_name, _ss, _et, _dl, _dam, _ct) in results:
+            ss[_name] = _ss
+            et[_name] = _et
+            dl[_name] = _dl
+            dam[_name] = _dam
+            ct.append(_ct)
+            
+        # Delete the .out files after processing
+        if self.delete_out_files:
+            for f in out_files:
+                os.remove(os.path.join(self.QBLADE_runDirectory, f))
+                print(f"Successfully deleted {f}.")
+
+        summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
+
+        return summary_stats, extreme_table, DELs, Damage, ct
+
+    def parallel_analyze_cases(self,file_name):
+            QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, file_name)
+            return self.analyze_cases(QBLADE_Output_txt)
+        
+    def run_serial(self):
+        self.init_crunch()
+
+        # Filter only .out files and sort them
+        all_files_in_dir = os.listdir(self.QBLADE_runDirectory)
+        if self.out_file_format == 1:   # ASCII
+            out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
+        elif self.out_file_format == 2: # Binary
+            out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
+        
+        ss = {}
+        et = {}
+        dl = {}
+        dam = {}
+        ct = []
 
         for c in out_files:
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
@@ -130,7 +181,7 @@ class QBladeWrapper:
     def execute(self):
         if sys.platform == "linux":
             self.set_environment()
-
+        # Run the Python script using subprocess
         script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QBlade_SIL.py')
 
         channels_str = ','.join(self.channels)  # convert channels to csv
@@ -202,10 +253,10 @@ class QBladeWrapper:
 
 # for testing
 if __name__ == "__main__":
-    dll_path = "/home/robert/GitHub/QBtoWEIS-Coupling/QBlade/QBladeCE_2.0.7_linux/QBladeCE_2.0.7/libQBladeCE_2.0.7.so.1.0.0"
-    libs_path = "/home/robert/GitHub/QBtoWEIS-Coupling/QBlade/QBladeCE_2.0.7_linux/QBladeCE_2.0.7/Libraries"
-    run_directory = "/home/robert/GitHub/QBtoWEIS-Coupling/testing/QBlade_wrapper/outputs/qb_test_nrel5mw"
-    naming_out = "qb_test_nrel5mw"
+    dll_path = "/home/robert/qblade/software/QBladeCE_2.0.8.5/libQBladeCE_2.0.8.5.so.1.0.0"
+    libs_path = "/home/robert/qblade/software/QBladeCE_2.0.8.5/Libraries"
+    run_directory = "/home/robert/floatfarm/QBtoWEIS/qb_examples/MED15-300_v09.5.1_opt/m_output_MED15-300_v09.6.2/"
+    naming_out = "MED15-300_v09.6.2"
     
     qblade = QBladeWrapper()
     qblade.QBlade_dll = dll_path
@@ -214,9 +265,17 @@ if __name__ == "__main__":
     qblade.QBLADE_namingOut    = naming_out
     qb_vt = {
         'QSim': {
-            'NUMTIMESTEPS': 4000
-        }
+            'NUMTIMESTEPS': 3000,
+            'TMax': 0,
+            'STOREFROM': 0,
+        },
     }
     qblade.qb_vt = qb_vt
-
-    failed = qblade.execute()
+    qblade.number_of_workers    = 15
+    qblade.no_structure         = False
+    qblade.store_qprs           = False
+    qblade.chunk_size           = 30000000
+    qblade.out_file_format      = 2
+    qblade.delete_out_files     = False
+    # failed = qblade.execute()
+    summary_stats, extreme_table, DELs, Damage, ct =  qblade.run_multi()
