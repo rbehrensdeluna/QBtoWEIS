@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Requirements list for WEIS
 
 # simulation
@@ -14,3 +15,5 @@ numpydoc
 sphinxcontrib-bibtex<2.0.0
 sphinx-rtd-theme
 # sphinx-autoapi
+=======
+>>>>>>> test-develop

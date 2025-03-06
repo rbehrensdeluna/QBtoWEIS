@@ -16,6 +16,7 @@ and may not be used without authorization.
 
 import os
 import shutil
+import sys
 import time
 import sys
 import numpy as np
@@ -51,7 +52,7 @@ def run_TurbSim(wind_directory, number_of_workers):
                 future.result()
             except Exception as e:
                 print(f"Simulation failed with exception: {e}")
-
+    
 if __name__ == "__main__":
     wind_directory = sys.argv[1]
     number_of_workers = int(sys.argv[2])

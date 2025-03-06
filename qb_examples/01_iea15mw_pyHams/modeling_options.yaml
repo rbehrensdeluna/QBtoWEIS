@@ -8,6 +8,8 @@ General:
         # path2qb_dll: # enter path to "libQBladeCE_2.0.8.5.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.5.so.1.0.0>  
         # Windows
         # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.5\QBladeEE_2.0.8.5.dll
+        path2qb_libs: /home/robert/qblade/software/QBladeCE_2.0.8.5/Libraries
+        path2qb_dll: /home/robert/qblade/software/QBladeCE_2.0.8.5/libQBladeCE_2.0.8.5.so.1.0.0
         QB_run_mod: IEA-15-240-RWT_VolturnUS-S
         QB_run_dir: model_output/IEA-15-240-RWT_VolturnUS-S
         out_file_format: 2              # 1 = ASCII (.out), 2 = Binary (.outb), default setting is 2 and does not specifically need to be set
@@ -31,7 +33,7 @@ WISDEM:
     FloatingSE:
         flag: True
 
-Level1:
+RAFT:
     flag: True
     potential_model_override: 0
     potential_bem_members: [main_column,column1,column2,column3,Y_pontoon_lower1,Y_pontoon_lower2,Y_pontoon_lower3]

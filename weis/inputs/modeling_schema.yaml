@@ -124,7 +124,7 @@ properties:
                         type: boolean
                         default: True
                         description: Keep timeseries in openmdao_qblade for post-processing
-                    store_iterations:
+                    store_iterations: #TODO: asd
                         type: boolean
                         default: False
                         description: store the qblade *.sim of each iteration (for visualization of optimization progress)
@@ -430,6 +430,95 @@ properties:
     Level2: *of_linear_modopt
     Level3: *of_modopt
     Level4: *qb_modopt
+    SONATA: &snta_modopt
+        type: object
+        default: {}
+        description: Options for SONATA
+        properties:
+            flag:
+                type: boolean
+                default: False
+                description: Whether or not to use Sonata to generate structural input files 
+            flag_wt_ontology:
+                type: boolean
+                default: True
+                description: Whether to use ontology definition of wind turbines for yaml files
+            flag_ref_axes_wt:
+                type: boolean
+                default: True
+                description: Whether to rotate reference axes from wind definition to comply with SONATA (rotorcraft definition)
+            attribute_str:
+                        type: string
+                        default: 'MatID'
+                        enum: ['MatID', 'theta_3', 'stress.sigma11', 'stressM.sigma11', 'strain.epsilon11', 'strainM.epsilon11']
+                        description: Turbulence model
+            flag_plotTheta11:
+                type: boolean
+                default: False
+                description: plane orientation angle
+            flag_recovery:
+                type: boolean
+                default: False
+                description: ''
+            flag_plotDisplacement:
+                type: boolean
+                default: False
+                description: Needs recovery flag to be activated - shows displacements from loadings in cross sectional plots
+            flag_wf:
+                type: boolean
+                default: False
+                description: plot wire-frame
+            flag_lft:
+                type: boolean
+                default: False
+                description: Plot lofted shape of blade surface (flag_wf=True obligatory). Create loft with grid refinement without too many radial stations, can also export STEP file of lofted shape.
+            flag_topo:
+                type: boolean
+                default: False
+                description: Plot mesh topology.
+            c2_axis:
+                type: boolean
+                default: False
+                description: Flag for c2 axis plotting.
+            flag_DeamDyn_def_transform:
+                type: boolean
+                default: True
+                description: Transform from SONATA to BeamDyn coordinate system.
+            flag_write_BeamDyn:
+                type: boolean
+                default: True
+                description: Write BeamDyn input files for follow-up OpenFAST analysis (requires flag_DeamDyn_def_transform=True).
+            flag_write_BeamDyn_unit_convert:
+                type: string
+                default: ''
+                description: Unit conversion when exporting to BeamDyn files (e.g., 'mm_to_m').
+            flag_3d:
+                type: boolean
+                default: False
+                description: Enable 3D plotting.
+            flag_csv_export:
+                type: boolean
+                default: False
+                description: Export CSV files with structural data.
+            choose_cutoff:
+                type: integer
+                default: 2
+                enum: [0, 1, 2]
+                description: Define the shape of corners [0 - step, 1 - ?, 2 - round 
+            mesh_resolution: 
+                type: integer
+                minimum: 10
+                default: 300
+                description: Define mesh resolution, i.e. the number of points along the profile that is used for out-to-inboard meshing of a 2D blade cross section
+            radial_stations:
+                type: array
+                description: Define the radial stations for cross sectional analysis (only used for flag_wt_ontology = True -> otherwise, sections from yaml file are used!)
+                default: [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
+                items:
+                    type: number
+                    uniqueItems: True
+                    minimum: 0.0
+                    maximum: 1.
     DLC_driver:
         type: object
         default: {}
@@ -443,7 +532,7 @@ properties:
                         DLC:
                             type: string
                             default: '1.1'
-                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.3', '3.1', '3.2', '3.3', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '7.1', '7.2', '12.1', 'Custom','AEP']
+                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.3', '3.1', '3.2', '3.3', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '12.1', 'Custom']
                             description: IEC design load case to run. The DLCs currently supported are 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.1, 6.1, 6.3, and 6.4
                         wind_speed:
                             type: array
@@ -484,7 +573,7 @@ properties:
                                 unit: none
                                 minItems: 1
                                 uniqueItems: true
-                        wave_seed:
+                        wave_seeds:
                             type: array
                             default: []
                             description: Wave random number generator seeds for HydroDyn

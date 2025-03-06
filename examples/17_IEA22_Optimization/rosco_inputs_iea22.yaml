@@ -11,7 +11,7 @@ controller_params:
     omega_vs: 0.12
     twr_freq: 1.4799073778145184
     ptfm_freq: 0.2717484204906427
-    Kp_float: -0.1477808226207514
+    Kp_float: [-0.1477808226207514]
     PA_Mode: 2
     PA_CornerFreq: 6.2831
     PA_Damping: 0.707

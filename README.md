@@ -58,7 +58,7 @@ The installation instructions below use the environment name, "qbweis-env," but 
    Make QBladeCE executable
    
         chmod +x run_qblade.sh
-        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.3
+        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.5
 
 **NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.8 or newer
 
@@ -69,13 +69,13 @@ The installation instructions below use the environment name, "qbweis-env," but 
 ### **Linux/WSL2**
    Specify both `path2qb_libs` and `path2qb_dll` as shown below:
 
-        path2qb_libs: /home/user/qblade/software/QBladeCE_2.0.8.3/Libraries
-        path2qb_dll: /home/user/qblade/software/QBladeCE_2.0.8.3/libQBladeCE_2.0.8.3.so.1.0.0
+        path2qb_libs: /home/user/qblade/software/QBladeCE_2.0.8.5/Libraries
+        path2qb_dll: /home/user/qblade/software/QBladeCE_2.0.8.5/libQBladeCE_2.0.8.5.so.1.0.0
 
 ### **Windows**
    in Windows only "path2qb_dll" has to be specified:
 
-        path2qb_dll: C:\Users\User\QBladeCE_2.0.8.3\QBladeEE_2.0.8.3.dll
+        path2qb_dll: C:\Users\User\QBladeCE_2.0.8.5\QBladeEE_2.0.8.5.dll
 
 ### **Default Path**
    To avoid modifying the path in every new WEIS problem you can specify your default path in the modeling_schema.yaml:
@@ -83,7 +83,8 @@ The installation instructions below use the environment name, "qbweis-env," but 
         QBtoWEIS/weis/inputs/modeling_schema.yaml 
         
    "path2qb_libs" & "path2qb_dll" are found below the "qblade_configuration" object.
-        
+
+
 ## Troubleshoot.
 If you are having trouble creating the virtual environment try allocating more RAM to the WSL2 (e.g. https://learn.microsoft.com/en-us/answers/questions/1296124/how-to-increase-memory-and-cpu-limits-for-wsl2-win)
 

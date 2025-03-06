@@ -48,6 +48,8 @@ from wisdem.inputs import load_yaml, write_yaml
 ## neccessary inputs:
 import wisdem.commonse.cross_sections as cs
 
+from openfast_io.FAST_reader import InputReader_OpenFAST
+
 from weis.aeroelasticse.QBlade_writer         import InputWriter_QBlade
 import weis.aeroelasticse.QBlade_wrapper as qbwrap
 import random
@@ -304,13 +306,15 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('U',             val=np.zeros(n_pc), units='m/s', desc='wind speeds')
             self.add_input('Omega',         val=np.zeros(n_pc), units='rpm', desc='rotation speeds to run')
             self.add_input('pitch',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
-            self.add_input("Ct_aero",       val=np.zeros(n_pc),              desc="rotor aerodynamic thrust coefficient")
+            self.add_input("Ct_aero",       val=np.zeros(n_pc), desc="rotor aerodynamic thrust coefficient")
 
-        if modopt['QBlade']['simulation']['WNDTYPE'] == 1:
-            n_ws = len(modopt['QBlade']['QTurbSim']['URef'])  
+        if modopt['QBlade']['simulation']['DLCGenerator']:
+            n_ws = modopt['DLC_driver']['n_cases']
+        elif modopt['QBlade']['simulation']['WNDTYPE'] == 1:
+            n_ws = len(modopt['QBlade']['QTurbSim']['URef'])
         else:
             n_ws = len(modopt['QBlade']['simulation']['MEANINF'])
-
+        
         # QBlade options
         QBmgmt = modopt['General']['qblade_configuration']
         self.model_only = QBmgmt['model_only']
@@ -323,10 +327,11 @@ class QBLADELoadCases(ExplicitComponent):
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
         self.QBLADE_runDirectory = QBLADE_directory_base
         self.QBLADE_namingOut = self.QBLADE_InputFile
-        if modopt['QBlade']['simulation']['WNDTYPE']== 1:
+        if modopt['QBlade']['simulation']['DLCGenerator'] or modopt['QBlade']['simulation']['WNDTYPE']== 1:
             self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
             if not os.path.exists(self.wind_directory):
                 os.makedirs(self.wind_directory, exist_ok=True) 
+
         self.turbsim_exe = shutil.which('turbsim')
 
         # Outpus
@@ -407,7 +412,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('qblade_failed',             val=0.0, desc="Numerical value for whether any qblade runs failed. 0 if false, 2 if true")
 
         self.add_discrete_output('ts_out_dir', val={})
-        
+
         # iteration counter used as model name appendix
         self.qb_inumber = 0
 
@@ -429,12 +434,13 @@ class QBLADELoadCases(ExplicitComponent):
             self.write_QBLADE(qb_vt, inputs, discrete_inputs)
         else:
             # Write input QB files and run QB
-            self.write_QBLADE(qb_vt, inputs, discrete_inputs)
-            summary_stats, extreme_table, DELs, Damage, chan_time = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
+            if not qb_vt['QSim']['DLCGenerator']:
+                self.write_QBLADE(qb_vt, inputs, discrete_inputs)
+            summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
-            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, discrete_outputs)
-        
-        self.qb_inumber += 1
+            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs)
+
+            self.qb_inumber += 1
 
     def update_QBLADE_model(self, qb_vt, inputs, discrete_inputs):
         modopt = self.options['modeling_options']
@@ -447,6 +453,8 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['QSim']['VISCOSITYAIR'] = inputs['mu'][0] / inputs['rho'][0]
         qb_vt['QSim']['DENSITYWATER'] = float(inputs['rho_water'])
         qb_vt['QSim']['VISCOSITYWATER'] = inputs['mu_water'][0] /inputs['rho_water'][0]  
+        
+        # if DLCGenerator is true, NUMT
         if qb_vt['QSim']['TMax'] > 0:
             qb_vt['QSim']['NUMTIMESTEPS'] = int(qb_vt['QSim']['TMax'] / qb_vt['QSim']['TIMESTEP'])
 
@@ -560,29 +568,148 @@ class QBLADELoadCases(ExplicitComponent):
                 logger.warning(f"Tower RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Blade']['CRITDAMP']/100) / (np.pi * inputs['flap_freq'])
             qb_vt['Blade']['RAYLEIGHDMP'] = float(beta)
-        strpit    =  inputs['beam:Tw_iner'] - inputs['theta']
-       
-        qb_vt['Blade']['r_curved'], qb_vt['Blade']['LENFRACT'] = self.calc_fractional_curved_length(inputs['ref_axis_blade'])
-        qb_vt['Blade']['MASSD']     =  inputs['beam:rhoA']
-        # rotation_angle = np.radians(90.0 - strpit) # Calculate the rotation angle for coordinate transformation from OpenFAST to QBlade Chrono
-        # qb_vt['Blade']['EIx']       =  abs(inputs['beam:EIxx'] * np.cos(rotation_angle) - inputs['beam:EIyy'] * np.sin(rotation_angle))
-        # qb_vt['Blade']['EIy']       =  abs(inputs['beam:EIxx'] * np.sin(rotation_angle) + inputs['beam:EIyy'] * np.cos(rotation_angle))
-        qb_vt['Blade']['EIx']       =  inputs['beam:EIyy']
-        qb_vt['Blade']['EIy']       =  inputs['beam:EIxx']
-        qb_vt['Blade']['EA']        =  inputs['beam:EA']
-        qb_vt['Blade']['GJ']        =  inputs['beam:GJ'] # np.ones_like(inputs['beam:EA'])*1e11 
-        qb_vt['Blade']['GA']        =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now 
-        qb_vt['Blade']['STRPIT']    =  strpit
-        qb_vt['Blade']['KSX']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
-        qb_vt['Blade']['KSY']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
-        qb_vt['Blade']['RGX']       =  np.sqrt(inputs['beam:flap_iner'] / inputs['beam:rhoA']) / inputs['chord']
-        qb_vt['Blade']['RGY']       =  np.sqrt(inputs['beam:edge_iner'] / inputs['beam:rhoA']) / inputs['chord']
-        qb_vt['Blade']['XCM']       =  inputs['beam:y_cg'] / inputs['chord'] 
-        qb_vt['Blade']['YCM']       =  inputs['beam:x_cg'] / inputs['chord']
-        qb_vt['Blade']['XCE']       =  inputs['beam:y_ec'] / inputs['chord']
-        qb_vt['Blade']['YCE']       =  inputs['beam:x_ec'] / inputs['chord']
-        qb_vt['Blade']['XCS']       =  inputs['beam:y_sc'] / inputs['chord']
-        qb_vt['Blade']['YCS']       =  inputs['beam:x_sc'] / inputs['chord']
+
+        if not modopt['SONATA']['flag']:
+            strpit    =  inputs['beam:Tw_iner'] - inputs['theta']
+        
+            qb_vt['Blade']['r_curved'], qb_vt['Blade']['LENFRACT'] = self.calc_fractional_curved_length(inputs['ref_axis_blade'])
+            qb_vt['Blade']['MASSD']     =  inputs['beam:rhoA']
+            # rotation_angle = np.radians(90.0 - strpit) # Calculate the rotation angle for coordinate transformation from OpenFAST to QBlade Chrono
+            # qb_vt['Blade']['EIx']       =  abs(inputs['beam:EIxx'] * np.cos(rotation_angle) - inputs['beam:EIyy'] * np.sin(rotation_angle))
+            # qb_vt['Blade']['EIy']       =  abs(inputs['beam:EIxx'] * np.sin(rotation_angle) + inputs['beam:EIyy'] * np.cos(rotation_angle))
+            qb_vt['Blade']['EIx']       =  inputs['beam:EIyy']
+            qb_vt['Blade']['EIy']       =  inputs['beam:EIxx']
+            qb_vt['Blade']['EA']        =  inputs['beam:EA']
+            qb_vt['Blade']['GJ']        =  inputs['beam:GJ']
+            qb_vt['Blade']['GA']        =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now 
+            qb_vt['Blade']['STRPIT']    =  strpit
+            qb_vt['Blade']['KSX']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
+            qb_vt['Blade']['KSY']       =  np.zeros_like(inputs['beam:EA']) # only Euler beams for now
+            qb_vt['Blade']['RGX']       =  np.sqrt(inputs['beam:flap_iner'] / inputs['beam:rhoA']) / inputs['chord']
+            qb_vt['Blade']['RGY']       =  np.sqrt(inputs['beam:edge_iner'] / inputs['beam:rhoA']) / inputs['chord']
+            qb_vt['Blade']['XCM']       =  inputs['beam:y_cg'] / inputs['chord'] # careful with the reference system conversion between QBlade CHRONO and OpenFAST
+            qb_vt['Blade']['YCM']       =  inputs['beam:x_cg'] / inputs['chord']
+            qb_vt['Blade']['XCE']       =  inputs['beam:y_ec'] / inputs['chord']
+            qb_vt['Blade']['YCE']       =  inputs['beam:x_ec'] / inputs['chord']
+            qb_vt['Blade']['XCS']       =  inputs['beam:y_sc'] / inputs['chord']
+            qb_vt['Blade']['YCS']       =  inputs['beam:x_sc'] / inputs['chord']
+        else:
+            # path to beamdyn file in temporary folder, created by running sonata
+            beamdyn_blade_file = os.path.join(weis_dir,'sonata_temp', self.QBLADE_namingOut + '_BeamDyn_Blade.dat')
+            
+            # read sonata output with fast beam dyn reader
+            fast = InputReader_OpenFAST()
+            fast.read_BeamDynBlade(beamdyn_blade_file)
+            
+            if os.path.exists(os.path.join(weis_dir, 'sonata_temp')):
+                shutil.rmtree(os.path.join(weis_dir, 'sonata_temp'))
+                print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} has been deleted.")
+            else:
+                print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} does not exist.")
+            
+            blade_6x6 = fast.fst_vt['BeamDynBlade']
+
+            # Map beamdyn matrices to qblade format
+
+            qb_vt['Blade_6x6']['LENFRACT'] = np.array(blade_6x6[0]['radial_stations'])
+            qb_vt['Blade_6x6']['XCB'] = np.zeros_like(qb_vt['Blade_6x6']['LENFRACT'])
+            qb_vt['Blade_6x6']['YCB'] = np.zeros_like(qb_vt['Blade_6x6']['LENFRACT'])
+            qb_vt['Blade_6x6']['PITCH'] = np.zeros_like(qb_vt['Blade_6x6']['LENFRACT'])
+            # Initialize lists for each K and M component
+            qb_vt['Blade_6x6']['K11'] = []
+            qb_vt['Blade_6x6']['K12'] = []
+            qb_vt['Blade_6x6']['K13'] = []
+            qb_vt['Blade_6x6']['K14'] = []
+            qb_vt['Blade_6x6']['K15'] = []
+            qb_vt['Blade_6x6']['K16'] = []
+            qb_vt['Blade_6x6']['K22'] = []
+            qb_vt['Blade_6x6']['K23'] = []
+            qb_vt['Blade_6x6']['K24'] = []
+            qb_vt['Blade_6x6']['K25'] = []
+            qb_vt['Blade_6x6']['K26'] = []
+            qb_vt['Blade_6x6']['K33'] = []
+            qb_vt['Blade_6x6']['K34'] = []
+            qb_vt['Blade_6x6']['K35'] = []
+            qb_vt['Blade_6x6']['K36'] = []
+            qb_vt['Blade_6x6']['K44'] = []
+            qb_vt['Blade_6x6']['K45'] = []
+            qb_vt['Blade_6x6']['K46'] = []
+            qb_vt['Blade_6x6']['K55'] = []
+            qb_vt['Blade_6x6']['K56'] = []
+            qb_vt['Blade_6x6']['K66'] = []
+
+            qb_vt['Blade_6x6']['M11'] = []
+            qb_vt['Blade_6x6']['M12'] = []
+            qb_vt['Blade_6x6']['M13'] = []
+            qb_vt['Blade_6x6']['M14'] = []
+            qb_vt['Blade_6x6']['M15'] = []
+            qb_vt['Blade_6x6']['M16'] = []
+            qb_vt['Blade_6x6']['M22'] = []
+            qb_vt['Blade_6x6']['M23'] = []
+            qb_vt['Blade_6x6']['M24'] = []
+            qb_vt['Blade_6x6']['M25'] = []
+            qb_vt['Blade_6x6']['M26'] = []
+            qb_vt['Blade_6x6']['M33'] = []
+            qb_vt['Blade_6x6']['M34'] = []
+            qb_vt['Blade_6x6']['M35'] = []
+            qb_vt['Blade_6x6']['M36'] = []
+            qb_vt['Blade_6x6']['M44'] = []
+            qb_vt['Blade_6x6']['M45'] = []
+            qb_vt['Blade_6x6']['M46'] = []
+            qb_vt['Blade_6x6']['M55'] = []
+            qb_vt['Blade_6x6']['M56'] = []
+            qb_vt['Blade_6x6']['M66'] = []
+
+            # Loop over each radial station and extract K and M values
+            for i in range(len(blade_6x6[0]['radial_stations'])):
+                stiff_matrix = blade_6x6[0]['beam_stiff'][i]
+                inertia_matrix = blade_6x6[0]['beam_inertia'][i]
+
+                # Extract stiffness values (K values)
+                qb_vt['Blade_6x6']['K11'].append(stiff_matrix[0, 0])
+                qb_vt['Blade_6x6']['K12'].append(stiff_matrix[0, 1])
+                qb_vt['Blade_6x6']['K13'].append(stiff_matrix[0, 2])
+                qb_vt['Blade_6x6']['K14'].append(stiff_matrix[0, 3])
+                qb_vt['Blade_6x6']['K15'].append(stiff_matrix[0, 4])
+                qb_vt['Blade_6x6']['K16'].append(stiff_matrix[0, 5])
+                qb_vt['Blade_6x6']['K22'].append(stiff_matrix[1, 1])
+                qb_vt['Blade_6x6']['K23'].append(stiff_matrix[1, 2])
+                qb_vt['Blade_6x6']['K24'].append(stiff_matrix[1, 3])
+                qb_vt['Blade_6x6']['K25'].append(stiff_matrix[1, 4])
+                qb_vt['Blade_6x6']['K26'].append(stiff_matrix[1, 5])
+                qb_vt['Blade_6x6']['K33'].append(stiff_matrix[2, 2])
+                qb_vt['Blade_6x6']['K34'].append(stiff_matrix[2, 3])
+                qb_vt['Blade_6x6']['K35'].append(stiff_matrix[2, 4])
+                qb_vt['Blade_6x6']['K36'].append(stiff_matrix[2, 5])
+                qb_vt['Blade_6x6']['K44'].append(stiff_matrix[3, 3])
+                qb_vt['Blade_6x6']['K45'].append(stiff_matrix[3, 4])
+                qb_vt['Blade_6x6']['K46'].append(stiff_matrix[3, 5])
+                qb_vt['Blade_6x6']['K55'].append(stiff_matrix[4, 4])
+                qb_vt['Blade_6x6']['K56'].append(stiff_matrix[4, 5])
+                qb_vt['Blade_6x6']['K66'].append(stiff_matrix[5, 5])
+
+                # Extract inertia values (M values)
+                qb_vt['Blade_6x6']['M11'].append(inertia_matrix[0, 0])
+                qb_vt['Blade_6x6']['M12'].append(inertia_matrix[0, 1])
+                qb_vt['Blade_6x6']['M13'].append(inertia_matrix[0, 2])
+                qb_vt['Blade_6x6']['M14'].append(inertia_matrix[0, 3])
+                qb_vt['Blade_6x6']['M15'].append(inertia_matrix[0, 4])
+                qb_vt['Blade_6x6']['M16'].append(inertia_matrix[0, 5])
+                qb_vt['Blade_6x6']['M22'].append(inertia_matrix[1, 1])
+                qb_vt['Blade_6x6']['M23'].append(inertia_matrix[1, 2])
+                qb_vt['Blade_6x6']['M24'].append(inertia_matrix[1, 3])
+                qb_vt['Blade_6x6']['M25'].append(inertia_matrix[1, 4])
+                qb_vt['Blade_6x6']['M26'].append(inertia_matrix[1, 5])
+                qb_vt['Blade_6x6']['M33'].append(inertia_matrix[2, 2])
+                qb_vt['Blade_6x6']['M34'].append(inertia_matrix[2, 3])
+                qb_vt['Blade_6x6']['M35'].append(inertia_matrix[2, 4])
+                qb_vt['Blade_6x6']['M36'].append(inertia_matrix[2, 5])
+                qb_vt['Blade_6x6']['M44'].append(inertia_matrix[3, 3])
+                qb_vt['Blade_6x6']['M45'].append(inertia_matrix[3, 4])
+                qb_vt['Blade_6x6']['M46'].append(inertia_matrix[3, 5])
+                qb_vt['Blade_6x6']['M55'].append(inertia_matrix[4, 4])
+                qb_vt['Blade_6x6']['M56'].append(inertia_matrix[4, 5])
+                qb_vt['Blade_6x6']['M66'].append(inertia_matrix[5, 5])
 
         ## Tower structural definition inputs
         # TODO OpenFAST seperates the tower dfinition in sectional and nodal properties. Nodal being the description used for Aerodyn while the sectional 
@@ -1108,10 +1235,163 @@ class QBLADELoadCases(ExplicitComponent):
         path2qb_dll     = modopt['General']['qblade_configuration']['path2qb_dll']
         path2qb_libs    = modopt['General']['qblade_configuration']['path2qb_libs']
         self.qb_vt = qb_vt 
+        
+        dlc_generator = None # Do this to avoid error when no DLCs are generated
 
+        if qb_vt['QSim']['DLCGenerator']:
+            modopt = self.options['modeling_options']
+            DLCs = modopt['DLC_driver']['DLCs']
+            # Initialize the DLC generator
+            cut_in = float(inputs['V_cutin'])
+            cut_out = float(inputs['V_cutout'])
+            rated = float(inputs['Vrated'])
+            ws_class = discrete_inputs['turbine_class']
+            wt_class = discrete_inputs['turbulence_class']
+            hub_height = float(inputs['hub_height'])
+            rotorD = float(inputs['Rtip'])*2.
+            PLExp = float(inputs['shearExp'])
+            fix_wind_seeds = modopt['DLC_driver']['fix_wind_seeds']
+            fix_wave_seeds = modopt['DLC_driver']['fix_wave_seeds']
+            metocean = modopt['DLC_driver']['metocean_conditions']
 
-        # run TurbSim all cases
-        if qb_vt['QSim']['WNDTYPE'] == 1:
+            U_interp = inputs['U']
+            pitch_interp = inputs['pitch']
+            rot_speed_interp = inputs['Omega']
+            Ct_aero_interp = inputs['Ct_aero']
+
+            # Makes life easier in post-processing
+            self.qb_vt['QTurbSim']['URef']  = DLCs[0]['wind_speed']
+            self.qb_vt['QSim']['STOREFROM'] = DLCs[0]['transient_time']
+            # Necessary to make SIL run the appropriate number of timesteps
+            self.qb_vt['QSim']['TMax'] = DLCs[0]['analysis_time'] + DLCs[0]['transient_time']
+            
+            tau1_const_interp = np.zeros_like(Ct_aero_interp)
+            for i in range(len(Ct_aero_interp)):
+                a = 1. / 2. * (1. - np.sqrt(1. - np.min([Ct_aero_interp[i],1])))    # don't allow Ct_aero > 1
+                tau1_const_interp[i] = 1.1 / (1. - 1.3 * np.min([a, 0.5])) * inputs['Rtip'][0] / U_interp[i]
+
+            initial_condition_table = {}
+            initial_condition_table['U'] = U_interp
+            initial_condition_table['pitch_initial'] = pitch_interp
+            initial_condition_table['rot_speed_initial'] = rot_speed_interp
+            initial_condition_table['Ct_aero'] = Ct_aero_interp
+            initial_condition_table['tau1_const'] = tau1_const_interp
+
+            dlc_generator = DLCGenerator(
+                cut_in, 
+                cut_out, 
+                rated, 
+                ws_class, 
+                wt_class, 
+                fix_wind_seeds, 
+                fix_wave_seeds, 
+                metocean, 
+                modopt['DLC_driver'],
+                initial_condition_table,
+                )
+        
+            # Generate cases from user inputs
+            for i_DLC in range(len(DLCs)):
+                DLCopt = DLCs[i_DLC]
+                dlc_generator.generate(DLCopt['DLC'], DLCopt)
+            
+            # Initialize parametric inputs
+            WindFile_type = np.zeros(dlc_generator.n_cases, dtype=int)
+            WindFile_name = [''] * dlc_generator.n_cases
+
+            self.TMax = np.zeros(dlc_generator.n_cases)
+            self.TStart = np.zeros(dlc_generator.n_cases)
+
+            for i_case in range(dlc_generator.n_cases):
+                if dlc_generator.cases[i_case].turbulent_wind:
+                    # Assign values common to all DLCs
+                    # Wind turbulence class
+                    if dlc_generator.cases[i_case].IECturbc > 0:    # use custom TI for DLC case
+                        dlc_generator.cases[i_case].IECturbc = str(dlc_generator.cases[i_case].IECturbc)
+                        dlc_generator.cases[i_case].IEC_WindType = 'NTM'        # must use NTM for custom TI
+                    else:
+                        dlc_generator.cases[i_case].IECturbc = wt_class
+                    # Reference height for wind speed
+                    if not dlc_generator.cases[i_case].RefHt:   # default RefHt is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].RefHt = hub_height
+                    # Center of wind grid (TurbSim confusingly calls it HubHt)
+                    if not dlc_generator.cases[i_case].HubHt:   # default HubHt is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].HubHt = hub_height
+
+                    if not dlc_generator.cases[i_case].GridHeight:   # default GridHeight is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].GridHeight =  2. * hub_height - 1.e-3
+
+                    if not dlc_generator.cases[i_case].GridWidth:   # default GridWidth is 0, use hub_height if not set
+                        dlc_generator.cases[i_case].GridWidth =  2. * hub_height - 1.e-3
+
+                    # Power law exponent of wind shear
+                    if dlc_generator.cases[i_case].PLExp < 0:    # use PLExp based on environment options (shear_exp), otherwise use custom DLC PLExp
+                        dlc_generator.cases[i_case].PLExp = PLExp
+                    # Length of wind grids
+                    dlc_generator.cases[i_case].AnalysisTime = dlc_generator.cases[i_case].total_time
+            
+            for i_case in range(dlc_generator.n_cases):
+                WindFile_type[i_case] , WindFile_name[i_case] = generate_wind_files(
+                        dlc_generator, self.QBLADE_namingOut, self.wind_directory, rotorD, hub_height, self.turbsim_exe, i_case, generate_for_qblade=True)
+            
+            script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script      
+            wind_directory = self.wind_directory    
+            number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
+
+            # Prepare command
+            turbsim_params = [
+                wind_directory,
+                str(number_of_workers),
+            ]
+
+            cmd = ['python', script_path] + turbsim_params
+
+            # Run TurbSim
+            subprocess.run(cmd, check=True)
+
+            # Parameteric inputs
+            case_name = []
+            case_list = []
+            for i_case, case_inputs in enumerate(dlc_generator.qblade_case_inputs):
+                # Generate case list for DLC i
+                dlc_label = DLCs[i_case]['DLC']
+                case_list_i, case_name_i = CaseGen_General(case_inputs, self.QBLADE_runDirectory, self.QBLADE_InputFile, filename_ext=f'_DLC{dlc_label}_{i_case}')
+                # Add DLC to case names
+                case_name_i = [f'DLC{dlc_label}_{i_case}_{cni}' for cni in case_name_i]
+                
+                # Extend lists of cases
+                case_list.extend(case_list_i)
+                case_name.extend(case_name_i)
+
+            # Apply wind files to case_list (this info will be in combined case matrix, but not individual DLCs)
+            for case_i, wt, wf in zip(case_list,WindFile_type,WindFile_name):
+                # TODO: not sure if we need this in QBlade but is helpful to define the wind type
+                case_i[('QSim','WNDTYPE')] = wt
+                case_i[('QTurbSim','TurbSimInp')] = wf
+                
+                # case_i[('QTurbSim','FileName_BTS')] = wf
+
+            # Save some case info
+            self.TMax = [c.total_time for c in dlc_generator.cases]
+            self.TStart = [c.transient_time for c in dlc_generator.cases]
+            dlc_label = [c.label for c in dlc_generator.cases]
+            
+            # Merge various cases into single case matrix
+            case_df = pd.DataFrame(case_list)
+            case_df.index = case_name
+            # Add case name and dlc label to front for readability
+            case_df.insert(0,'DLC',dlc_label)
+            case_df.insert(0,'case_name',case_name)
+            text_table = case_df.to_string(index=False)
+
+            self.write_QBLADE_DLCGenerator(qb_vt, inputs, discrete_inputs,case_list,case_name)
+
+            # Write the text table to a yaml, text file
+            write_yaml(case_df.to_dict(),os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.yaml'))
+            with open(os.path.join(self.QBLADE_runDirectory,'case_matrix_combined.txt'), 'w') as file:
+                file.write(text_table)
+
+        elif qb_vt['QSim']['WNDTYPE'] == 1:
             script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script
             wind_directory = self.wind_directory       
             number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']                                        
@@ -1255,7 +1535,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         summary_stats, extreme_table, DELs, Damage, chan_time = qblade.run_qblade_cases()
 
-        return summary_stats, extreme_table, DELs, Damage, chan_time
+        return summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator
 
     def run_TurbSim(self, qb_vt):
         self.qb_vt = qb_vt
@@ -1463,6 +1743,61 @@ class QBLADELoadCases(ExplicitComponent):
 
                 writer.execute()    
 
+    def write_QBLADE_DLCGenerator(self, qb_vt, inputs, discrete_inputs,case_list,case_name):
+        modopt = self.options['modeling_options']
+        writer = InputWriter_QBlade()
+        
+        # For each case we want to generate a QBlade simulation - so we iterate through them
+        i_qb_vt = copy.deepcopy(qb_vt) # create one instance of qb_vt per case to be simulated
+
+        cases = len(case_name)
+        
+        for idx in range(cases):
+
+            # hardcode for now
+            i_qb_vt['QSim']['wave_flag']      = True
+            # i_qb_vt['QBladeOcean']['WAVETYPE'] = 3
+            i_qb_vt['QSim']['INITIAL_AZIMUTH'] = 0
+                
+            i_qb_vt['QTurbSim']['URef']         = case_list[idx][('QSim', 'MEANINF')]
+            i_qb_vt['QSim']['MEANINF']          = 0
+            i_qb_vt['QSim']['WNDTYPE']          = case_list[idx][('QSim', 'WNDTYPE')]
+            i_qb_vt['QTurbSim']['TurbSimInp']   = case_list[idx][('QTurbSim', 'TurbSimInp')]
+            i_qb_vt['QSim']['TMax']             = case_list[idx][('QSim', 'TMax')]
+            i_qb_vt['QSim']['NUMTIMESTEPS']     = int(i_qb_vt['QSim']['TMax'] / i_qb_vt['QSim']['TIMESTEP'])
+            i_qb_vt['QSim']['STOREFROM']        = case_list[idx][('QSim', 'STOREFROM')]
+            
+            i_qb_vt['QSim']['RPMPRESCRIBED']   = case_list[idx][('QSim', 'RPMPRESCRIBED')]
+            i_qb_vt['QSim']['INITIAL_PITCH']   = case_list[idx][('QSim', 'INITIAL_PITCH')]
+            i_qb_vt['QSim']['INITIAL_YAW']     = case_list[idx][('QSim', 'INITIAL_YAW')]
+            # i_qb_vt['QSim']['INITIAL_AZIMUTH'] = 0
+
+            i_qb_vt['QBladeOcean']['SIGHEIGHT']    = case_list[idx][('QBladeOcean', 'SIGHEIGHT')]
+            i_qb_vt['QBladeOcean']['PEAKPERIOD']   = case_list[idx][('QBladeOcean', 'PEAKPERIOD')]
+            # i_qb_vt['QBladeOcean']['DIRMEAN']      = case_list[idx][('QBladeOcean', 'DIRMEAN')]
+            # i_qb_vt['QBladeOcean']['GAMMA']        = case_list[idx][('QBladeOcean', 'GAMMA')]
+            i_qb_vt['QBladeOcean']['RANDSEED']     = case_list[idx][('QBladeOcean', 'RANDSEED')] % 65535 # 65535 is the maximum rand seed QBladeOcean allows
+
+            # add apendix based on wind speed to the file name
+            writer.qb_vt = i_qb_vt
+            writer.QBLADE_runDirectory  = self.QBLADE_runDirectory
+            writer.QBLADE_namingOut     = case_name[idx] # +'_U'+str(case_list[idx][('QSim', 'MEANINF')])+'_WindSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])+'_WaveSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])
+
+            writer.execute()
+
+            if modopt['General']['qblade_configuration']['store_iterations']:
+                writer.QBLADE_runDirectory = f"{self.QBLADE_runDirectory}/model_iterations"
+                iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
+                
+                if cases > 1:
+                    case = f"_case_{idx}"
+                else:
+                    case = ""
+                    
+                writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
+
+                writer.execute()    
+
     def init_QBlade_model(self):
         modopt = self.options['modeling_options']
         qb_vt = modopt['General']['qblade_configuration']['qb_vt']
@@ -1475,6 +1810,7 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['Turbine']          = {}
         qb_vt['QBladeOcean']      = {}
         qb_vt['QTurbSim']         = {}
+        qb_vt['Blade_6x6']        = {}
 
         qb_vt = self.load_QBlade_model_opts(qb_vt)
         return qb_vt
@@ -1510,7 +1846,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QTurbSim'][key] = modeling_options['QBlade']['QTurbSim'][key]
         return qb_vt
 
-    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, discrete_outputs):
+    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs):
         # leaning heavily on equivalent funtion in "openmdao_openfast.py"
         # TODO do the post-processing acutally for DLCs and not only idealized cases
         modopt = self.options['modeling_options']
@@ -1523,7 +1859,7 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']['monopile']:
                 outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
 
-            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs)
+            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator)
 
             outputs = self.get_weighted_DELs(DELs, damage, discrete_inputs, outputs)
             
@@ -1546,7 +1882,7 @@ class QBLADELoadCases(ExplicitComponent):
 
     def get_weighted_DELs(self, DELs, damage, discrete_inputs, outputs):
         modopt = self.options['modeling_options']
-        if self.qb_vt['QSim']['WNDTYPE'] == 1:
+        if self.qb_vt['QSim']['WNDTYPE'] == 1 or self.qb_vt['QSim']['DLCGenerator']:
             U = self.qb_vt['QTurbSim']['URef']    
         else:
             U = self.qb_vt['QSim']['MEANINF']
@@ -1614,7 +1950,8 @@ class QBLADELoadCases(ExplicitComponent):
 
         return outputs
     
-    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs):
+    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs, dlc_generator):
+        
         modopts = self.options['modeling_options']
         DLCs = [i_dlc['DLC'] for i_dlc in modopts['DLC_driver']['DLCs']]
         if 'AEP' in DLCs:
@@ -1623,11 +1960,18 @@ class QBLADELoadCases(ExplicitComponent):
             DLC_label_for_AEP = '1.1'
             logger.warning('WARNING: DLC 1.1 is being used for AEP calculations.  Use the AEP DLC for more accurate wind modeling with constant TI.')
 
-        if self.qb_vt['QSim']['WNDTYPE'] == 1:
+        if self.qb_vt['QSim']['DLCGenerator']:
+            # idx_pwrcrv = []
+            U = []
+            for i_case in range(dlc_generator.n_cases):
+                if dlc_generator.cases[i_case].label == DLC_label_for_AEP:
+                    # idx_pwrcrv = np.append(idx_pwrcrv, i_case)
+                    U = np.append(U, dlc_generator.cases[i_case].URef)
+        elif self.qb_vt['QSim']['WNDTYPE'] == 1:
             U = self.qb_vt['QTurbSim']['URef']    
         else:
             U = self.qb_vt['QSim']['MEANINF']
-            
+
         if len(U) > 1 and self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0:
             pp = PowerProduction(discrete_inputs['turbine_class'])
             
@@ -1942,6 +2286,7 @@ class QBLADELoadCases(ExplicitComponent):
         # nacelle accelleration
         outputs['max_nac_accel'] = sum_stats['NcIMUTA']['max'].max()
 
+        # Max pitch rate
         max_pitch_rates = np.r_[sum_stats['Pitch Vel. BLD 1']['max'],sum_stats['Pitch Vel. BLD 2']['max'],sum_stats['Pitch Vel. BLD 3']['max']]
         outputs['max_pitch_rate_sim'] = max(max_pitch_rates)  / np.rad2deg(self.qb_vt['DISCON_in']['PC_MaxRat'])        # normalize by ROSCO pitch rate
 
@@ -2027,7 +2372,7 @@ class QBLADELoadCases(ExplicitComponent):
         missing_stations = [station for station in required_stations if station not in station_array]
         if missing_stations:
             raise ValueError(f"{component} is missing the following required stations: {missing_stations}, please modify the modeling file accordingly")
-
+        
     def save_iterations(self,summ_stats,DELs,discrete_outputs):
 
         # Make iteration directory

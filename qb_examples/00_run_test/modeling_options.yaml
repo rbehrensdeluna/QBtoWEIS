@@ -13,6 +13,7 @@ General:
         out_file_format: 2              # 1 = ASCII (.out), 2 = Binary (.outb), default setting is 2 and does not specifically need to be set
         delete_out_files: True          # .out/.outb files are deleted after processing if True, default setting is True and does not specifically need to be set
         model_only: False
+        number_of_workers: 12
 
 WISDEM:
     RotorSE:
