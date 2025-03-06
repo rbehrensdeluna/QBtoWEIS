@@ -20,6 +20,7 @@ fschema_model   = os.path.join(froot, 'modeling_schema.yaml')
 fschema_opt     = os.path.join(froot, 'analysis_schema.yaml')
 
 fschema_openfast       = os.path.join(froot, 'openfast_schema.yaml')
+fschema_qblade         = os.path.join(froot, 'qblade_schema.yaml')
 #---------------------
 def load_default_geometry_yaml():
     return load_yaml(fdefaults_geom)
@@ -46,6 +47,7 @@ def get_modeling_schema():
     wisdem_schema = load_yaml(fschema_model_wisdem)
     rosco_schema  = load_yaml(fschema_model_rosco)
     openfast_schema = load_yaml(fschema_openfast)
+    qblade_schema = load_yaml(fschema_qblade)
     weis_schema   = load_yaml(fschema_model)
 
     # Merge ROSCO options and update modeling
@@ -58,6 +60,9 @@ def get_modeling_schema():
 
     # Update WEIS schema with OpenFAST schema
     weis_schema['properties']['OpenFAST'].update( openfast_schema['properties']['OpenFAST'] )
+
+    # Update WEIS schema with QBlade schema
+    weis_schema['properties']['QBlade'].update( qblade_schema['properties']['QBlade'] )
 
 
     return weis_schema
