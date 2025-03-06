@@ -30,28 +30,24 @@ from wisdem.commonse import NFREQ
 from wisdem.commonse.cylinder_member import get_nfull
 import wisdem.commonse.utilities              as util
 from wisdem.rotorse.rotor_power             import eval_unsteady
-from weis.aeroelasticse.FAST_post         import FAST_IO_timeseries
 from wisdem.floatingse.floating_frame import NULL, NNODES_MAX, NELEM_MAX
 from weis.dlc_driver.dlc_generator    import DLCGenerator
 from weis.dlc_driver.dlc_generator    import DLCInstance
 from weis.aeroelasticse.CaseGen_General import CaseGen_General
 from functools import partial
 from pCrunch import PowerProduction
-from weis.aeroelasticse import FileTools
-from weis.aeroelasticse.turbsim_util import Turbsim_wrapper
-from weis.aeroelasticse.turbsim_util import generate_wind_files
+from weis.aeroelasticse.FAST_wrapper import Turbsim_wrapper, IEC_CoherentGusts
+from weis.aeroelasticse.utils import generate_wind_files
 from weis.aeroelasticse.utils import OLAFParams
 from rosco.toolbox import control_interface as ROSCO_ci
 from pCrunch.io import OpenFASTOutput
 from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
 from weis.control.dtqp_wrapper          import dtqp_wrapper
-from weis.aeroelasticse.StC_defaults        import default_StC_vt
 from weis.aeroelasticse.CaseGen_General import case_naming
 from wisdem.inputs import load_yaml, write_yaml
 ## neccessary inputs:
 import wisdem.commonse.cross_sections as cs
 
-from weis.aeroelasticse.FAST_reader import InputReader_OpenFAST
 from weis.aeroelasticse.QBlade_writer         import InputWriter_QBlade
 import weis.aeroelasticse.QBlade_wrapper as qbwrap
 import random
@@ -98,7 +94,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_discrete_input('turbine_class',    val='I', desc='IEC turbine class')
         self.add_input('shearExp',    val=0.0,                   desc='shear exponent')
 
-        if not self.options['modeling_options']['Level4']['from_qblade']:
+        if not self.options['modeling_options']['QBlade']['from_qblade']:
 
             self.n_xy          = n_xy      = rotorse_options['n_xy'] # Number of coordinate points to describe the airfoil geometry
             self.n_Re          = n_Re      = rotorse_options['n_Re'] # Number of Reynolds, so far hard set at 1
@@ -310,10 +306,10 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('pitch',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
             self.add_input("Ct_aero",       val=np.zeros(n_pc),              desc="rotor aerodynamic thrust coefficient")
 
-        if modopt['Level4']['simulation']['WNDTYPE'] == 1:
-            n_ws = len(modopt['Level4']['QTurbSim']['URef'])  
+        if modopt['QBlade']['simulation']['WNDTYPE'] == 1:
+            n_ws = len(modopt['QBlade']['QTurbSim']['URef'])  
         else:
-            n_ws = len(modopt['Level4']['simulation']['MEANINF'])
+            n_ws = len(modopt['QBlade']['simulation']['MEANINF'])
 
         # QBlade options
         QBmgmt = modopt['General']['qblade_configuration']
@@ -327,7 +323,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
         self.QBLADE_runDirectory = QBLADE_directory_base
         self.QBLADE_namingOut = self.QBLADE_InputFile
-        if modopt['Level4']['simulation']['WNDTYPE']== 1:
+        if modopt['QBlade']['simulation']['WNDTYPE']== 1:
             self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
             if not os.path.exists(self.wind_directory):
                 os.makedirs(self.wind_directory, exist_ok=True) 
@@ -375,7 +371,7 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('DEL_TwrBsMyt',         val=0.0,                    units='kN*m',   desc='damage equivalent load of tower base bending moment in fore-aft direction')
         self.add_output('DEL_TwrBsMyt_ratio',   val=0.0,                                    desc='ratio of damage equivalent load of tower base bending moment in fore-aft direction to maximum allowable bending moment')
         # Tower outputs
-        if not self.options['modeling_options']['Level4']['from_qblade']:
+        if not self.options['modeling_options']['QBlade']['from_qblade']:
             self.add_output('tower_maxMy_Fx',       val=np.zeros(n_full_tow-1), units='kN',     desc='distributed force in tower-aligned x-direction corresponding to maximum fore-aft moment at tower base')
             self.add_output('tower_maxMy_Fy',       val=np.zeros(n_full_tow-1), units='kN',     desc='distributed force in tower-aligned y-direction corresponding to maximum fore-aft moment at tower base')
             self.add_output('tower_maxMy_Fz',       val=np.zeros(n_full_tow-1), units='kN',     desc='distributed force in tower-aligned z-direction corresponding to maximum fore-aft moment at tower base')
@@ -424,7 +420,7 @@ class QBLADELoadCases(ExplicitComponent):
         sys.stdout.flush() 
         qb_vt = self.init_QBlade_model()
         
-        if not modopt['Level4']['from_qblade']:
+        if not modopt['QBlade']['from_qblade']:
             qb_vt = self.update_QBLADE_model(qb_vt, inputs, discrete_inputs)
         
 
@@ -1136,7 +1132,7 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.QBLADE_namingOut     = self.QBLADE_namingOut
         qblade.qb_vt                = self.qb_vt
         qblade.number_of_workers    = modopt['General']['qblade_configuration']['number_of_workers']
-        qblade.no_structure         = modopt['Level4']['Turbine']['NOSTRUCTURE']
+        qblade.no_structure         = modopt['QBlade']['Turbine']['NOSTRUCTURE']
         qblade.store_qprs           = modopt['General']['qblade_configuration']['store_qprs']
         qblade.chunk_size           = modopt['General']['qblade_configuration']['chunk_size']
         qblade.out_file_format      = modopt['General']['qblade_configuration']['out_file_format']
@@ -1146,7 +1142,7 @@ class QBLADELoadCases(ExplicitComponent):
         magnitude_channels = dict( qbwrap.magnitude_channels_default )
         fatigue_channels =  dict( qbwrap.fatigue_channels_default )
 
-        if not modopt['Level4']['from_qblade']:
+        if not modopt['QBlade']['from_qblade']:
             ## TODO: This entire section must be redone to be compatible with QBlade!! - leads to many NaN's at the moment
             for u in ['U','L']:
                 blade_fatigue_root = FatigueParams(load2stress=1.0,
@@ -1488,30 +1484,30 @@ class QBLADELoadCases(ExplicitComponent):
         if not modeling_options:
             modeling_options = self.options['modeling_options']
 
-        if 'simulation' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['simulation']:
-                qb_vt['QSim'][key] = modeling_options['Level4']['simulation'][key]
-        if 'Main' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['Main']:
-                qb_vt['Main'][key] = modeling_options['Level4']['Main'][key]
-        if 'Tower' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['Tower']:
-                qb_vt['Tower'][key] = modeling_options['Level4']['Tower'][key]
-        if 'Blade' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['Blade']:
-                qb_vt['Blade'][key] = modeling_options['Level4']['Blade'][key]
-        if 'Aero' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['Aero']:
-                qb_vt['Aero'][key] = modeling_options['Level4']['Aero'][key]
-        if 'Turbine' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['Turbine']:
-                qb_vt['Turbine'][key] = modeling_options['Level4']['Turbine'][key]
-        if 'QBladeOcean' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['QBladeOcean']:
-                qb_vt['QBladeOcean'][key] = modeling_options['Level4']['QBladeOcean'][key]
-        if 'QTurbSim' in modeling_options['Level4']:
-            for key in modeling_options['Level4']['QTurbSim']:
-                qb_vt['QTurbSim'][key] = modeling_options['Level4']['QTurbSim'][key]
+        if 'simulation' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['simulation']:
+                qb_vt['QSim'][key] = modeling_options['QBlade']['simulation'][key]
+        if 'Main' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['Main']:
+                qb_vt['Main'][key] = modeling_options['QBlade']['Main'][key]
+        if 'Tower' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['Tower']:
+                qb_vt['Tower'][key] = modeling_options['QBlade']['Tower'][key]
+        if 'Blade' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['Blade']:
+                qb_vt['Blade'][key] = modeling_options['QBlade']['Blade'][key]
+        if 'Aero' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['Aero']:
+                qb_vt['Aero'][key] = modeling_options['QBlade']['Aero'][key]
+        if 'Turbine' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['Turbine']:
+                qb_vt['Turbine'][key] = modeling_options['QBlade']['Turbine'][key]
+        if 'QBladeOcean' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['QBladeOcean']:
+                qb_vt['QBladeOcean'][key] = modeling_options['QBlade']['QBladeOcean'][key]
+        if 'QTurbSim' in modeling_options['QBlade']:
+            for key in modeling_options['QBlade']['QTurbSim']:
+                qb_vt['QTurbSim'][key] = modeling_options['QBlade']['QTurbSim'][key]
         return qb_vt
 
     def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, discrete_outputs):
@@ -1533,7 +1529,7 @@ class QBLADELoadCases(ExplicitComponent):
             
             outputs = self.get_control_measures(summary_stats, chan_time, inputs, outputs)
 
-            if modopt['flags']['floating']: # TODO: or (modopt['Level4']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
+            if modopt['flags']['floating']: # TODO: or (modopt['QBlade']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
 
             if any(summary_stats['qblade_failed']['max'] > 0):
@@ -1571,7 +1567,7 @@ class QBLADELoadCases(ExplicitComponent):
         outputs['DEL_TwrBsMyt_ratio'] = DELs['TwrBsM']/self.options['opt_options']['constraints']['control']['DEL_TwrBsMyt']['max']
             
         # Compute total fatigue damage in spar caps at blade root and trailing edge at max chord location
-        if not modopt['Level4']['from_qblade']:
+        if not modopt['QBlade']['from_qblade']:
             for k in range(1,self.n_blades+1):
                 for u in ['U','L']:
                     damage[f'BladeRootSpar{u}_Axial{k}'] = (damage[f'RootSpar{u}_Fzb{k}'] +
