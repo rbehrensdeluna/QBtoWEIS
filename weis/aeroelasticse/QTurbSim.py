@@ -18,9 +18,13 @@ import os
 import shutil
 import sys
 import time
+import sys
 import numpy as np
 import concurrent.futures
-from weis.aeroelasticse.turbsim_util import Turbsim_wrapper
+from weis.aeroelasticse.FAST_wrapper import Turbsim_wrapper
+
+# Set thread limits before running anything to prevent oversubscription of cores
+os.environ["OMP_NUM_THREADS"] = "1"
 
 def run_turbsim(turbsim_input_file):
     wrapper = Turbsim_wrapper()
@@ -29,7 +33,6 @@ def run_turbsim(turbsim_input_file):
     wrapper.execute()
 
 def run_TurbSim(wind_directory, number_of_workers):
-
     turbsim_input_files = [os.path.join(wind_directory, f) for f in os.listdir(wind_directory) if f.endswith('.inp')]
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:

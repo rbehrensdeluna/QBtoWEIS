@@ -39,7 +39,7 @@ driver:
   optimization:
     flag: True
     tol: 1.e-3            # Optimality tolerance
-    max_iter: 200           # Maximum number of iterations (SLSQP)
+    max_iter: 5           # Maximum number of iterations (SLSQP)
     solver: LN_COBYLA     # Optimization solver. Other options are 'SLSQP' - 'CONMIN'
     
 recorder:

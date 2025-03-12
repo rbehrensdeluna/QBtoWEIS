@@ -31,15 +31,15 @@ WISDEM:
     FloatingSE:
         flag: True
 
-Level1:
-    flag: False
+RAFT:
+    flag: True
     potential_model_override: 0
     potential_bem_members: [main_column,column1,column2,column3,Y_pontoon_lower1,Y_pontoon_lower2,Y_pontoon_lower3]
     min_freq_BEM: 0.25
     min_freq: 0.1
     max_freq: 1.0
     
-Level4: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
+QBlade: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
     flag: True
     simulation:
         Simulate: True

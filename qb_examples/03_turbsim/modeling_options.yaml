@@ -32,7 +32,7 @@ WISDEM:
         flag: True
         rank_and_file: True
 
-Level4: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
+QBlade: # Options for WEIS fidelity, nonlinear time domain with QBlade
     flag: True
     simulation:
         Simulate: True
@@ -131,5 +131,4 @@ ROSCO:
     twr_freq: 3.2
     ptfm_freq: 0.2
     Kp_float: -10
-    
 

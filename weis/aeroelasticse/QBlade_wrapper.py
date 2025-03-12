@@ -16,10 +16,14 @@ and may not be used without authorization.
 import os
 import subprocess
 
-from pCrunch.io import OpenFASTOutput, OpenFASTBinary, OpenFASTAscii
-from pCrunch import LoadsAnalysis, FatigueParams
+# from pCrunch.io import OpenFASTOutput, OpenFASTBinary, OpenFASTAscii
+# from pCrunch import LoadsAnalysis, FatigueParams
+from openfast_io.FAST_reader import InputReader_OpenFAST
+from openfast_io.FAST_writer import InputWriter_OpenFAST
+from pCrunch import AeroelasticOutput, Crunch, FatigueParams, OpenFASTAscii, OpenFASTBinary
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from packaging import version
+import numpy as np
 import logging
 import re
 import sys
@@ -59,6 +63,7 @@ class QBladeWrapper:
         self.QBlade_libs = None
         self.QBLADE_runDirectory = None
         self.QBLADE_namingOut = None
+        self.QBlade_InputFile = None
         self.qb_vt = None
 
         self.channels           = {}
@@ -73,64 +78,57 @@ class QBladeWrapper:
         self.goodman            = False
         self.magnitude_channels = magnitude_channels_default
         self.fatigue_channels   = fatigue_channels_default
-        self.la                 = None
+        self.cruncher           = None
+        self.keep_time          = False
 
     def init_crunch(self):
-        if self.la is None:
-            self.la = LoadsAnalysis(
+        if self.cruncher is None:
+            self.cruncher = Crunch(
                 outputs=[],
                 magnitude_channels=self.magnitude_channels,
                 fatigue_channels=self.fatigue_channels,
                 #extreme_channels=channel_extremes_default,
+                lean=(not self.keep_time),
             )
     def run_qblade_cases(self):
         self.execute()
-
-        if self.number_of_workers == 1:
-            summary_stats, extreme_table, DELs, Damage, ct =  self.run_serial()	
-        else :
-            summary_stats, extreme_table, DELs, Damage, ct =  self.run_multi()
         
-        return summary_stats, extreme_table, DELs, Damage, ct
+        if self.number_of_workers == 1:
+            return self.run_serial()	
+        else :
+            return self.run_multi()
     
     def run_multi(self,): 
         self.init_crunch()
 
         # Filter only .out files and sort them
         all_files_in_dir = os.listdir(self.QBLADE_runDirectory)
+        out_files = []
         if self.out_file_format == 1:   # ASCII
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
         elif self.out_file_format == 2: # Binary
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
 
-        t0_ppe = time.time()
+        if not out_files:
+            print("No output files found for processing.")
+            return self.cruncher
+        
         with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
-            results = list(executor.map(self.parallel_analyze_cases, out_files))
-        t1_ppe = time.time()
-        print(f"Time taken for ProcessPoolExecutor: {t1_ppe - t0_ppe} seconds")
+            outputs = list(executor.map(self.parallel_analyze_cases, out_files))
 
-        ss = {}
-        et = {}
-        dl = {}
-        dam = {}
-        ct = []
-
-        for (_name, _ss, _et, _dl, _dam, _ct) in results:
-            ss[_name] = _ss
-            et[_name] = _et
-            dl[_name] = _dl
-            dam[_name] = _dam
-            ct.append(_ct)
+        for iout in outputs:
+            self.cruncher.add_output(iout)
             
         # Delete the .out files after processing
         if self.delete_out_files:
             for f in out_files:
-                os.remove(os.path.join(self.QBLADE_runDirectory, f))
-                print(f"Successfully deleted {f}.")
+                try:
+                    os.remove(os.path.join(self.QBLADE_runDirectory, f))
+                    print(f"Successfully deleted {f}.")
+                except Exception as e:
+                    print(f"Failed to delete {f}: {e}")
 
-        summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
-
-        return summary_stats, extreme_table, DELs, Damage, ct
+        return self.cruncher
 
     def parallel_analyze_cases(self,file_name):
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, file_name)
@@ -139,6 +137,7 @@ class QBladeWrapper:
     def run_serial(self):
         self.init_crunch()
 
+
         # Filter only .out files and sort them
         all_files_in_dir = os.listdir(self.QBLADE_runDirectory)
         if self.out_file_format == 1:   # ASCII
@@ -146,21 +145,11 @@ class QBladeWrapper:
         elif self.out_file_format == 2: # Binary
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
         
-        ss = {}
-        et = {}
-        dl = {}
-        dam = {}
-        ct = []
-
         for c in out_files:
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
 
-            _name, _ss, _et, _dl, _dam, _ct = self.analyze_cases(QBLADE_Output_txt)
-            ss[_name] = _ss
-            et[_name] = _et
-            dl[_name] = _dl
-            dam[_name] = _dam
-            ct.append(_ct)
+            iout = self.analyze_cases(QBLADE_Output_txt)
+            self.cruncher.add_output(iout)
         
         # Delete the .out files after processing
         if self.delete_out_files:
@@ -168,9 +157,7 @@ class QBladeWrapper:
                 os.remove(os.path.join(self.QBLADE_runDirectory, f))
                 print(f"Successfully deleted {f}.")
         
-        summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
-        
-        return summary_stats, extreme_table, DELs, Damage, ct
+        return self.cruncher
         
     def set_environment(self):
         # Set the environment variables to include the path to the shared libraries
@@ -209,32 +196,27 @@ class QBladeWrapper:
 
 
     def analyze_cases(self, case):
+        # FAST version specific initialization
+
         if self.out_file_format == 1 and os.path.exists(case):
-            output_init = OpenFASTAscii(case, magnitude_channels=self.magnitude_channels)
+            output = OpenFASTAscii(case, magnitude_channels=self.magnitude_channels)
         if self.out_file_format == 2 and  os.path.exists(case):
             chan_char_length = max(len(channel[:channel.index(' [')]) for channel in self.channels)
             unit_char_length = max(len(channel[channel.index('['):]) for channel in self.channels)
-            output_init = OpenFASTBinary(case,chan_char_length=chan_char_length, unit_char_length=unit_char_length, magnitude_channels=self.magnitude_channels)
+            output = OpenFASTBinary(case,chan_char_length=chan_char_length, unit_char_length=unit_char_length, magnitude_channels=self.magnitude_channels)
 
-        output_init.read()
-
-        # Make output dict
-        output_dict = {}
-        filename = os.path.basename(case)
-        for channel in output_init.channels:
-            output_dict[channel] = output_init.df[channel].to_numpy()
-
-        # Re-make output
-        output = OpenFASTOutput.from_dict(output_dict, filename)
-
+        output.read()
+        output.fc = self.fatigue_channels    
+        
         # Trim Data
         if self.qb_vt['QSim']['STOREFROM'] > 0.0:
             output.trim_data(tmin=self.qb_vt['QSim']['STOREFROM'], tmax=self.qb_vt['QSim']['TMax'])
-        case_name, sum_stats, extremes, dels, damage = self.la._process_output(output,
-                                                                            return_damage=True,
-                                                                            goodman_correction=self.goodman)
         
-        return case_name, sum_stats, extremes, dels, damage, output_dict        
+        # For analysis later
+        for i_blade in range(self.qb_vt['Main']['NUMBLD']):
+            output.add_gradient_channel(f'Pitch Angle Blade {i_blade+1}', f'Pitch Angle Blade {i_blade+1}')
+
+        return output     
 
     def qblade_version_check(self):
         match = re.search(r'(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll

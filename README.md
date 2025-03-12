@@ -36,9 +36,9 @@ The installation instructions below use the environment name, "qbweis-env," but 
         cd QBtoWEIS
 
 
-2. Add in final packages and install the software
+2. If you are NOT on Kestrel, add in final packages and install the software
 
-        conda install -y petsc4py mpi4py pyoptsparse     # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
+        conda install -y petsc4py=3.22.2 mpi4py pyoptsparse     # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
         pip install -e .
 
 **NOTE:** To use QBtoWEIS again after installation is complete, you will always need to activate the conda environment first with conda activate qbweis-env (or source activate qbweis-env).
