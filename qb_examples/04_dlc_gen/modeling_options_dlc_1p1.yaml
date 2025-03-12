@@ -9,11 +9,11 @@ General:
         # Windows
         # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.5\QBladeEE_2.0.8.5.dll
         QB_run_mod: nrel5mw
-        QB_run_dir: test_dlc_gen_1p1/run_nrel5mw
+        store_turbines: False            # store qblade *.sim files of each iteration 
         out_file_format: 2              # 1 = ASCII (.out), 2 = Binary (.outb), default setting is 2 and does not specifically need to be set
         delete_out_files: True          # .out/.outb files are deleted after processing if True, default setting is True and does not specifically need to be set
         model_only: False
-        number_of_workers: 3
+        number_of_workers: 6
 
 WISDEM:
     RotorSE:
@@ -74,8 +74,8 @@ QBlade: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         MASSTUNER: 1.0
         DISC: 50
     Turbine:
-        CONTROLLERTYPE: 0
-        CONTROLLERFILE: '' # must be set for CONTROLLERTYPE: 1, Rosco 2.9.0 or higher
+        CONTROLLERTYPE: 1
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0' # must be set for CONTROLLERTYPE: 1, Rosco 2.9.0 or higher
         TURBTYPE: 0   
         ROTORCONFIG: 0
         ROTATIONALDIR: 0
@@ -117,14 +117,14 @@ ROSCO:
 DLC_driver:
     DLCs:
         - DLC: "1.1"
-          ws_bin_size: 2
+        #   ws_bin_size: 2
           wind_speed: [14,15,16] #[5.8, 9.4732, 13.009,16.866,19.9968,15.6765] 
           wave_height: [8.]
           wave_period: [2.]
           #wind_seeds: [3,4] #[1,2,3,4,5]
-          n_seeds: 1
-          analysis_time: 60.
-          transient_time: 30.
+          n_seeds: 2
+          analysis_time: 20.
+          transient_time: 0.
           turbulent_wind:
               HubHt: 90.0
               GridHeight: 178.0

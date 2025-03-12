@@ -1113,7 +1113,7 @@ class WindPark(om.Group):
                     self.connect('fixedse.member.rho',              'aeroelastic_qblade.monopile_rho')
                 
                 if modeling_options['flags']['floating']:
-                    if modeling_options['Level1']['flag']:
+                    if modeling_options['RAFT']['flag']:
                         ptfm_data_source = 'raft'
                     else:
                         ptfm_data_source = 'floatingse'

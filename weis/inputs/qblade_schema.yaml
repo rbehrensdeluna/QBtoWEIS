@@ -349,7 +349,6 @@ properties:
                     ROTORTYPE: 
                         type: string
                         defaut: 'HAWT'
-                        enum: ['HAWT','VAWT']
                         description: Definition of wind turbine type, either HAWT or VAWT. For now, only HAWT is an option.
                     INVERTEDFOILS:
                         type: boolean

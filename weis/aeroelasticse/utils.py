@@ -567,8 +567,8 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
                 wrapper.turbsim_input = turbsim_input_file_name
                 wrapper.execute()
 
-        # Pass data to CaseGen_General to call OpenFAST
-        wind_file_type = 3
+            # Pass data to CaseGen_General to call OpenFAST
+            wind_file_type = 3
 
     else:
         if dlc_generator.cases[i_case].label != '12.1':

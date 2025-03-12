@@ -56,7 +56,7 @@ import random
 import base64
 
 
-_encoded_version = 'MS4wLjA='
+_encoded_version = 'MS4xLjA='
 __version__ = base64.b64decode(_encoded_version).decode('utf-8')
 
 logger = logging.getLogger("wisdem/weis") 
@@ -309,11 +309,9 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input("Ct_aero",       val=np.zeros(n_pc), desc="rotor aerodynamic thrust coefficient")
 
         if modopt['QBlade']['simulation']['DLCGenerator']:
-            n_ws = modopt['DLC_driver']['n_cases']
-        elif modopt['QBlade']['simulation']['WNDTYPE'] == 1:
-            n_ws = len(modopt['QBlade']['QTurbSim']['URef'])
+            n_ws = np.max([1,modopt['DLC_driver']['n_ws_aep']])
         else:
-            n_ws = len(modopt['QBlade']['simulation']['MEANINF'])
+            n_ws = 1
         
         # QBlade options
         QBmgmt = modopt['General']['qblade_configuration']
@@ -1730,18 +1728,8 @@ class QBLADELoadCases(ExplicitComponent):
 
             writer.execute()
 
-            if modopt['General']['qblade_configuration']['store_iterations']:
-                writer.QBLADE_runDirectory = f"{self.QBLADE_runDirectory}/model_iterations"
-                iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
-
-                if cases > 1:
-                    case = f"_case_{idx}"
-                else:
-                    case = ""
-
-                writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
-
-                writer.execute()    
+        if modopt['General']['qblade_configuration']['store_turbines']:
+            self.store_turbines(writer)
 
     def write_QBLADE_DLCGenerator(self, qb_vt, inputs, discrete_inputs,case_list,case_name):
         modopt = self.options['modeling_options']
@@ -1785,18 +1773,8 @@ class QBLADELoadCases(ExplicitComponent):
 
             writer.execute()
 
-            if modopt['General']['qblade_configuration']['store_iterations']:
-                writer.QBLADE_runDirectory = f"{self.QBLADE_runDirectory}/model_iterations"
-                iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
-                
-                if cases > 1:
-                    case = f"_case_{idx}"
-                else:
-                    case = ""
-                    
-                writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
-
-                writer.execute()    
+        if modopt['General']['qblade_configuration']['store_turbines']:
+                self.store_turbines(writer)
 
     def init_QBlade_model(self):
         modopt = self.options['modeling_options']
@@ -1961,58 +1939,66 @@ class QBLADELoadCases(ExplicitComponent):
             logger.warning('WARNING: DLC 1.1 is being used for AEP calculations.  Use the AEP DLC for more accurate wind modeling with constant TI.')
 
         if self.qb_vt['QSim']['DLCGenerator']:
-            # idx_pwrcrv = []
+            idx_pwrcrv = []
             U = []
             for i_case in range(dlc_generator.n_cases):
                 if dlc_generator.cases[i_case].label == DLC_label_for_AEP:
-                    # idx_pwrcrv = np.append(idx_pwrcrv, i_case)
+                    idx_pwrcrv = np.append(idx_pwrcrv, i_case)
                     U = np.append(U, dlc_generator.cases[i_case].URef)
-        elif self.qb_vt['QSim']['WNDTYPE'] == 1:
-            U = self.qb_vt['QTurbSim']['URef']    
+            
+            stats_pwrcrv = sum_stats.iloc[idx_pwrcrv].copy()
+        
         else:
-            U = self.qb_vt['QSim']['MEANINF']
+            U = []
+            stats_pwrcrv = sum_stats.copy()   
 
-        if len(U) > 1 and self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0:
+        if not self.qb_vt['Turbine']['NOSTRUCTURE']:
+            pwr_curve_vars_qb   = ['Gen. Elec. Power', 'Aero. Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle Blade 1']
+        else:
+            pwr_curve_vars_qb   = ['Aerodynamic Power', 'Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle Blade 1']
+        
+        pwr_curv_vars_of    = ["GenPwr", "RtFldCp", "RtFldCt", "RotSpeed", "BldPitch1"]
+        rename_dict = dict(zip(pwr_curve_vars_qb, pwr_curv_vars_of))
+        stats_pwrcrv   = stats_pwrcrv.rename(columns=rename_dict)
+        sum_stats      = sum_stats.rename(columns=rename_dict)
+        if len(U) > 1 and self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0 and self.qb_vt['QSim']['DLCGenerator']:
             pp = PowerProduction(discrete_inputs['turbine_class'])
-            
-            if not self.qb_vt['Turbine']['NOSTRUCTURE']:
-                pwr_curve_vars_qb   = ['Gen. Elec. Power', 'Aero. Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle Blade 1']
-            else:
-                pwr_curve_vars_qb   = ['Aerodynamic Power', 'Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle Blade 1']
-            
-            pwr_curv_vars_of    = ["GenPwr", "RtFldCp", "RtFldCt", "RotSpeed", "BldPitch1"]
-            rename_dict = dict(zip(pwr_curve_vars_qb, pwr_curv_vars_of))
-            sum_stats_for_AEP   =  sum_stats.rename(columns=rename_dict)
-            AEP, perf_data = pp.AEP(sum_stats_for_AEP, U, pwr_curv_vars_of)
+            AEP, perf_data = pp.AEP(stats_pwrcrv, U, pwr_curv_vars_of)
 
-            outputs['P_out'] = perf_data['GenPwr']['mean']
+            outputs['P_out'] = perf_data['GenPwr']['mean'] * 1.e3
             outputs['Cp_out'] = perf_data['RtFldCp']['mean']
             outputs['Ct_out'] = perf_data['RtFldCt']['mean']
             outputs['Omega_out'] = perf_data['RotSpeed']['mean']
             outputs['pitch_out'] = perf_data['BldPitch1']['mean']
             outputs['AEP'] = AEP
-
         else:
-            if not self.qb_vt['Turbine']['NOSTRUCTURE']:
-                outputs['Cp_out']       = sum_stats['Aero. Power Coefficient']['mean'].mean()
-                outputs['AEP']          = sum_stats['Gen. Elec. Power']['mean'].mean()
-                outputs['P_out']        = sum_stats['Gen. Elec. Power']['mean'].iloc[0]
+            # If DLC 1.1 was run
+            if len(stats_pwrcrv['RtFldCp']['mean']) == 1: 
+                outputs['Cp_out'] = stats_pwrcrv['RtFldCp']['mean']
+                outputs['Ct_out'] = stats_pwrcrv['RtFldCt']['mean']
+                outputs['Omega_out'] = stats_pwrcrv['RotSpeed']['mean']
+                outputs['pitch_out'] = stats_pwrcrv['BldPitch1']['mean']
+                if self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0:
+                    outputs['AEP'] = stats_pwrcrv['GenPwr']['mean']
+                    outputs['P_out'] = stats_pwrcrv['GenPwr']['mean'].iloc[0] * 1.e3
+                logger.warning('WARNING: QBlade is run at a single wind speed. AEP cannot be estimated. Using average power instead.')
             else:
-                outputs['Cp_out']       = sum_stats['Power Coefficient']['mean'].mean()
-                outputs['AEP']          = sum_stats['Aerodynamic Power']['mean'].mean()
-                outputs['P_out']        = sum_stats['Aerodynamic Power']['mean'].iloc[0]
-
-            outputs['Ct_out']       = sum_stats['Thrust Coefficient']['mean'].mean()
-            outputs['Omega_out']    = sum_stats['Rotational Speed']['mean'].mean()
-            outputs['pitch_out']    = sum_stats['Pitch Angle Blade 1']['mean'].mean()                   
-            logger.warning('WARNING: QBlade is not run using DLC 1.1/1.2. AEP cannot be estimated. Using average power instead.')
-
-            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean'].iloc[0]
+                outputs['Cp_out'] = sum_stats['RtFldCp']['mean'].mean()
+                outputs['Ct_out'] = sum_stats['RtFldCt']['mean'].mean()
+                outputs['Omega_out'] = sum_stats['RotSpeed']['mean'].mean()
+                outputs['pitch_out'] = sum_stats['BldPitch1']['mean'].mean()
+                if self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0:
+                    outputs['AEP'] = sum_stats['GenPwr']['mean'].mean()
+                    outputs['P_out'] = sum_stats['GenPwr']['mean'].iloc[0] * 1.e3
+                logger.warning('WARNING: QBlade is not run using DLC AEP, 1.1, or 1.2. AEP cannot be estimated. Using average power instead.')
         
-        if len(U)>0:
+        if len(U) > 0:
             outputs['V_out'] = np.unique(U)
+        elif len(U) == 0 and self.qb_vt['QSim']['DLCGenerator']:
+            outputs['V_out'] = dlc_generator.cases[0].URef
         else:
-            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean']
+            outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean'].mean()
+
 
         return outputs
           	
@@ -2388,6 +2374,27 @@ class QBLADELoadCases(ExplicitComponent):
             pickle.dump(self.qb_vt,f)
 
         discrete_outputs['ts_out_dir'] = save_dir
+
+
+    def store_turbines(self, writer, cases=1, idx=0):
+        # For the moment we only store 1 .*sim file per iteration
+        # Make iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory,'qblade_turbines')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        
+
+        iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
+        if cases > 1:
+            case = f"_case_{idx}"
+        else:
+            case = ""
+            
+        writer.QBLADE_runDirectory = save_dir
+        writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
+        
+        writer.store_turbines = True
+        writer.execute()
 
     def save_timeseries(self,chan_time):
 

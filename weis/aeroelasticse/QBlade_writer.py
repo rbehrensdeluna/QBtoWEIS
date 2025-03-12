@@ -41,6 +41,7 @@ class InputWriter_QBlade(object):
         self.qb_vt = {}
         self.qb_update = {}
         self.turbsim_params = None
+        self.store_turbines = False
 
     def execute(self):
         if not os.path.exists(self.QBLADE_runDirectory):
@@ -79,7 +80,7 @@ class InputWriter_QBlade(object):
         if self.qb_vt['QSim']['wave_flag'] and self.qb_vt['QSim']['ISOFFSHORE'] == 1 :
             self.write_wave_file()
 
-        if self.qb_vt['QSim']['WNDTYPE'] and not self.qb_vt['QSim']['DLCGenerator']:
+        if self.qb_vt['QSim']['WNDTYPE'] and not self.qb_vt['QSim']['DLCGenerator'] and not self.store_turbines:
             self.write_turbsim_input()
 
         # write simulation setup file
