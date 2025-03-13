@@ -116,6 +116,18 @@ qblade_input_map = {
         'pitch_initial': ("QSim","INITIAL_PITCH"),
         'azimuth_init': ("QSim","INITIAL_AZIMUTH"),
         'yaw_misalign': ("QSim","INITIAL_YAW"),
+
+        'compute_aerodynamics': ("QSim", "INCLUDEAERO"),
+        'compute_inflow': ("QSim", "MEANINF"), # TODO: check mapping here
+        'compute_control': ("Turbine", "CONTROLLERTYPE"),
+
+        'generator_dof':            ("QBladeOcean","GenDOF"), #TODO: Dummy
+        'initial_platform_surge':   ("QBladeOcean","FLOAT_SURGE"),
+        'initial_platform_sway':    ("QBladeOcean","FLOAT_SWAY"),
+        'initial_platform_heave':   ("QBladeOcean","FLOAT_HEAVE"),
+        'initial_platform_roll':    ("QBladeOcean","FLOAT_ROLL"),
+        'initial_platform_pitch':   ("QBladeOcean","FLOAT_PITCH"),
+        'initial_platform_yaw':     ("QBladeOcean","FLOAT_YAW"),
         
         'wave_height': ("QBladeOcean","SIGHEIGHT"),
         'wave_period': ("QBladeOcean","PEAKPERIOD"),
@@ -238,11 +250,7 @@ class DLCGenerator(object):
 
         # OpenFAST and QBlade input map
         self.openfast_input_map = copy.deepcopy(openfast_input_map)
-        try: # in a try-except block as not all DLC's available in qblade yet
-            self.qblade_input_map = copy.deepcopy(qblade_input_map)
-        except Exception as e:
-            print(f"Error copying qblade_input_map: {e}")
-            self.qblade_input_map = {}
+        self.qblade_input_map = copy.deepcopy(qblade_input_map)
 
         # Set and update default_options, applied to dlc_options and first group in case_inputs
         self.default_options = {
