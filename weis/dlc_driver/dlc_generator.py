@@ -238,7 +238,11 @@ class DLCGenerator(object):
 
         # OpenFAST and QBlade input map
         self.openfast_input_map = copy.deepcopy(openfast_input_map)
-        self.qblade_input_map = copy.deepcopy(qblade_input_map)
+        try: # in a try-except block as not all DLC's available in qblade yet
+            self.qblade_input_map = copy.deepcopy(qblade_input_map)
+        except Exception as e:
+            print(f"Error copying qblade_input_map: {e}")
+            self.qblade_input_map = {}
 
         # Set and update default_options, applied to dlc_options and first group in case_inputs
         self.default_options = {
@@ -595,6 +599,7 @@ class DLCGenerator(object):
         generic_case_list, _ = CaseGen_General(gen_case_inputs,save_matrix=False)
 
         case_inputs_openfast = self.map_generic_to_openfast(generic_case_inputs, comb_options)
+        
         case_inputs_qblade = self.map_generic_to_qblade(generic_case_inputs, comb_options)
 
         self.openfast_case_inputs.append(case_inputs_openfast)

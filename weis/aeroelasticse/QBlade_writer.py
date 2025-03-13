@@ -41,6 +41,7 @@ class InputWriter_QBlade(object):
         self.qb_vt = {}
         self.qb_update = {}
         self.turbsim_params = None
+        self.store_turbines = False
 
     def execute(self):
         if not os.path.exists(self.QBLADE_runDirectory):
@@ -1160,8 +1161,12 @@ class InputWriter_QBlade(object):
             turbsim_file = ''
         elif self.qb_vt['QSim']['DLCGenerator'] and self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = self.qb_vt['QTurbSim']['TurbSimInp']
+            if self.store_turbines: # manipulate path to point the store simulation to the correct wind field
+                turbsim_file = os.path.join('..',turbsim_file)
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = os.path.join('wind' , self.qb_vt['QTurbSim']['TurbSimInp']).replace('.inp','.bts')
+            if self.store_turbines: # manipulate path to point the store simulation to the correct wind field
+                turbsim_file = os.path.join('..',turbsim_file)
 
         with open(sim_file, 'w') as f:
             f.write('---------------------------------------- file generated with WEIS QBlade API ----------------------------------------\n')

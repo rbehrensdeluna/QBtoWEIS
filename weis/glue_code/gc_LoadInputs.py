@@ -69,12 +69,22 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
         # OpenFAST prefixes
         if self.modeling_options['General']['openfast_configuration']['OF_run_fst'] in ['','None','NONE','none']:
             self.modeling_options['General']['openfast_configuration']['OF_run_fst'] = 'weis_job'
+        
+        # QBlade prefixes
+        if self.modeling_options['General']['qblade_configuration']['QB_run_mod'] in ['','None','NONE','none']:
+            self.modeling_options['General']['qblade_configuration']['QB_run_mod'] = 'weis_job'
             
         if self.modeling_options['General']['openfast_configuration']['OF_run_dir'] in ['','None','NONE','none']:
             self.modeling_options['General']['openfast_configuration']['OF_run_dir'] = osp.join(
                 mod_opt_dir,        # If it's a relative path, will be relative to mod_opt directory
                 self.analysis_options['general']['folder_output'], 
                 'openfast_runs'
+                )
+        if self.modeling_options['General']['qblade_configuration']['QB_run_dir'] in ['','None','NONE','none']:
+            self.modeling_options['General']['qblade_configuration']['QB_run_dir'] = osp.join(
+                mod_opt_dir,        # If it's a relative path, will be relative to mod_opt directory
+                self.analysis_options['general']['folder_output'], 
+                'qblade_runs'
                 )
 
         # BEM dir, all levels
