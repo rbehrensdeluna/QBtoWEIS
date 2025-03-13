@@ -348,7 +348,7 @@ properties:
                 properties:
                     ROTORTYPE: 
                         type: string
-                        defaut: 'HAWT'
+                        default: 'HAWT'
                         description: Definition of wind turbine type, either HAWT or VAWT. For now, only HAWT is an option.
                     INVERTEDFOILS:
                         type: boolean
@@ -385,7 +385,7 @@ properties:
                         default: 0.
                         minimum: 0.
                         unit: s
-                        description:
+                        description: Global geometry epsilon for node placement
                     DRTRDOF:
                         type: boolean
                         default: True

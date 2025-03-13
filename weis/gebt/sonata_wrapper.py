@@ -31,7 +31,7 @@ class SONATA_WEIS(ExplicitComponent):
         n_opt_te_ps = self.get_n_opt(analysis_options, modeling_options, 'te_reinforcement_ps')
 
         # Blade Aero Definition Inputs
-        self.add_input('grid',                  val=np.zeros(n_span),       units='deg',    desc='non-dimensional grdi along the span of the blade')
+        self.add_input('grid',                  val=np.zeros(n_span),                       desc='non-dimensional grdi along the span of the blade')
         self.add_input('chord',                 val=np.zeros(n_span),       units='m',      desc='chord at airfoil locations')
         self.add_input('twist',                 val=np.zeros(n_span),       units='deg',    desc='twist at airfoil locations')
         self.add_input('ref_axis_blade',        val=np.zeros((n_span,3)),   units='m',      desc='2D array of the coordinates (x,y,z) of the blade reference axis, defined along blade span. The coordinate system is the one of BeamDyn: it is placed at blade root with x pointing the suction side of the blade, y pointing the trailing edge and z along the blade span. A standard configuration will have negative x values (prebend), if swept positive y values, and positive z values.')

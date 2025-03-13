@@ -84,7 +84,8 @@ class InputWriter_QBlade(object):
             self.write_turbsim_input()
 
         # write simulation setup file
-        self.write_simulation_setup()
+        if self.qb_vt['QSim']['Simulate']:
+            self.write_simulation_setup()
 
     def write_aero_dir(self):
         # create "Aero" subfolder and place .bld, .plr and Airfoil subdirecrie in it
