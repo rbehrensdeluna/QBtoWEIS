@@ -1,6 +1,6 @@
 general:
-    folder_output: test_dlc_gen
-    fname_output: refturb_output
+    folder_output: opt_output
+    fname_output: 04_dlc_gen
 
 
 design_variables:

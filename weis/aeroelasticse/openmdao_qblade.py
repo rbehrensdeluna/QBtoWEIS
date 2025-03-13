@@ -1726,10 +1726,11 @@ class QBLADELoadCases(ExplicitComponent):
             writer.QBLADE_runDirectory  = self.QBLADE_runDirectory
             writer.QBLADE_namingOut     = self.QBLADE_namingOut + QBLADE_namingOut_appendix
 
-            writer.execute()
+            if idx == (cases-1) and modopt['General']['qblade_configuration']['store_turbines']:
+                self.qb_vt_stored = i_qb_vt
+                self.QBLADE_namingOut_stored = self.QBLADE_namingOut + QBLADE_namingOut_appendix
 
-        if modopt['General']['qblade_configuration']['store_turbines']:
-            self.store_turbines(writer)
+            writer.execute()
 
     def write_QBLADE_DLCGenerator(self, qb_vt, inputs, discrete_inputs,case_list,case_name):
         modopt = self.options['modeling_options']
@@ -1771,10 +1772,11 @@ class QBLADELoadCases(ExplicitComponent):
             writer.QBLADE_runDirectory  = self.QBLADE_runDirectory
             writer.QBLADE_namingOut     = case_name[idx] # +'_U'+str(case_list[idx][('QSim', 'MEANINF')])+'_WindSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])+'_WaveSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])
 
-            writer.execute()
+            if idx == (cases-1) and modopt['General']['qblade_configuration']['store_turbines']:
+                self.qb_vt_stored = i_qb_vt
+                self.QBLADE_namingOut_stored =  case_name[idx]
 
-        if modopt['General']['qblade_configuration']['store_turbines']:
-                self.store_turbines(writer)
+            writer.execute()
 
     def init_QBlade_model(self):
         modopt = self.options['modeling_options']
@@ -1855,6 +1857,9 @@ class QBLADELoadCases(ExplicitComponent):
 
             if modopt['General']['qblade_configuration']['save_iterations']:
                 self.save_iterations(summary_stats,DELs,discrete_outputs)
+
+            if modopt['General']['qblade_configuration']['store_turbines']:
+                self.store_turbines()
         else:
             outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs)
 
@@ -2375,27 +2380,6 @@ class QBLADELoadCases(ExplicitComponent):
 
         discrete_outputs['ts_out_dir'] = save_dir
 
-
-    def store_turbines(self, writer, cases=1, idx=0):
-        # For the moment we only store 1 .*sim file per iteration
-        # Make iteration directory
-        save_dir = os.path.join(self.QBLADE_runDirectory,'qblade_turbines')
-        os.makedirs(save_dir, exist_ok=True)
-        
-        
-
-        iteration = f"_it_{str(self.qb_inumber).zfill(3)}"
-        if cases > 1:
-            case = f"_case_{idx}"
-        else:
-            case = ""
-            
-        writer.QBLADE_runDirectory = save_dir
-        writer.QBLADE_namingOut = f"{self.QBLADE_namingOut}{iteration}{case}"
-        
-        writer.store_turbines = True
-        writer.execute()
-
     def save_timeseries(self,chan_time):
 
         # Make iteration directory
@@ -2406,3 +2390,16 @@ class QBLADELoadCases(ExplicitComponent):
         for i_ts, timeseries in enumerate(chan_time):
             output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
             output.df.to_pickle(os.path.join(save_dir,self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
+        
+    def store_turbines(self):
+        # For the moment we only store 1 .*sim file per iteration
+        # Make iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory,'qblade_turbines')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        writer = InputWriter_QBlade()
+        writer.qb_vt = self.qb_vt_stored
+        writer.QBLADE_runDirectory = save_dir
+        writer.QBLADE_namingOut = f"{self.QBLADE_namingOut_stored}_iteration_{self.qb_inumber}"
+        writer.store_turbines = True
+        writer.execute()
