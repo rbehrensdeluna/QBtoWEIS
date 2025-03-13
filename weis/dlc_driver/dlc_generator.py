@@ -226,7 +226,11 @@ class DLCGenerator(object):
 
         # OpenFAST input map
         self.openfast_input_map = copy.deepcopy(openfast_input_map)
-        self.qblade_input_map = copy.deepcopy(qblade_input_map)
+        try: # in a try-except block as not all DLC's available in qblade yet
+            self.qblade_input_map = copy.deepcopy(qblade_input_map)
+        except Exception as e:
+            print(f"Error copying qblade_input_map: {e}")
+            self.qblade_input_map = {}
 
         # Set and update default_options, applied to dlc_options and first group in case_inputs
         self.default_options = {
