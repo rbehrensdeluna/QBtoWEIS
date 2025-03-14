@@ -182,6 +182,12 @@ class QBladeWrapper:
     def execute(self):
         if sys.platform == "linux":
             self.set_environment()
+        
+        if sys.platform == 'win32':  
+            dll_directory = os.path.dirname(self.QBlade_dll)
+            os.environ["PATH"] = dll_directory + os.pathsep + os.environ.get("PATH", "")
+            print(f"Added {dll_directory} to PATH")
+            
         # Run the Python script using subprocess
         script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QBlade_SIL.py')
 
