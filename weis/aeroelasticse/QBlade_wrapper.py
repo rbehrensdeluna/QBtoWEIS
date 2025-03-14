@@ -103,11 +103,12 @@ class QBladeWrapper:
         elif self.out_file_format == 2: # Binary
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
 
-        t0_ppe = time.time()
-        with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
-            results = list(executor.map(self.parallel_analyze_cases, out_files))
-        t1_ppe = time.time()
-        print(f"Time taken for ProcessPoolExecutor: {t1_ppe - t0_ppe} seconds")
+        if sys.platform == "linux": # ProcessPoolExecutor is a bit quicker but doesn't work under windows
+            with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
+                results = list(executor.map(self.parallel_analyze_cases, out_files))
+        else:
+            with ThreadPoolExecutor(max_workers=self.number_of_workers) as executor:
+                results = list(executor.map(self.parallel_analyze_cases, out_files))
 
         ss = {}
         et = {}
