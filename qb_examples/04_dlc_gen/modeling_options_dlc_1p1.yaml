@@ -119,9 +119,8 @@ DLC_driver:
         - DLC: "1.1"
         #   ws_bin_size: 2
           wind_speed: [14,15,16] #[5.8, 9.4732, 13.009,16.866,19.9968,15.6765] 
-          wave_height: [8.]
-          wave_period: [2.]
-          #wind_seeds: [3,4] #[1,2,3,4,5]
+        #   wave_height: [8.]
+        #   wave_period: [12.]
           n_seeds: 2
           analysis_time: 20.
           transient_time: 0.
