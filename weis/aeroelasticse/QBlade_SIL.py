@@ -29,10 +29,10 @@ import struct as st
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, chunk_size, out_file_format):
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
-    # dll_directory = dll_directory = os.path.dirname(QBlade_dll)
-
-    # if sys.platform == 'win32':  # 'nt' indicates Windows
-    #     os.environ["PATH"] = os.path.abspath(dll_directory) + ";" + os.environ.get("PATH", "")
+    dll_directory = os.path.dirname(QBlade_dll)
+    
+    if sys.platform == 'win32':  
+        os.environ["PATH"] = dll_directory + os.pathsep + os.environ.get("PATH", "")
 
     QBLIB = QBladeLibrary(QBlade_dll)
     QBLIB.createInstance(1,32) 
