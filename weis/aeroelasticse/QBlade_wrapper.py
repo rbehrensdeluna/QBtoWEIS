@@ -113,9 +113,13 @@ class QBladeWrapper:
             print("No output files found for processing.")
             return self.cruncher
         
-        with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
-            outputs = list(executor.map(self.parallel_analyze_cases, out_files))
-
+        if sys.platform == "linux": # ProcessPoolExecutor is a bit quicker but doesn't work under windows
+            with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
+                outputs = list(executor.map(self.parallel_analyze_cases, out_files))
+        else:
+            with ThreadPoolExecutor(max_workers=self.number_of_workers) as executor:
+                outputs = list(executor.map(self.parallel_analyze_cases, out_files))
+        
         for iout in outputs:
             self.cruncher.add_output(iout)
             
