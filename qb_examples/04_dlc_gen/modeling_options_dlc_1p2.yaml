@@ -31,18 +31,13 @@ WISDEM:
         flag: True
         rank_and_file: True
     
-QBlade: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
+QBlade: # Options for WEIS fidelity level, nonlinear time domain with QBlade
     flag: True
     simulation:
         Simulate: True
         DLCGenerator: True
         ISOFFSHORE: 1
-        STOREFROM: 0.0
-        MEANINF: [11.4]
-        PRESCRIBETYPE: 1
-        RPMPRESCRIBED: [12.1]
-        TMax: 30
-        ADDCHANNELS: ['Azimuthal Angle BLD_1 [deg]']
+        PRESCRIBETYPE: 0
     Aero:
         ROTORTYPE: HAWT         # only option for now
         INVERTEDFOILS: False    # dummy variable, only used for VAWTs
@@ -56,37 +51,29 @@ QBlade: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         ERRORPITCH_1: 0.0
         ERRORPITCH_2: 0.0
         ERRORPITCH_3: 0.0
-        # Blade and tower sensors with added stations
-        BLD_1: [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0]
-        BLD_2: [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0]
-        BLD_3: [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0]
-        TWR: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     Tower:
         RAYLEIGHDMP: 0.0127
         STIFFTUNER: 1.0
         MASSTUNER: 1.0
-        DISC: 30
-        CD: 0.0
+        DISCTYPE: 0         # (0 = linear, 1 = cosine, 2 = struct, 3= aero)  
+        DISC: 10
+        CD: 0.5
     Blade:
         RAYLEIGHDMP: 0.0024
         STIFFTUNER: 1.0
         MASSTUNER: 1.0
-        DISC: 50
+        DISCTYPE: 0         # (0 = linear, 1 = cosine, 2 = struct, 3= aero)  
+        DISC: 18
     Turbine:
-        CONTROLLERTYPE: 0
-        CONTROLLERFILE: '' # must be set for CONTROLLERTYPE: 1, Rosco 2.9.0 or higher
-        TURBTYPE: 0   
-        ROTORCONFIG: 0
-        ROTATIONALDIR: 0
-        DISCTYPE: 0 
-        INTPTYPE: 0
-        NUMPANELS: 30
+        CONTROLLERTYPE: 1
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0' # must be set for CONTROLLERTYPE: 1, Rosco 2.9.0 or higher
+        DISCTYPE: 2         # (0=from blade table; 1=linear; 2=cosine)
+        NUMPANELS: 25
         WAKETYPE: 1
         BEMSPEEDUP: 30
     QBladeOcean:
         USEADVANCEDBUOYANCY: True
-        ADVANCEDBUOYANCY: 50.0
-        POTFLOW: False
+        IsBuoy: 1
         override_morison_coefficients: True
         HydroCdN: 1.0
         HydroCaN: 0.0
@@ -95,20 +82,10 @@ QBlade: # Options for WEIS fidelity level 3 = nonlinear time domain with QBlade
         HydroCaA: 0.0
         HydroCpA: 0.0
         MCFC: 0
-        IsBuoy: 1
-        # POT_RAD_FILE: ../../../../POTFLOW_files/spar.1
-        # POT_EXC_FILE: ../../../../POTFLOW_files/spar.3
-        POT_SUM_FILE: ''
-        POT_DIFF_FILE: ''
-        DIFF_EVAL_TYPE: 0
-        USE_SUM_FREQS: False
+        POTFLOW: True
+        POT_RAD_FILE: ../../../../POTFLOW_files/spar.1
+        POT_EXC_FILE: ../../../../POTFLOW_files/spar.3
         USE_RAD_ADDMASS: True
-        SUB_HYDROSTIFFNESS1: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        SUB_HYDROSTIFFNESS2: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        SUB_HYDROSTIFFNESS3: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        SUB_HYDROSTIFFNESS4: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        SUB_HYDROSTIFFNESS5: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        SUB_HYDROSTIFFNESS6: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 ROSCO:
     flag: True
@@ -116,7 +93,6 @@ ROSCO:
 DLC_driver:
     DLCs:
         - DLC: "1.2"
-          ws_bin_size: 2
           wind_speed: [14,15,16] #[5.8, 9.4732, 13.009,16.866,19.9968,15.6765] 
           n_seeds: 1
           analysis_time: 60.
