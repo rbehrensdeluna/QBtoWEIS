@@ -100,8 +100,8 @@ QBlade: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
     QTurbSim:
         TimeStep: 0.05
         AnalysisTime: 100
-        HubHt: 185
-        RefHt: 185
+        HubHt: 150
+        RefHt: 150
         GridHeight: 290
         GridWidth: 290
         URef: [6,10,14]
