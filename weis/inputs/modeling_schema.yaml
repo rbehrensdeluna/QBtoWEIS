@@ -136,6 +136,10 @@ properties:
                         type: boolean
                         default: True
                         description: Save summary stats and other info for each qlade iteration.
+                    path2qbtoweis_output_filter:
+                        type: string
+                        default: none
+                        description: Path to .txt file that contains a list of QBlade channel names (with units!!) that are written to the pickle file if save_iterations = True. Reason is to reduce the required disc space
                     store_qprs:
                         type: boolean
                         default: False

@@ -1630,7 +1630,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["X_s For. Shaft Const. [N]", "Y_s For. Shaft Const. [N]", "Z_s For. Shaft Const. [N]"]  # ["LSShftFxs", "LSShftFys", "LSShftFzs" non-rotating
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
-            channels_out += ["Aero. Power [W]", "Wave Elev. HYDRO WavekinEval. Pos. [m]"]
+            channels_out += ["Aero. Power [W]", "Wave Elevation at Global Pos. [m]", "HYDRO WavekinEval. Wave Elevation [m]"] # TODO: two blank spaces in wave elevation...
             channels_out += ["Pitch Vel. BLD 1 [deg/s]", "Pitch Vel. BLD 2 [deg/s]"]
 
             if self.n_blades == 3:
@@ -1849,8 +1849,8 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']['floating']: # TODO: or (modopt['QBlade']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
 
-            if any(summary_stats['qblade_failed']['max'] > 0):
-                outputs['qblade_failed'] = 2
+            # if any(summary_stats['qblade_failed']['max'] > 0):
+                # outputs['qblade_failed'] = 2
             
             # Save Data
             if modopt['General']['qblade_configuration']['save_timeseries']:
@@ -2388,10 +2388,46 @@ class QBLADELoadCases(ExplicitComponent):
         save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber),'timeseries')
         os.makedirs(save_dir, exist_ok=True)
 
-        # Save each timeseries as a pickled dataframe
+        channels_no_unit = []
+        # load filter file
+        if self.options['modeling_options']['General']['qblade_configuration']['path2qbtoweis_output_filter'] not in [None, '', 'none', 'None']:
+            channels = pd.read_csv(self.options['modeling_options']['General']['qblade_configuration']['path2qbtoweis_output_filter'], header=None)
+            channels = channels.iloc[:, 0].tolist()
+
+            # Remove the unit from the channel names
+            for idx, channel in enumerate(channels):
+                
+                if "  [" in channel:
+                    split_string = channel.split("  [")
+                    channels_no_unit.append(split_string[0])
+                else:
+                    split_string = channel.split(" [")
+                    channels_no_unit.append(split_string[0])
+            
+            # Check if the channel is a time channel
+            if "Time" not in channels_no_unit:
+                channels_no_unit.insert(0, "Time")
+
+
         for i_ts, timeseries in enumerate(chan_time):
-            output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
-            output.df.to_pickle(os.path.join(save_dir,self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
+            
+            # If filter is provided, filter the timeseries
+            if channels_no_unit:
+                filtered_timeseries = {}
+                # Iterate over each key-value pair in the timeseries
+                for key, value in timeseries.items():
+                    # Check if the channel is in channels_no_unit
+                    if key in channels_no_unit:
+                        filtered_timeseries[key] = value  # Add matching channels to filtered_timeseries
+                # If filtered_timeseries is not empty, save it
+                if filtered_timeseries:
+                    output = OpenFASTOutput.from_dict(filtered_timeseries, self.QBLADE_namingOut)
+                    output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
+
+            # Only save the original timeseries if no filter is applied
+            if not channels_no_unit:
+                output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
+                output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
         
     def store_turbines(self):
         # For the moment we only store 1 .*sim file per iteration
