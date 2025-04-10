@@ -393,9 +393,10 @@ class QBLADELoadCases(ExplicitComponent):
                 self.add_output('monopile_maxMy_Mz', val=np.zeros(monlen_full), units='kN*m',   desc='distributed moment around tower-aligned x-axis corresponding to max_M1N1MKye')
 
         # Floating outputs
-        self.add_output('Max_PtfmPitch',        val=0.0,                                    desc='Maximum platform pitch angle over a set of OpenFAST simulations')
+        self.add_output('Max_PtfmPitch',        val=0.0,                                    desc='Maximum platform pitch angle over a set of QBlade simulations')
         self.add_output('Std_PtfmPitch',        val=0.0,                    units='deg',    desc='standard deviation of platform pitch angle')
         self.add_output('Max_Offset',           val=0.0,                    units='m',      desc='Maximum distance in surge/sway direction')
+        self.add_output('Mean_PtfmPitch',       val=0.0,                                    desc='Maximum of mean platform pitch angles over a set of QBlade simulations')
 
         # Fatigue output
         self.add_output('damage_blade_root_sparU',  val=0.0, desc="Miner's rule cumulative damage to upper spar cap at blade root")
@@ -2329,6 +2330,7 @@ class QBLADELoadCases(ExplicitComponent):
             outputs['Std_PtfmPitch'] = np.mean(sum_stats['NP Pitch Y_l']['std'])
 
         outputs['Max_PtfmPitch']  = np.max(sum_stats['NP Pitch Y_l']['max'])
+        outputs['Mean_PtfmPitch']  = np.max(sum_stats['NP Pitch Y_l']['mean'])
 
         # Max platform offset        
         for timeseries in chan_time:
