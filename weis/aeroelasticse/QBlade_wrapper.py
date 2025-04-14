@@ -87,7 +87,13 @@ class QBladeWrapper:
                 #extreme_channels=channel_extremes_default,
             )
     def run_qblade_cases(self):
+        start_time = time.time()
+        
         self.execute()
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Elapsed time to complete all QBlade simulation: {elapsed_time:.2f} seconds.")
 
         if self.number_of_workers == 1:
             summary_stats, extreme_table, DELs, Damage, ct =  self.run_serial()	
