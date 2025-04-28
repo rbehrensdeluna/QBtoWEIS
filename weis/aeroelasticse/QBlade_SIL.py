@@ -27,18 +27,19 @@ import struct as st
 
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format):
     # Set up the library path so the subprocess can find dependencies
-    lib_dir = os.path.join(os.path.dirname(QBlade_dll), "Libraries")
-    ld_path = os.environ.get("LD_LIBRARY_PATH", "")
-    os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{ld_path}"
+    if sys.platform == "linux":
+        lib_dir = os.path.join(os.path.dirname(QBlade_dll), "Libraries")
+        ld_path = os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{ld_path}"
 
-    # Try to manually load all shared libraries from that directory
-    for filename in os.listdir(lib_dir):
-        if filename.endswith(".so") or ".so." in filename:
-            try:
-                lib_path = os.path.join(lib_dir, filename)
-                CDLL(lib_path, mode=RTLD_GLOBAL)
-            except Exception as e:
-                print(f"Failed to preload {filename}: {e}")
+        # Try to manually load all shared libraries from that directory
+        for filename in os.listdir(lib_dir):
+            if filename.endswith(".so") or ".so." in filename:
+                try:
+                    lib_path = os.path.join(lib_dir, filename)
+                    CDLL(lib_path, mode=RTLD_GLOBAL)
+                except Exception as e:
+                    print(f"Failed to preload {filename}: {e}")
 
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
