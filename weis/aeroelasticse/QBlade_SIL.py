@@ -23,10 +23,23 @@ import time
 import os
 import numpy as np
 import pandas as pd
-import gc
 import struct as st
 
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format):
+    # Set up the library path so the subprocess can find dependencies
+    lib_dir = os.path.join(os.path.dirname(QBlade_dll), "Libraries")
+    ld_path = os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{ld_path}"
+
+    # Try to manually load all shared libraries from that directory
+    for filename in os.listdir(lib_dir):
+        if filename.endswith(".so") or ".so." in filename:
+            try:
+                lib_path = os.path.join(lib_dir, filename)
+                CDLL(lib_path, mode=RTLD_GLOBAL)
+            except Exception as e:
+                print(f"Failed to preload {filename}: {e}")
+
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
 
@@ -54,34 +67,17 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
     QBLIB.closeInstance()
     del QBLIB.lib
 
-def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, max_retries=2, delay=2):
-    attempt = 0
-    while attempt < max_retries:
-        try:
-            print(f"Running simulation attempt {attempt + 1} for {sim}...")
-            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format)
-            return  # Exit if successful
-        except Exception as e:
-            print(f"Simulation attempt {attempt + 1} failed with exception: {e}")
-            attempt += 1
-            if attempt < max_retries:
-                print("Retrying...")
-                time.sleep(delay)
-            else:
-                print(f"Max retries reached for {sim}. Moving on.")
-
 def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format):
     
-    clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
+    # clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
 
     simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []
         for sim in simulations:
-            time.sleep(1)  # Introduce a one-second pause before submitting the next task
             futures.append(
-                executor.submit(run_with_retry, QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format)
+                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format)
             )
         for future in concurrent.futures.as_completed(futures):
             try:

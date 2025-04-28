@@ -189,8 +189,8 @@ class QBladeWrapper:
         print(f"Environment variables set. Library path: {libraries_path}")
 
     def execute(self):
-        if sys.platform == "linux":
-            self.set_environment()
+        # if sys.platform == "linux":
+        #     self.set_environment()
         
         if sys.platform == 'win32':  
             dll_directory = os.path.dirname(self.QBlade_dll)

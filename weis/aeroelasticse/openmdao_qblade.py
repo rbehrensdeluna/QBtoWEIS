@@ -1630,7 +1630,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["X_s For. Shaft Const. [N]", "Y_s For. Shaft Const. [N]", "Z_s For. Shaft Const. [N]"]  # ["LSShftFxs", "LSShftFys", "LSShftFzs" non-rotating
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
-            channels_out += ["Aero. Power [W]", "Wave Elevation at Global Pos. [m]", "HYDRO WavekinEval. Wave Elevation [m]"] # TODO: two blank spaces in wave elevation...
+            channels_out += ["Aero. Power [W]", "Wave Elevation at Global Pos. [m]", "HYDRO WavekinEval. Wave Elevation [m]"]
             channels_out += ["Pitch Vel. BLD 1 [deg/s]", "Pitch Vel. BLD 2 [deg/s]"]
 
             if self.n_blades == 3:
