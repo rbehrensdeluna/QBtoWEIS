@@ -26,6 +26,9 @@ import pandas as pd
 import struct as st
 
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format):
+    
+    temp_qblade_so = make_temp_qblade_so_copy(QBlade_dll)
+    
     # Set up the library path so the subprocess can find dependencies
     if sys.platform == "linux":
         lib_dir = os.path.join(os.path.dirname(QBlade_dll), "Libraries")
@@ -41,32 +44,37 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
                 except Exception as e:
                     print(f"Failed to preload {filename}: {e}")
 
-    bsim = sim.encode("utf-8")
-    sim_name = os.path.basename(sim)
+    try:
+        bsim = sim.encode("utf-8")
+        sim_name = os.path.basename(sim)
+        QBLIB = QBladeLibrary(temp_qblade_so)
+        QBLIB.createInstance(1,32) 
+        QBLIB.setOmpNumThreads(1)
+        QBLIB.loadSimDefinition(bsim)
+        QBLIB.initializeSimulation()
+        QBLIB.setAutoClearTemp(False)
 
-    QBLIB = QBladeLibrary(QBlade_dll)
-    QBLIB.createInstance(1,32) 
-    QBLIB.setOmpNumThreads(1)
-    QBLIB.loadSimDefinition(bsim)
-    QBLIB.initializeSimulation()
-    QBLIB.setAutoClearTemp(False)
+        QBLIB.runFullSimulation()
 
-    QBLIB.runFullSimulation()
-
-    sim_out_name = sim_name.strip('.sim')
-    
-    # TODO: allow for out AND oub
-    if out_file_format == 2: # 2 --> binary:
-        QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), channels.encode()) # this is required to get the time channel
-    else:
-        raise ValueError("Error: Only 'outb' format is supported for binary export (out_file_format = 2). 'out' is no longer supported.")
+        sim_out_name = sim_name.strip('.sim')
         
-    if 'True' in store_qprs:
-        output_file = f"{sim_out_name}_completed.qpr".encode('ASCII')
-        QBLIB.storeProject(output_file)
-    
-    QBLIB.closeInstance()
-    del QBLIB.lib
+        # TODO: allow for out AND oub
+        if out_file_format == 2: # 2 --> binary:
+            QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), channels.encode()) # this is required to get the time channel
+        else:
+            raise ValueError("Error: Only 'outb' format is supported for binary export (out_file_format = 2). 'out' is no longer supported.")
+            
+        if 'True' in store_qprs:
+            output_file = f"{sim_out_name}_completed.qpr".encode('ASCII')
+            QBLIB.storeProject(output_file)
+        
+        QBLIB.closeInstance()
+        del QBLIB.lib
+    finally:
+        try:
+            os.remove(temp_qblade_so)
+        except Exception as e:
+            print(f"Could not delete temp .so file: {temp_qblade_so}: {e}")
 
 def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format):
     
@@ -80,11 +88,30 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
             futures.append(
                 executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format)
             )
+            time.sleep(0.25)  # Optional: Add a small delay to avoid overwhelming the system
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()
             except Exception as e:
                 print(f"Simulation failed after retrying with exception: {e}")
+
+def make_temp_qblade_so_copy(original_so_path):
+    """
+    Create a temporary copy of the QBlade .so file in the same directory.
+    """
+    dir_path = os.path.dirname(original_so_path)
+    base_name = os.path.basename(original_so_path)
+    temp_name = f"tmp_{os.getpid()}_{base_name}"
+    temp_path = os.path.join(dir_path, temp_name)
+
+    try:
+        shutil.copy2(original_so_path, temp_path)
+        if not os.path.exists(temp_path):
+            raise RuntimeError(f"Temp .so not found at {temp_path}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to copy .so file: {e}")
+    
+    return temp_path
 
 def export_to_OF_Binary(data, outfilename):
     """
