@@ -25,11 +25,25 @@ import numpy as np
 import pandas as pd
 import struct as st
 
+max_retries = 5 # Number of retries for creating an instance in case license is not validaded by the server
+
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format):
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
+
     QBLIB = QBladeLibrary(QBlade_dll)
-    QBLIB.createInstance(1,32) 
+
+    for attempt in range(max_retries):
+        if QBLIB.createInstance(1, 32):
+            success = True
+            print(f"Instance created successfully for {sim} on attempt {attempt + 1}.")
+            break
+        else:
+            print(f"Attempt {attempt + 1} failed for {sim}.")
+            time.sleep(1)
+    if not success:
+        raise RuntimeError("Failed to create instance after 5 attempts.")
+    
     QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
@@ -49,9 +63,6 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
         output_file = f"{sim_out_name}_completed.qpr".encode('ASCII')
         QBLIB.storeProject(output_file)
     
-    # QBLIB.closeInstance()
-    # del QBLIB.lib
-
     QBLIB.unload()
 
 def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format):
