@@ -9,7 +9,7 @@ class QBladeLibrary:
 
         # Define all functions with argument types and return types
         self.functions: Dict[str, Dict[str, Any]] = {
-            "createInstance": {"argtypes": [c_int, c_int], "restype": c_void_p},
+            "createInstance": {"argtypes": [c_int, c_int], "restype": c_bool},
             "closeInstance": {"argtypes": None, "restype": c_void_p},
             "loadProject": {"argtypes": [c_char_p], "restype": c_void_p},
             "loadSimDefinition": {"argtypes": [c_char_p], "restype": c_void_p},
