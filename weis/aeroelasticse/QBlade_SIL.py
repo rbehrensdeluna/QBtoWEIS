@@ -49,10 +49,10 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
         output_file = f"{sim_out_name}_completed.qpr".encode('ASCII')
         QBLIB.storeProject(output_file)
     
-    QBLIB.closeInstance()
-    del QBLIB.lib
+    # QBLIB.closeInstance()
+    # del QBLIB.lib
 
-    # QBLIB.unload()
+    QBLIB.unload()
 
 def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format):
     
