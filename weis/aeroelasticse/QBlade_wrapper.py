@@ -25,9 +25,6 @@ import logging
 import re
 import sys
 import time
-import hashlib
-import socket
-import uuid
 
 weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -187,13 +184,13 @@ class QBladeWrapper:
         
     def set_environment(self):
         # Set the environment variables to include the path to the shared libraries
-        libraries_path = self.QBlade_libs
+        libraries_path = os.path.join(os.path.dirname(self.QBlade_dll), "Libraries")
         os.environ['LD_LIBRARY_PATH'] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{libraries_path}"
         print(f"Environment variables set. Library path: {libraries_path}")
 
     def execute(self):
-        # if sys.platform == "linux":
-        #     self.set_environment()
+        if sys.platform == "linux":
+            self.set_environment()
         
         if sys.platform == 'win32':  
             dll_directory = os.path.dirname(self.QBlade_dll)
@@ -210,10 +207,6 @@ class QBladeWrapper:
                 f.write(channel + '\n')
         
         self.qblade_version_check()
-
-        fingerprint = self.get_machine_fingerprint()
-        os.environ["KEYGEN_MACHINE"] = fingerprint
-        print(f"Using KEYGEN_MACHINE: {fingerprint}")
 
         sim_params = [
             self.QBlade_dll, 
@@ -310,13 +303,7 @@ class QBladeWrapper:
             scaled_unit = "kW"
 
         return scaled_data, scaled_unit
-    
-    def get_machine_fingerprint(self):
-        # Use a combination of hostname and MAC address for uniqueness
-        hostname = socket.gethostname()
-        mac = hex(uuid.getnode())
-        raw_id = f"{hostname}-{mac}"
-        return hashlib.sha256(raw_id.encode()).hexdigest()
+
 
 # for testing
 if __name__ == "__main__":

@@ -26,25 +26,6 @@ import pandas as pd
 import struct as st
 
 def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format):
-    
-    # temp_qblade_so = make_temp_qblade_so_copy(QBlade_dll)
-    
-    # Set up the library path so the subprocess can find dependencies
-    if sys.platform == "linux":
-        lib_dir = os.path.join(os.path.dirname(QBlade_dll), "Libraries")
-        ld_path = os.environ.get("LD_LIBRARY_PATH", "")
-        os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{ld_path}"
-
-        # Try to manually load all shared libraries from that directory
-        for filename in os.listdir(lib_dir):
-            if filename.endswith(".so") or ".so." in filename:
-                try:
-                    lib_path = os.path.join(lib_dir, filename)
-                    CDLL(lib_path, mode=RTLD_GLOBAL)
-                except Exception as e:
-                    print(f"Failed to preload {filename}: {e}")
-
-    # try:
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
     QBLIB = QBladeLibrary(QBlade_dll)
@@ -70,11 +51,8 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
     
     QBLIB.closeInstance()
     del QBLIB.lib
-    # finally:
-    #     try:
-    #         os.remove(temp_qblade_so)
-    #     except Exception as e:
-    #         print(f"Could not delete temp .so file: {temp_qblade_so}: {e}")
+
+    # QBLIB.unload()
 
 def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format):
     
@@ -93,7 +71,7 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
             try:
                 future.result()
             except Exception as e:
-                print(f"Simulation failed after retrying with exception: {e}")
+                print(f"Simulation failed with exception: {e}")
 
 def make_temp_qblade_so_copy(original_so_path):
     """
