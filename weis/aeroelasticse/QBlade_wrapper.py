@@ -25,6 +25,9 @@ import logging
 import re
 import sys
 import time
+import hashlib
+import socket
+import uuid
 
 weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -208,6 +211,10 @@ class QBladeWrapper:
         
         self.qblade_version_check()
 
+        fingerprint = self.get_machine_fingerprint()
+        os.environ["KEYGEN_MACHINE"] = fingerprint
+        print(f"Using KEYGEN_MACHINE: {fingerprint}")
+
         sim_params = [
             self.QBlade_dll, 
             self.QBLADE_runDirectory, 
@@ -304,6 +311,13 @@ class QBladeWrapper:
 
         return scaled_data, scaled_unit
     
+    def get_machine_fingerprint(self):
+        # Use a combination of hostname and MAC address for uniqueness
+        hostname = socket.gethostname()
+        mac = hex(uuid.getnode())
+        raw_id = f"{hostname}-{mac}"
+        return hashlib.sha256(raw_id.encode()).hexdigest()
+
 # for testing
 if __name__ == "__main__":
     dll_path = "/home/robert/qblade/software/QBladeCE_2.0.8.5/libQBladeCE_2.0.8.5.so.1.0.0"
