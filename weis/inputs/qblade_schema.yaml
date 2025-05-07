@@ -319,6 +319,10 @@ properties:
                         type: boolean
                         default: false
                         description: should the controller data be stored
+                    FILTERFILE:
+                        type: string
+                        default: ''
+                        description: filename of the results data filter file
                     CALCMODAL:
                         type: boolean
                         default: false

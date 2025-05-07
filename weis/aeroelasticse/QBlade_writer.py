@@ -1287,6 +1287,7 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['QSim']['STORESIM']):<{object_length}}{'STORESIM':<{keyword_length}} - should the simulation (performance) data be stored [bool]\n")
             f.write(f"{str(self.qb_vt['QSim']['STOREHYDRO']):<{object_length}}{'STOREHYDRO':<{keyword_length}} - should the controller data be stored [bool]\n")
             f.write(f"{str(self.qb_vt['QSim']['STORECONTROLLER']):<{object_length}}{'STORECONTROLLER':<{keyword_length}} - should the controller data be stored [bool]\n")
+            f.write(f"{str(self.qb_vt['QSim']['FILTERFILE']+' '):<{object_length}}{'FILTERFILE':<{keyword_length}} - filename of the results data filter file, leave blank if unused\n")
             f.write('\n')
 
             f.write('----------------------------------------Modal Analysis Parameters--------------------------------------------------\n')

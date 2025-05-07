@@ -16,6 +16,7 @@ and may not be used without authorization.
 import numpy as np
 import pandas as pd
 import os
+import re
 import shutil
 import sys
 import copy
@@ -47,6 +48,7 @@ from weis.aeroelasticse.CaseGen_General import case_naming
 from wisdem.inputs import load_yaml, write_yaml
 ## neccessary inputs:
 import wisdem.commonse.cross_sections as cs
+import yaml
 
 from openfast_io.FAST_reader import InputReader_OpenFAST
 
@@ -1227,6 +1229,10 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QSim']['INITIAL_AZIMUTH'] = np.zeros_like(wind_reference)
                 logger.warning("WARNING: The input arrays for wind speed and 'INITIAL_AZIMUTH' don't have the same length. INITIAL_AZIMUTH is set to zero for each wind speed")
                 warned_azimuth = True 
+        
+        if qb_vt['QSim']['FILTERFILE'] == '' or qb_vt['QSim']['FILTERFILE'].lower() == 'none':
+            qb_vt['QSim']['FILTERFILE'] = os.path.join('QB_FILTERFILE.txt')
+
         return qb_vt
 
     def run_QBLADE(self, inputs, discrete_inputs, qb_vt):
@@ -1410,6 +1416,7 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.QBLADE_runDirectory  = self.QBLADE_runDirectory
         qblade.QBLADE_namingOut     = self.QBLADE_namingOut
         qblade.qb_vt                = self.qb_vt
+        qblade.qb_inumber           = self.qb_inumber 
         qblade.number_of_workers    = modopt['General']['qblade_configuration']['number_of_workers']
         qblade.no_structure         = modopt['QBlade']['Turbine']['NOSTRUCTURE']
         qblade.store_qprs           = modopt['General']['qblade_configuration']['store_qprs']
@@ -1621,7 +1628,7 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["X_b Root For. BLD 1 [N]",  "Y_b Root For. BLD 1 [N]", "Z_b Root For. BLD 1 [N]", "X_b Root For. BLD 2 [N]",  "Y_b Root For. BLD 2 [N]", "Z_b Root For. BLD 2 [N]"]
             channels_out += ["Aero. Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "HSS Rpm [rpm]", "Yaw Angle [deg]", "LSS Azimuthal Pos. [deg]"]
-            channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
+            channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle BLD_1 [deg]", "Pitch Angle BLD_2 [deg]"]
             channels_out += ["Abs Inflow Vel. at Hub [m/s]", "X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
             channels_out += ["X_g Inflow Vel. Rotor Avg. [m/s]", "Y_g Inflow Vel. Rotor Avg. [m/s]", "Z_g Inflow Vel. Rotor Avg. [m/s]"]
             channels_out += ["X_tb For. TWR Bot. Constr. [N]", "Y_tb For. TWR Bot. Constr. [N]", "Z_tb For. TWR Bot. Constr. [N]", "X_tb Mom. TWR Bot. Constr. [Nm]", "Y_tb Mom. TWR Bot. Constr. [Nm]", "Z_tb Mom. TWR Bot. Constr. [Nm]"]
@@ -1640,7 +1647,7 @@ class QBLADELoadCases(ExplicitComponent):
                 channels_out += ["X_b RootBend. Mom. BLD 3 [Nm]", "Y_b RootBend. Mom. BLD 3 [Nm]", "Z_b RootBend. Mom. BLD 3 [Nm]"]
                 channels_out += ["X_c Root For. BLD 3 [N]","Y_c Root For. BLD 3 [N]","Z_c Root For. BLD 3 [N]"]
                 channels_out += ["X_b Root For. BLD 3 [N]",  "Y_b Root For. BLD 3 [N]", "Z_b Root For. BLD 3 [N]"]
-                channels_out += ["Pitch Angle Blade 3 [deg]"]
+                channels_out += ["Pitch Angle BLD_3 [deg]"]
                 channels_out += ["Pitch Vel. BLD 3 [deg/s]"]
             
             if modopt['flags']['floating']:
@@ -1668,12 +1675,12 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out = ["Time [s]"]
             channels_out += ["Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "Yaw Angle [deg]"]
-            channels_out += ["Pitch Angle Blade 1 [deg]", "Pitch Angle Blade 2 [deg]"]
+            channels_out += ["Pitch Angle BLD_1 [deg]", "Pitch Angle BLD_2 [deg]"]
             channels_out += ["X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
             channels_out += ["Aerodynamic Power [W]"]
 
             if self.n_blades == 3:
-                    channels_out += ["Pitch Angle Blade 3 [deg]"]
+                    channels_out += ["Pitch Angle BLD_3 [deg]"]
         
         return channels_out
 
@@ -1832,6 +1839,10 @@ class QBLADELoadCases(ExplicitComponent):
         # TODO do the post-processing acutally for DLCs and not only idealized cases
         modopt = self.options['modeling_options']
         
+        failed_sim_ids = self.get_failed_sim_ids()
+        if failed_sim_ids:
+            outputs['qblade_failed'] = 2
+        
         if not self.qb_vt['Turbine']['NOSTRUCTURE']:
             if self.options['modeling_options']['flags']['blade']:
                 outputs = self.get_blade_loading(summary_stats, extreme_table, inputs, outputs)
@@ -1840,17 +1851,14 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']['monopile']:
                 outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
 
-            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator)
+            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator, failed_sim_ids)
 
-            outputs = self.get_weighted_DELs(DELs, damage, discrete_inputs, outputs)
+            outputs = self.get_weighted_DELs(DELs, damage, discrete_inputs, outputs, dlc_generator, failed_sim_ids)
             
             outputs = self.get_control_measures(summary_stats, chan_time, inputs, outputs)
 
             if modopt['flags']['floating']: # TODO: or (modopt['QBlade']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 outputs = self.get_floating_measures(summary_stats, chan_time, inputs, outputs)
-
-            # if any(summary_stats['qblade_failed']['max'] > 0):
-                # outputs['qblade_failed'] = 2
             
             # Save Data
             if modopt['General']['qblade_configuration']['save_timeseries']:
@@ -1864,10 +1872,15 @@ class QBLADELoadCases(ExplicitComponent):
         else:
             outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs)
 
-    def get_weighted_DELs(self, DELs, damage, discrete_inputs, outputs):
+    def get_weighted_DELs(self, DELs, damage, discrete_inputs, outputs, dlc_generator, failed_sim_ids):
         modopt = self.options['modeling_options']
         if self.qb_vt['QSim']['WNDTYPE'] == 1 or self.qb_vt['QSim']['DLCGenerator']:
             U = self.qb_vt['QTurbSim']['URef']    
+            
+            # remove failed simulations from the list of cases to analyze
+            if failed_sim_ids:
+                indices_to_remove = [i for i in failed_sim_ids]
+                U = [u for idx, u in enumerate(U) if idx not in indices_to_remove]
         else:
             U = self.qb_vt['QSim']['MEANINF']
       
@@ -1916,7 +1929,7 @@ class QBLADELoadCases(ExplicitComponent):
                 for ik, k in enumerate(['For','Mom']):
                     for ix, x in enumerate(['Z','XY']):
                         damage[f'TowerBase{sstr}'] += damage[f'TwrBs{s}{k}{x}t']
-                        if modopt['flags']['monopile'] and modopt['Level3']['flag']:
+                        if modopt['flags']['monopile'] and modopt['QBlade']['flag']:
                             damage[f'MonopileBase{sstr}'] += damage[f'M1N1{s}{k}K{x}e']
             
             # Assemble damages
@@ -1934,7 +1947,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         return outputs
     
-    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs, dlc_generator):
+    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs, dlc_generator,failed_sim_ids):
         
         modopts = self.options['modeling_options']
         DLCs = [i_dlc['DLC'] for i_dlc in modopts['DLC_driver']['DLCs']]
@@ -1948,10 +1961,10 @@ class QBLADELoadCases(ExplicitComponent):
             idx_pwrcrv = []
             U = []
             for i_case in range(dlc_generator.n_cases):
-                if dlc_generator.cases[i_case].label == DLC_label_for_AEP:
+                if dlc_generator.cases[i_case].label == DLC_label_for_AEP and i_case not in failed_sim_ids:
                     idx_pwrcrv = np.append(idx_pwrcrv, i_case)
                     U = np.append(U, dlc_generator.cases[i_case].URef)
-            
+                    
             stats_pwrcrv = sum_stats.iloc[idx_pwrcrv].copy()
         
         else:
@@ -1959,9 +1972,9 @@ class QBLADELoadCases(ExplicitComponent):
             stats_pwrcrv = sum_stats.copy()   
 
         if not self.qb_vt['Turbine']['NOSTRUCTURE']:
-            pwr_curve_vars_qb   = ['Gen. Elec. Power', 'Aero. Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle Blade 1']
+            pwr_curve_vars_qb   = ['Gen. Elec. Power', 'Aero. Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle BLD_1']
         else:
-            pwr_curve_vars_qb   = ['Aerodynamic Power', 'Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle Blade 1']
+            pwr_curve_vars_qb   = ['Aerodynamic Power', 'Power Coefficient', 'Thrust Coefficient', 'Rotational Speed', 'Pitch Angle BLD_1']
         
         pwr_curv_vars_of    = ["GenPwr", "RtFldCp", "RtFldCt", "RotSpeed", "BldPitch1"]
         rename_dict = dict(zip(pwr_curve_vars_qb, pwr_curv_vars_of))
@@ -1970,12 +1983,16 @@ class QBLADELoadCases(ExplicitComponent):
         if len(U) > 1 and self.qb_vt['Turbine']['CONTROLLERTYPE'] > 0 and self.qb_vt['QSim']['DLCGenerator']:
             pp = PowerProduction(discrete_inputs['turbine_class'])
             AEP, perf_data = pp.AEP(stats_pwrcrv, U, pwr_curv_vars_of)
-
-            outputs['P_out'] = perf_data['GenPwr']['mean'] * 1.e3
-            outputs['Cp_out'] = perf_data['RtFldCp']['mean']
-            outputs['Ct_out'] = perf_data['RtFldCt']['mean']
-            outputs['Omega_out'] = perf_data['RotSpeed']['mean']
-            outputs['pitch_out'] = perf_data['BldPitch1']['mean']
+            
+            # to avoid dimension missmatch, when a failed simulation is present
+            n_cases = dlc_generator.n_cases
+            valid_ids = [i for i in range(n_cases) if i not in failed_sim_ids]
+            for idx_out, idx_sim in enumerate(valid_ids):
+                outputs['P_out'][idx_sim] = perf_data['GenPwr']['mean'].iloc[idx_out] * 1.e3
+                outputs['Cp_out'][idx_sim] = perf_data['RtFldCp']['mean'].iloc[idx_out]
+                outputs['Ct_out'][idx_sim] = perf_data['RtFldCt']['mean'].iloc[idx_out]
+                outputs['Omega_out'][idx_sim] = perf_data['RotSpeed']['mean'].iloc[idx_out]
+                outputs['pitch_out'][idx_sim] = perf_data['BldPitch1']['mean'].iloc[idx_out]
             outputs['AEP'] = AEP
         else:
             # If DLC 1.1 was run
@@ -1999,12 +2016,12 @@ class QBLADELoadCases(ExplicitComponent):
                 logger.warning('WARNING: QBlade is not run using DLC AEP, 1.1, or 1.2. AEP cannot be estimated. Using average power instead.')
         
         if len(U) > 0:
-            outputs['V_out'] = np.unique(U)
+            for idx_u, u in enumerate(np.unique(U)):
+                outputs['V_out'][idx_u] = np.unique(u)
         elif len(U) == 0 and self.qb_vt['QSim']['DLCGenerator']:
             outputs['V_out'] = dlc_generator.cases[0].URef
         else:
             outputs['V_out'] = sum_stats['X_g Inflow Vel. at Hub']['mean'].mean()
-
 
         return outputs
           	
@@ -2290,7 +2307,7 @@ class QBLADELoadCases(ExplicitComponent):
             for i_ts, ts in enumerate(chan_time):
                 t_span = ts['Time'][-1] - ts['Time'][0]
                 for i_blade in range(self.qb_vt['Main']['NUMBLD']):
-                    ts[f'dBldPitch{i_blade+1}'] = np.r_[0,np.diff(ts[f'Pitch Angle Blade {i_blade+1}'])] / self.qb_vt['QSim']['TIMESTEP']
+                    ts[f'dBldPitch{i_blade+1}'] = np.r_[0,np.diff(ts[f'Pitch Angle BLD_{i_blade+1}'])] / self.qb_vt['QSim']['TIMESTEP']
 
                     time_ind = ts['Time'] >= ts['Time'][0]
 
@@ -2428,7 +2445,30 @@ class QBLADELoadCases(ExplicitComponent):
             if not channels_no_unit:
                 output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
                 output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
+    
+    def read_failure_log(self):
+        status_file = os.path.join(self.QBLADE_runDirectory, "qblade_failures.yaml")
+        if os.path.exists(status_file):
+            with open(status_file, "r") as f:
+                try:
+                    return yaml.safe_load(f) or {}
+                except yaml.YAMLError:
+                    return {}
+        return {}
+
+    def get_failed_sim_ids(self):
+        failed_sim_ids = []
+        failures = self.read_failure_log()
+        iteration_key = f"iteration_{self.qb_inumber}"
+
+        if iteration_key in failures and failures[iteration_key].get("failed_simulations"):
+            for sim in failures[iteration_key]['failed_simulations']:
+                match = re.search(r'_(\d+)\.sim$', sim)
+                if match:
+                    failed_sim_ids.append(int(match.group(1)))
         
+        return failed_sim_ids
+
     def store_turbines(self):
         # For the moment we only store 1 .*sim file per iteration
         # Make iteration directory

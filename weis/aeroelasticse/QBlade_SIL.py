@@ -24,10 +24,12 @@ import os
 import numpy as np
 import pandas as pd
 import struct as st
+import yaml
+
 
 max_retries = 5 # Number of retries for creating an instance in case license is not validaded by the server
 
-def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format):
+def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, qb_inumber):
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
 
@@ -47,25 +49,30 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
     QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
-    QBLIB.setAutoClearTemp(False)
+    QBLIB.setAutoCleanup(False)
 
-    QBLIB.runFullSimulation()
-
+    simulation_success = QBLIB.runFullSimulation()
+    
+    if not simulation_success:
+        log_failed_simulation(sim_name, qb_inumber, QBLADE_runDirectory)
+        raise RuntimeError(f"Simulation {sim} failed.")  
+    
     sim_out_name = sim_name.strip('.sim')
     
     # TODO: allow for out AND oub
-    if out_file_format == 2: # 2 --> binary:
-        QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), channels.encode()) # this is required to get the time channel
+    if out_file_format == 2 and simulation_success: # 2 --> binary:
+        # QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), channels.encode()) # this is required to get the time channel
+        QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), ''.encode())
     else:
         raise ValueError("Error: Only 'outb' format is supported for binary export (out_file_format = 2). 'out' is no longer supported.")
         
     if 'True' in store_qprs:
-        output_file = f"{sim_out_name}_completed.qpr".encode('ASCII')
-        QBLIB.storeProject(output_file)
+        qpr_project = os.path.join(QBLADE_runDirectory, f"{sim_out_name}_completed.qpr".encode('ASCII'))
+        QBLIB.storeProject(qpr_project)
     
     QBLIB.unload()
 
-def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format):
+def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber):
     
     # clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
 
@@ -75,7 +82,7 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
         futures = []
         for sim in simulations:
             futures.append(
-                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format)
+                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, qb_inumber)
             )
             time.sleep(0.25)  # Optional: Add a small delay to avoid overwhelming the system
         for future in concurrent.futures.as_completed(futures):
@@ -84,23 +91,31 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
             except Exception as e:
                 print(f"Simulation failed with exception: {e}")
 
-def make_temp_qblade_so_copy(original_so_path):
-    """
-    Create a temporary copy of the QBlade .so file in the same directory.
-    """
-    dir_path = os.path.dirname(original_so_path)
-    base_name = os.path.basename(original_so_path)
-    temp_name = f"tmp_{os.getpid()}_{base_name}"
-    temp_path = os.path.join(dir_path, temp_name)
+def log_failed_simulation(sim_name, qb_inumber, run_directory):
+    status_file = os.path.join(run_directory, "qblade_failures.yaml")
+    key = f"iteration_{qb_inumber}"
 
-    try:
-        shutil.copy2(original_so_path, temp_path)
-        if not os.path.exists(temp_path):
-            raise RuntimeError(f"Temp .so not found at {temp_path}")
-    except Exception as e:
-        raise RuntimeError(f"Failed to copy .so file: {e}")
-    
-    return temp_path
+    # Load existing failure log
+    if os.path.exists(status_file):
+        with open(status_file, "r") as f:
+            try:
+                failures = yaml.safe_load(f) or {}
+            except yaml.YAMLError:
+                failures = {}
+    else:
+        failures = {}
+
+    # Initialize structure if necessary
+    if key not in failures:
+        failures[key] = {"failed_simulations": []}
+
+    # Append simulation name if not already listed
+    if sim_name not in failures[key]["failed_simulations"]:
+        failures[key]["failed_simulations"].append(sim_name)
+
+    # Write updated log
+    with open(status_file, "w") as f:
+        yaml.dump(failures, f)
 
 def export_to_OF_Binary(data, outfilename):
     """
@@ -315,5 +330,6 @@ if __name__ == "__main__":
     number_of_workers = int(sys.argv[4])
     store_qprs = sys.argv[5]
     out_file_format =  float(sys.argv[6])
+    qb_inumber = int(sys.argv[7])
 
-    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format)
+    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber)

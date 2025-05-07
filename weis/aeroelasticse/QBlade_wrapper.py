@@ -63,6 +63,7 @@ class QBladeWrapper:
         self.QBLADE_runDirectory = None
         self.QBLADE_namingOut = None
         self.qb_vt = None
+        self.qb_inumber = None
 
         self.channels           = {}
         self.number_of_workers  = 1
@@ -200,8 +201,8 @@ class QBladeWrapper:
         # Run the Python script using subprocess
         script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QBlade_SIL.py')
         
-        # Write the WEIS channels to a filter file to export only required channels
-        filter_file = os.path.join(self.QBLADE_runDirectory,'QBlade_channel_filter.txt')
+        # Write the WEIS channels to a filter file to make QBlade only serilaize and export the channels we need
+        filter_file = os.path.join(self.QBLADE_runDirectory,'QB_FILTERFILE.txt')
         with open(filter_file, 'w') as f:
             for channel in self.channels:
                 f.write(channel + '\n')
@@ -215,6 +216,7 @@ class QBladeWrapper:
             str(self.number_of_workers),
             str(self.store_qprs),
             str(self.out_file_format),
+            str(self.qb_inumber),
             ]
         
         cmd = ['python', script_path] + sim_params
@@ -262,7 +264,7 @@ class QBladeWrapper:
         output = OpenFASTOutput.from_dict(output_dict, filename)
 
         # Trim Data
-        if self.qb_vt['QSim']['STOREFROM'] > 0.0:
+        if self.qb_vt['QSim']['STOREFROM'] > 0.0 and not self.qb_vt['QSim']['DLCGenerator']: # in DLCGenerator QBlade never stores the values during the "tansient_time"
             output.trim_data(tmin=self.qb_vt['QSim']['STOREFROM'], tmax=self.qb_vt['QSim']['TMax'])
         case_name, sum_stats, extremes, dels, damage = self.la._process_output(output,
                                                                             return_damage=True,
