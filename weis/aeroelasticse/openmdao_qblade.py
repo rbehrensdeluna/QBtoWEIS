@@ -83,6 +83,9 @@ class QBLADELoadCases(ExplicitComponent):
         self.options.declare('wt_init')
 
     def setup(self):
+        # iteration counter used as model name appendix
+        self.qb_inumber = 0
+        
         modopt = self.options['modeling_options']
         rotorse_options  = modopt['WISDEM']['RotorSE']
         mat_init_options = modopt['materials']
@@ -327,11 +330,15 @@ class QBLADELoadCases(ExplicitComponent):
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
         self.QBLADE_runDirectory = QBLADE_directory_base
         self.QBLADE_namingOut = self.QBLADE_InputFile
+        
         if modopt['QBlade']['simulation']['DLCGenerator'] or modopt['QBlade']['simulation']['WNDTYPE']== 1:
             self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
             if not os.path.exists(self.wind_directory):
                 os.makedirs(self.wind_directory, exist_ok=True) 
 
+        if self.qb_inumber == 0 and os.path.isfile(os.path.join(self.QBLADE_runDirectory,"qblade_run_failure_log.yaml")):
+            os.remove(os.path.join(self.QBLADE_runDirectory,"qblade_run_failure_log.yaml"))
+            
         self.turbsim_exe = shutil.which('turbsim')
 
         # Outpus
@@ -414,14 +421,10 @@ class QBLADELoadCases(ExplicitComponent):
 
         self.add_discrete_output('ts_out_dir', val={})
 
-        # iteration counter used as model name appendix
-        self.qb_inumber = 0
-
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
         print("############################################################")
         print(f"The WEIS-QBlade component with version number: {__version__} is called")
         print("############################################################")
-        
         modopt = self.options['modeling_options']
         sys.stdout.flush() 
         qb_vt = self.init_QBlade_model()
@@ -1420,7 +1423,6 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.number_of_workers    = modopt['General']['qblade_configuration']['number_of_workers']
         qblade.no_structure         = modopt['QBlade']['Turbine']['NOSTRUCTURE']
         qblade.store_qprs           = modopt['General']['qblade_configuration']['store_qprs']
-        qblade.chunk_size           = modopt['General']['qblade_configuration']['chunk_size']
         qblade.out_file_format      = modopt['General']['qblade_configuration']['out_file_format']
         qblade.delete_out_files     = modopt['General']['qblade_configuration']['delete_out_files']
         
@@ -1862,7 +1864,7 @@ class QBLADELoadCases(ExplicitComponent):
             
             # Save Data
             if modopt['General']['qblade_configuration']['save_timeseries']:
-                self.save_timeseries(chan_time)
+                self.save_timeseries(chan_time, dlc_generator, failed_sim_ids)
 
             if modopt['General']['qblade_configuration']['save_iterations']:
                 self.save_iterations(summary_stats,DELs,discrete_outputs)
@@ -1947,8 +1949,8 @@ class QBLADELoadCases(ExplicitComponent):
 
         return outputs
     
-    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs, dlc_generator,failed_sim_ids):
-        
+    def calculate_AEP(self, sum_stats, inputs, outputs, discrete_inputs, dlc_generator, failed_sim_ids):
+
         modopts = self.options['modeling_options']
         DLCs = [i_dlc['DLC'] for i_dlc in modopts['DLC_driver']['DLCs']]
         if 'AEP' in DLCs:
@@ -1961,10 +1963,21 @@ class QBLADELoadCases(ExplicitComponent):
             idx_pwrcrv = []
             U = []
             for i_case in range(dlc_generator.n_cases):
-                if dlc_generator.cases[i_case].label == DLC_label_for_AEP and i_case not in failed_sim_ids:
-                    idx_pwrcrv = np.append(idx_pwrcrv, i_case)
-                    U = np.append(U, dlc_generator.cases[i_case].URef)
-                    
+                if dlc_generator.cases[i_case].label == DLC_label_for_AEP:
+                    idx_pwrcrv.append(i_case)
+                    U.append(dlc_generator.cases[i_case].URef)
+
+            idx_pwrcrv = np.array(idx_pwrcrv, dtype=int)
+            U = np.array(U)
+
+            print('failed_sim_ids: ', failed_sim_ids)
+            print('idx_pwrcrv: ', idx_pwrcrv)
+
+            if len(failed_sim_ids) > 0:
+                mask = ~np.isin(idx_pwrcrv, failed_sim_ids)
+                idx_pwrcrv = np.arange(len(idx_pwrcrv[mask]))
+                U = U[mask]
+
             stats_pwrcrv = sum_stats.iloc[idx_pwrcrv].copy()
         
         else:
@@ -1985,9 +1998,8 @@ class QBLADELoadCases(ExplicitComponent):
             AEP, perf_data = pp.AEP(stats_pwrcrv, U, pwr_curv_vars_of)
             
             # to avoid dimension missmatch, when a failed simulation is present
-            n_cases = dlc_generator.n_cases
-            valid_ids = [i for i in range(n_cases) if i not in failed_sim_ids]
-            for idx_out, idx_sim in enumerate(valid_ids):
+            for idx_out, u in enumerate(perf_data['U']):
+                idx_sim = np.where(np.unique(U) == u)[0][0]
                 outputs['P_out'][idx_sim] = perf_data['GenPwr']['mean'].iloc[idx_out] * 1.e3
                 outputs['Cp_out'][idx_sim] = perf_data['RtFldCp']['mean'].iloc[idx_out]
                 outputs['Ct_out'][idx_sim] = perf_data['RtFldCt']['mean'].iloc[idx_out]
@@ -2399,7 +2411,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         discrete_outputs['ts_out_dir'] = save_dir
 
-    def save_timeseries(self,chan_time):
+    def save_timeseries(self,chan_time, dlc_generator, failed_sim_ids):
 
         # Make iteration directory
         save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber),'timeseries')
@@ -2407,8 +2419,9 @@ class QBLADELoadCases(ExplicitComponent):
 
         channels_no_unit = []
         # load filter file
-        if self.options['modeling_options']['General']['qblade_configuration']['path2qbtoweis_output_filter'] not in [None, '', 'none', 'None']:
-            channels = pd.read_csv(self.options['modeling_options']['General']['qblade_configuration']['path2qbtoweis_output_filter'], header=None)
+        qbtoweis_filter = os.path.join(os.path.dirname(self.options['opt_options']['fname_input_analysis']), self.options['modeling_options']['General']['qblade_configuration']['qbtoweis_output_filter'])
+        if qbtoweis_filter is not None and os.path.isfile(qbtoweis_filter):
+            channels = pd.read_csv(qbtoweis_filter, header=None)
             channels = channels.iloc[:, 0].tolist()
 
             # Remove the unit from the channel names
@@ -2425,7 +2438,8 @@ class QBLADELoadCases(ExplicitComponent):
             if "Time" not in channels_no_unit:
                 channels_no_unit.insert(0, "Time")
 
-
+        n_cases = dlc_generator.n_cases
+        succesful_cases = np.delete(range(n_cases), failed_sim_ids)
         for i_ts, timeseries in enumerate(chan_time):
             
             # If filter is provided, filter the timeseries
@@ -2439,15 +2453,15 @@ class QBLADELoadCases(ExplicitComponent):
                 # If filtered_timeseries is not empty, save it
                 if filtered_timeseries:
                     output = OpenFASTOutput.from_dict(filtered_timeseries, self.QBLADE_namingOut)
-                    output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
+                    output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
 
             # Only save the original timeseries if no filter is applied
             if not channels_no_unit:
                 output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
-                output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(i_ts) + '.p'))
+                output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
     
     def read_failure_log(self):
-        status_file = os.path.join(self.QBLADE_runDirectory, "qblade_failures.yaml")
+        status_file = os.path.join(self.QBLADE_runDirectory, "qblade_run_failure_log.yaml")
         if os.path.exists(status_file):
             with open(status_file, "r") as f:
                 try:

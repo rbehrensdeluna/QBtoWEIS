@@ -92,7 +92,7 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
                 print(f"Simulation failed with exception: {e}")
 
 def log_failed_simulation(sim_name, qb_inumber, run_directory):
-    status_file = os.path.join(run_directory, "qblade_failures.yaml")
+    status_file = os.path.join(run_directory, "qblade_run_failure_log.yaml")
     key = f"iteration_{qb_inumber}"
 
     # Load existing failure log

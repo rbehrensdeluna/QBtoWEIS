@@ -70,7 +70,6 @@ class QBladeWrapper:
         self.no_structure       = False
         self.store_qprs         = False
         self.turbsim_params     = {}
-        self.chunk_size         = 30000
         self.out_file_format    = 2
         self.delete_out_files   = True
 

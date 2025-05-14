@@ -12,6 +12,7 @@ from weis.control.tmd                 import assign_TMD_values
 from openfast_io.FileTools     import save_yaml
 from wisdem.inputs.validation         import simple_types
 from weis.glue_code.mpi_tools import compute_optimal_nP
+from openmdao.api import CaseReader
 
 
 if MPI:
@@ -145,7 +146,7 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options,
                 wt_opt = assign_TMD_values(wt_opt, wt_init, opt_options)
 
             wt_opt = myopt.set_initial(wt_opt, wt_init)
-            if modeling_options['OpenFAST']['flag']:
+            if modeling_options['OpenFAST']['flag'] or modeling_options['QBlade']['flag']:
                 wt_opt = myopt.set_initial_weis(wt_opt)
 
             # If the user provides values in geometry_override, they overwrite
