@@ -1070,17 +1070,22 @@ class QBLADELoadCases(ExplicitComponent):
             qb_vt['QBladeOcean']['MemberName'] = members_name
 
             # Determine discretization length of the members. The length of a discretized element is set to 10% of the distance between the joints
-            ElmDsc = np.zeros(0)
-            for i in range(len(imembers)):
-                idx1 = N1[i] - 1
-                idx2 = N2[i] - 1
-                joint_distance = np.linalg.norm(joints_xyz[idx1, :] - joints_xyz[idx2, :]) # distance between joints
-                if joint_distance < 10:
-                    ElmDsc = np.append(ElmDsc, 1)
-                else:
-                    ElmDsc = np.append(ElmDsc, joint_distance //10)
+            if not qb_vt.get('QBladeOcean', {}).get('ElmDsc'):  # if provided in the modeling_options, the user can define the discretization length
+                ElmDsc = np.zeros(0)
+                for i in range(len(imembers)):
+                    idx1 = N1[i] - 1
+                    idx2 = N2[i] - 1
+                    joint_distance = np.linalg.norm(joints_xyz[idx1, :] - joints_xyz[idx2, :])  # distance between joints
+                    if joint_distance < 10:
+                        ElmDsc = np.append(ElmDsc, 1)
+                    else:
+                        ElmDsc = np.append(ElmDsc, joint_distance // 10)
 
-            qb_vt['QBladeOcean']['ElmDsc'] = ElmDsc
+                qb_vt.setdefault('QBladeOcean', {})['ElmDsc'] = ElmDsc
+            else:
+                qb_vt['QBladeOcean']['ElmDsc'] = qb_vt['QBladeOcean']['ElmDsc']
+
+                
         
             if modopt['flags']['mooring']:
                 mooropt = modopt["mooring"]
@@ -1448,17 +1453,17 @@ class QBLADELoadCases(ExplicitComponent):
                     blade_root_Fz = blade_fatigue_root.copy()
                     blade_root_Fz.load2stress = inputs[f'blade_root_spar{u}_load2stress'][2]
                     fatigue_channels[f'RootSpar{u}_Fzb{k}'] = blade_root_Fz
-                    magnitude_channels[f'RootSpar{u}_Fzb{k}'] = [f'Z_b Root For. BLD {k}']
+                    magnitude_channels[f'RootSpar{u}_Fzb{k}'] = [f'Z_b Root For. BLD_{k}']
 
                     blade_root_Mx = blade_fatigue_root.copy()
                     blade_root_Mx.load2stress = inputs[f'blade_root_spar{u}_load2stress'][3]
                     fatigue_channels[f'RootSpar{u}_Mxb{k}'] = blade_root_Mx
-                    magnitude_channels[f'RootSpar{u}_Mxb{k}'] = [f'X_b RootBend. Mom. BLD {k}']
+                    magnitude_channels[f'RootSpar{u}_Mxb{k}'] = [f'X_b RootBend. Mom. BLD_{k}']
 
                     blade_root_My = blade_fatigue_root.copy()
                     blade_root_My.load2stress = inputs[f'blade_root_spar{u}_load2stress'][4]
                     fatigue_channels[f'RootSpar{u}_Myb{k}'] = blade_root_My
-                    magnitude_channels[f'RootSpar{u}_Myb{k}'] = [f'Y_b RootBend. Mom. BLD {k}']
+                    magnitude_channels[f'RootSpar{u}_Myb{k}'] = [f'Y_b RootBend. Mom. BLD_{k}']
 
                     blade_maxc_Fz = blade_fatigue_te.copy()
                     blade_maxc_Fz.load2stress = inputs[f'blade_maxc_te{u}_load2stress'][2]
@@ -1622,12 +1627,12 @@ class QBLADELoadCases(ExplicitComponent):
                 channels_out += [f'Y_l Mom. TWR pos {twr_station:.3f} [Nm]']
                 channels_out += [f'Z_l Mom. TWR pos {twr_station:.3f} [Nm]']
 
-            channels_out += ["X_c Tip Trl.Def. (OOP) BLD 1 [m]", "Y_c Tip Trl.Def. (IP) BLD 1 [m]", "Z_c Tip Trl.Def. BLD 1 [m]", "X_c Tip Trl.Def. (OOP) BLD 2 [m]", "Y_c Tip Trl.Def. (IP) BLD 2 [m]", "Z_c Tip Trl.Def. BLD 2 [m]"]
-            channels_out += ["X_c RootBend. Mom. (IP) BLD 1 [Nm]", "Y_c RootBend. Mom. (OOP) BLD 1 [Nm]", "Z_c RootBend. Mom. BLD 1 [Nm]", "X_c RootBend. Mom. (IP) BLD 2 [Nm]", "Y_c RootBend. Mom. (OOP) BLD 2 [Nm]", "Z_c RootBend. Mom. BLD 2 [Nm]"]
-            channels_out += ["X_b Tip Trl.Def. (FLAP) BLD 1 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 1 [m]", "Z_b Tip Trl.Def. (LONG) BLD 1 [m]", "X_b Tip Trl.Def. (FLAP) BLD 2 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 2 [m]", "Z_b Tip Trl.Def. (LONG) BLD 2 [m]"]
-            channels_out += ["X_b RootBend. Mom. BLD 1 [Nm]", "Y_b RootBend. Mom. BLD 1 [Nm]", "Z_b RootBend. Mom. BLD 1 [Nm]", "X_b RootBend. Mom. BLD 2 [Nm]", "Y_b RootBend. Mom. BLD 2 [Nm]", "Z_b RootBend. Mom. BLD 2 [Nm]"]
-            channels_out += ["X_c Root For. BLD 1 [N]","Y_c Root For. BLD 1 [N]","Z_c Root For. BLD 1 [N]", "X_c Root For. BLD 2 [N]","Y_c Root For. BLD 2 [N]","Z_c Root For. BLD 2 [N]"]
-            channels_out += ["X_b Root For. BLD 1 [N]",  "Y_b Root For. BLD 1 [N]", "Z_b Root For. BLD 1 [N]", "X_b Root For. BLD 2 [N]",  "Y_b Root For. BLD 2 [N]", "Z_b Root For. BLD 2 [N]"]
+            channels_out += ["X_c Tip Trl.Def. (OOP) BLD_1 [m]", "Y_c Tip Trl.Def. (IP) BLD_1 [m]", "Z_c Tip Trl.Def. BLD_1 [m]", "X_c Tip Trl.Def. (OOP) BLD_2 [m]", "Y_c Tip Trl.Def. (IP) BLD_2 [m]", "Z_c Tip Trl.Def. BLD_2 [m]"]
+            channels_out += ["X_c RootBend. Mom. (IP) BLD_1 [Nm]", "Y_c RootBend. Mom. (OOP) BLD_1 [Nm]", "Z_c RootBend. Mom. BLD_1 [Nm]", "X_c RootBend. Mom. (IP) BLD_2 [Nm]", "Y_c RootBend. Mom. (OOP) BLD_2 [Nm]", "Z_c RootBend. Mom. BLD_2 [Nm]"]
+            channels_out += ["X_b Tip Trl.Def. (FLAP) BLD_1 [m]", "Y_b Tip Trl.Def. (EDGE) BLD_1 [m]", "Z_b Tip Trl.Def. (LONG) BLD_1 [m]", "X_b Tip Trl.Def. (FLAP) BLD_2 [m]", "Y_b Tip Trl.Def. (EDGE) BLD_2 [m]", "Z_b Tip Trl.Def. (LONG) BLD_2 [m]"]
+            channels_out += ["X_b RootBend. Mom. BLD_1 [Nm]", "Y_b RootBend. Mom. BLD_1 [Nm]", "Z_b RootBend. Mom. BLD_1 [Nm]", "X_b RootBend. Mom. BLD_2 [Nm]", "Y_b RootBend. Mom. BLD_2 [Nm]", "Z_b RootBend. Mom. BLD_2 [Nm]"]
+            channels_out += ["X_c Root For. BLD_1 [N]","Y_c Root For. BLD_1 [N]","Z_c Root For. BLD_1 [N]", "X_c Root For. BLD_2 [N]","Y_c Root For. BLD_2 [N]","Z_c Root For. BLD_2 [N]"]
+            channels_out += ["X_b Root For. BLD_1 [N]",  "Y_b Root For. BLD_1 [N]", "Z_b Root For. BLD_1 [N]", "X_b Root For. BLD_2 [N]",  "Y_b Root For. BLD_2 [N]", "Z_b Root For. BLD_2 [N]"]
             channels_out += ["Aero. Power Coefficient [-]", "Thrust Coefficient [-]"]
             channels_out += ["Rotational Speed [rpm]", "HSS Rpm [rpm]", "Yaw Angle [deg]", "LSS Azimuthal Pos. [deg]"]
             channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle BLD_1 [deg]", "Pitch Angle BLD_2 [deg]"]
@@ -1640,17 +1645,17 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
             channels_out += ["Aero. Power [W]", "Wave Elevation at Global Pos. [m]", "HYDRO WavekinEval. Wave Elevation [m]"]
-            channels_out += ["Pitch Vel. BLD 1 [deg/s]", "Pitch Vel. BLD 2 [deg/s]"]
+            channels_out += ["Pitch Vel. BLD_1 [deg/s]", "Pitch Vel. BLD_2 [deg/s]"]
 
             if self.n_blades == 3:
-                channels_out += ["X_c Tip Trl.Def. (OOP) BLD 3 [m]", "Y_c Tip Trl.Def. (IP) BLD 3 [m]", "Z_c Tip Trl.Def. BLD 3 [m]"]
-                channels_out += ["X_c RootBend. Mom. (IP) BLD 3 [Nm]", "Y_c RootBend. Mom. (OOP) BLD 3 [Nm]", "Z_c RootBend. Mom. BLD 3 [Nm]"]
-                channels_out += ["X_b Tip Trl.Def. (FLAP) BLD 3 [m]", "Y_b Tip Trl.Def. (EDGE) BLD 3 [m]", "Z_b Tip Trl.Def. (LONG) BLD 3 [m]"]
-                channels_out += ["X_b RootBend. Mom. BLD 3 [Nm]", "Y_b RootBend. Mom. BLD 3 [Nm]", "Z_b RootBend. Mom. BLD 3 [Nm]"]
-                channels_out += ["X_c Root For. BLD 3 [N]","Y_c Root For. BLD 3 [N]","Z_c Root For. BLD 3 [N]"]
-                channels_out += ["X_b Root For. BLD 3 [N]",  "Y_b Root For. BLD 3 [N]", "Z_b Root For. BLD 3 [N]"]
+                channels_out += ["X_c Tip Trl.Def. (OOP) BLD_3 [m]", "Y_c Tip Trl.Def. (IP) BLD_3 [m]", "Z_c Tip Trl.Def. BLD_3 [m]"]
+                channels_out += ["X_c RootBend. Mom. (IP) BLD_3 [Nm]", "Y_c RootBend. Mom. (OOP) BLD_3 [Nm]", "Z_c RootBend. Mom. BLD_3 [Nm]"]
+                channels_out += ["X_b Tip Trl.Def. (FLAP) BLD_3 [m]", "Y_b Tip Trl.Def. (EDGE) BLD_3 [m]", "Z_b Tip Trl.Def. (LONG) BLD_3 [m]"]
+                channels_out += ["X_b RootBend. Mom. BLD_3 [Nm]", "Y_b RootBend. Mom. BLD_3 [Nm]", "Z_b RootBend. Mom. BLD_3 [Nm]"]
+                channels_out += ["X_c Root For. BLD_3 [N]","Y_c Root For. BLD_3 [N]","Z_c Root For. BLD_3 [N]"]
+                channels_out += ["X_b Root For. BLD_3 [N]",  "Y_b Root For. BLD_3 [N]", "Z_b Root For. BLD_3 [N]"]
                 channels_out += ["Pitch Angle BLD_3 [deg]"]
-                channels_out += ["Pitch Vel. BLD 3 [deg/s]"]
+                channels_out += ["Pitch Vel. BLD_3 [deg/s]"]
             
             if modopt['flags']['floating']:
                 channels_out += ["NP Trans. X_g [m]", "NP Trans. Y_g [m]", "NP Trans. Z_g [m]", "NP Roll X_l [deg]", "NP Pitch Y_l [deg]", "NP Yaw Z_l [deg]"]
@@ -1897,7 +1902,7 @@ class QBLADELoadCases(ExplicitComponent):
         damage = damage.fillna(0.0).multiply(ws_prob, axis=0).sum()
         
         # Standard DELs for blade root and tower base
-        outputs['DEL_RootMyb'] = np.max([DELs[f'Y_b RootBend. Mom. BLD {k+1}'] for k in range(self.n_blades)])
+        outputs['DEL_RootMyb'] = np.max([DELs[f'Y_b RootBend. Mom. BLD_{k+1}'] for k in range(self.n_blades)])
         outputs['DEL_TwrBsMyt'] = DELs['TwrBsM']
         outputs['DEL_TwrBsMyt_ratio'] = DELs['TwrBsM']/self.options['opt_options']['constraints']['control']['DEL_TwrBsMyt']['max']
             
@@ -2049,53 +2054,36 @@ class QBLADELoadCases(ExplicitComponent):
 
             # Determine maximum deflection magnitudes
             if self.n_blades == 2:
-                defl_mag = [max(sum_stats['X_c Tip Trl.Def. (OOP) BLD 1']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD 2']['max'])]
+                defl_mag = [max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_1']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_2']['max'])]
             else:
-                defl_mag = [max(sum_stats['X_c Tip Trl.Def. (OOP) BLD 1']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD 2']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD 3']['max'])]
+                defl_mag = [max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_1']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_2']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_3']['max'])]
             # Get the maximum out of plane blade deflection
             outputs["max_TipDxc"] = np.max(defl_mag)
 
             # Return moments around x and y and axial force along blade span at instance of largest flapwise bending moment at each node
-            My_chans = ["Y_b RootBend. Mom. BLD", "Y_l Mom. BLD_ pos 0.100", "Y_l Mom. BLD_ pos 0.200", "Y_l Mom. BLD_ pos 0.300", "Y_l Mom. BLD_ pos 0.400", "Y_l Mom. BLD_ pos 0.500", "Y_l Mom. BLD_ pos 0.600", "Y_l Mom. BLD_ pos 0.700", "Y_l Mom. BLD_ pos 0.800", "Y_l Mom. BLD_ pos 0.900"]
-            Mx_chans = ["X_b RootBend. Mom. BLD", "X_l Mom. BLD_ pos 0.100", "X_l Mom. BLD_ pos 0.200", "X_l Mom. BLD_ pos 0.300", "X_l Mom. BLD_ pos 0.400", "X_l Mom. BLD_ pos 0.500", "X_l Mom. BLD_ pos 0.600", "X_l Mom. BLD_ pos 0.700", "X_l Mom. BLD_ pos 0.800", "X_l Mom. BLD_ pos 0.900"]
-            Fz_chans = ["Z_b Root For. BLD", "Z_l For. BLD_ pos 0.100", "Z_l For. BLD_ pos 0.200", "Z_l For. BLD_ pos 0.300", "Z_l For. BLD_ pos 0.400", "Z_l For. BLD_ pos 0.500", "Z_l For. BLD_ pos 0.600", "Z_l For. BLD_ pos 0.700", "Z_l For. BLD_ pos 0.800", "Z_l For. BLD_ pos 0.900"]
+            My_chans = ["Y_b RootBend. Mom. BLD_", "Y_l Mom. BLD_ pos 0.100", "Y_l Mom. BLD_ pos 0.200", "Y_l Mom. BLD_ pos 0.300", "Y_l Mom. BLD_ pos 0.400", "Y_l Mom. BLD_ pos 0.500", "Y_l Mom. BLD_ pos 0.600", "Y_l Mom. BLD_ pos 0.700", "Y_l Mom. BLD_ pos 0.800", "Y_l Mom. BLD_ pos 0.900"]
+            Mx_chans = ["X_b RootBend. Mom. BLD_", "X_l Mom. BLD_ pos 0.100", "X_l Mom. BLD_ pos 0.200", "X_l Mom. BLD_ pos 0.300", "X_l Mom. BLD_ pos 0.400", "X_l Mom. BLD_ pos 0.500", "X_l Mom. BLD_ pos 0.600", "X_l Mom. BLD_ pos 0.700", "X_l Mom. BLD_ pos 0.800", "X_l Mom. BLD_ pos 0.900"]
+            Fz_chans = ["Z_b Root For. BLD_", "Z_l For. BLD_ pos 0.100", "Z_l For. BLD_ pos 0.200", "Z_l For. BLD_ pos 0.300", "Z_l For. BLD_ pos 0.400", "Z_l For. BLD_ pos 0.500", "Z_l For. BLD_ pos 0.600", "Z_l For. BLD_ pos 0.700", "Z_l For. BLD_ pos 0.800", "Z_l For. BLD_ pos 0.900"]
                 
             Fz = []
             Mx = []
             My = []
             for My_chan,Mx_chan,Fz_chan in zip(My_chans, Mx_chans, Fz_chans):
                 if self.n_blades == 2:
-                    if 'BLD_' in My_chan:
-                        idx_BLD = My_chan.index('BLD_')
-                        My_chan_bld1 = My_chan[:idx_BLD+4] + '1' + My_chan[idx_BLD+4:]
-                        My_chan_bld2 = My_chan[:idx_BLD+4] + '2' + My_chan[idx_BLD+4:]
-                    else:
-                        idx_BLD = My_chan.index('BLD')
-                        My_chan_bld1 = My_chan[:idx_BLD+3] + ' 1' + My_chan[idx_BLD+3:]
-                        My_chan_bld2 = My_chan[:idx_BLD+3] + ' 2' + My_chan[idx_BLD+3:]
-                    bld_idx_max = np.argmax([max(sum_stats[My_chan_bld1]['max']), max(sum_stats[My_chan_bld2]['max'])])
+                    idx_BLD = My_chan.index('BLD_')
+                    My_chan_bld1 = My_chan[:idx_BLD+4] + '1' + My_chan[idx_BLD+4:]
+                    My_chan_bld2 = My_chan[:idx_BLD+4] + '2' + My_chan[idx_BLD+4:]
                 else:
-                    if 'BLD_' in My_chan:
-                        idx_BLD = My_chan.index('BLD_')
-                        My_chan_bld1 = My_chan[:idx_BLD+4] + '1' + My_chan[idx_BLD+4:]
-                        My_chan_bld2 = My_chan[:idx_BLD+4] + '2' + My_chan[idx_BLD+4:]
-                        My_chan_bld3 = My_chan[:idx_BLD+4] + '3' + My_chan[idx_BLD+4:]
-                        bld_idx_max = np.argmax([max(sum_stats[My_chan_bld1]['max']), max(sum_stats[My_chan_bld2]['max']), max(sum_stats[My_chan_bld3]['max'])])
-                        # TODO what about Mz here?
-                        My_max_chan = My_chan[:idx_BLD+4] + str(bld_idx_max+1) + My_chan[idx_BLD+4:]
-                        My.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][My_chan[:idx_BLD+4] + str(bld_idx_max+1) + My_chan[idx_BLD+4:]])
-                        Mx.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][Mx_chan[:idx_BLD+4] + str(bld_idx_max+1) + Mx_chan[idx_BLD+4:]])
-                        Fz.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][Fz_chan[:idx_BLD+4] + str(bld_idx_max+1) + Fz_chan[idx_BLD+4:]])
-                    else:
-                        idx_BLD = My_chan.index('BLD')
-                        My_chan_bld1 = My_chan[:idx_BLD+3] + ' 1' + My_chan[idx_BLD+3:]
-                        My_chan_bld2 = My_chan[:idx_BLD+3] + ' 2' + My_chan[idx_BLD+3:]
-                        My_chan_bld3 = My_chan[:idx_BLD+3] + ' 3' + My_chan[idx_BLD+3:]
-                        bld_idx_max = np.argmax([max(sum_stats[My_chan_bld1]['max']), max(sum_stats[My_chan_bld2]['max']), max(sum_stats[My_chan_bld3]['max'])])
-                        My_max_chan = My_chan + f" {bld_idx_max+1}"
-                        My.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][My_chan+ f" {bld_idx_max+1}"])
-                        Mx.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][Mx_chan+ f" {bld_idx_max+1}"])
-                        Fz.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][Fz_chan+ f" {bld_idx_max+1}"])
+                    idx_BLD = My_chan.index('BLD_')
+                    My_chan_bld1 = My_chan[:idx_BLD+4] + '1' + My_chan[idx_BLD+4:]
+                    My_chan_bld2 = My_chan[:idx_BLD+4] + '2' + My_chan[idx_BLD+4:]
+                    My_chan_bld3 = My_chan[:idx_BLD+4] + '3' + My_chan[idx_BLD+4:]
+                    bld_idx_max = np.argmax([max(sum_stats[My_chan_bld1]['max']), max(sum_stats[My_chan_bld2]['max']), max(sum_stats[My_chan_bld3]['max'])])
+                    # TODO what about Mz here?
+                    My_max_chan = My_chan[:idx_BLD+4] + str(bld_idx_max+1) + My_chan[idx_BLD+4:]
+                    My.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][My_chan[:idx_BLD+4] + str(bld_idx_max+1) + My_chan[idx_BLD+4:]])
+                    Mx.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][Mx_chan[:idx_BLD+4] + str(bld_idx_max+1) + Mx_chan[idx_BLD+4:]])
+                    Fz.append(extreme_table[My_max_chan][np.argmax(sum_stats[My_max_chan]['max'])][Fz_chan[:idx_BLD+4] + str(bld_idx_max+1) + Fz_chan[idx_BLD+4:]])
 
 
             if np.any(np.isnan(Fz)):
@@ -2125,13 +2113,13 @@ class QBLADELoadCases(ExplicitComponent):
 
             # Determine maximum root moment
             if self.n_blades == 2:
-                blade_root_flap_moment = max([max(sum_stats['Y_b RootBend. Mom. BLD 1']['max']), max(sum_stats['Y_b RootBend. Mom. BLD 2']['max'])])
-                blade_root_oop_moment  = max([max(sum_stats['Y_c RootBend. Mom. (OOP) BLD 1']['max']), max(sum_stats['Y_c RootBend. Mom. (OOP) BLD 2']['max'])])
-                blade_root_tors_moment  = max([max(sum_stats['Z_b RootBend. Mom. BLD 1']['max']), max(sum_stats['Z_b RootBend. Mom. BLD 2']['max'])])
+                blade_root_flap_moment = max([max(sum_stats['Y_b RootBend. Mom. BLD_1']['max']), max(sum_stats['Y_b RootBend. Mom. BLD_2']['max'])])
+                blade_root_oop_moment  = max([max(sum_stats['Y_c RootBend. Mom. (OOP) BLD_1']['max']), max(sum_stats['Y_c RootBend. Mom. (OOP) BLD_2']['max'])])
+                blade_root_tors_moment  = max([max(sum_stats['Z_b RootBend. Mom. BLD_1']['max']), max(sum_stats['Z_b RootBend. Mom. BLD_2']['max'])])
             else:
-                blade_root_flap_moment = max([max(sum_stats['Y_b RootBend. Mom. BLD 1']['max']), max(sum_stats['Y_b RootBend. Mom. BLD 2']['max']), max(sum_stats['Y_b RootBend. Mom. BLD 3']['max'])])
-                blade_root_oop_moment  = max([max(sum_stats['Y_c RootBend. Mom. (OOP) BLD 1']['max']), max(sum_stats['Y_c RootBend. Mom. (OOP) BLD 2']['max']), max(sum_stats['Y_c RootBend. Mom. (OOP) BLD 3']['max'])])
-                blade_root_tors_moment  = max([max(sum_stats['Z_b RootBend. Mom. BLD 1']['max']), max(sum_stats['Z_b RootBend. Mom. BLD 2']['max']), max(sum_stats['Z_b RootBend. Mom. BLD 3']['max'])])
+                blade_root_flap_moment = max([max(sum_stats['Y_b RootBend. Mom. BLD_1']['max']), max(sum_stats['Y_b RootBend. Mom. BLD_2']['max']), max(sum_stats['Y_b RootBend. Mom. BLD_3']['max'])])
+                blade_root_oop_moment  = max([max(sum_stats['Y_c RootBend. Mom. (OOP) BLD_1']['max']), max(sum_stats['Y_c RootBend. Mom. (OOP) BLD_2']['max']), max(sum_stats['Y_c RootBend. Mom. (OOP) BLD_3']['max'])])
+                blade_root_tors_moment  = max([max(sum_stats['Z_b RootBend. Mom. BLD_1']['max']), max(sum_stats['Z_b RootBend. Mom. BLD_2']['max']), max(sum_stats['Z_b RootBend. Mom. BLD_3']['max'])])
             
             outputs['max_RootMyb'] = blade_root_flap_moment
             outputs['max_RootMyc'] = blade_root_oop_moment
@@ -2308,7 +2296,7 @@ class QBLADELoadCases(ExplicitComponent):
         outputs['max_nac_accel'] = sum_stats['NcIMUTA']['max'].max()
 
         # Max pitch rate
-        max_pitch_rates = np.r_[sum_stats['Pitch Vel. BLD 1']['max'],sum_stats['Pitch Vel. BLD 2']['max'],sum_stats['Pitch Vel. BLD 3']['max']]
+        max_pitch_rates = np.r_[sum_stats['Pitch Vel. BLD_1']['max'],sum_stats['Pitch Vel. BLD_2']['max'],sum_stats['Pitch Vel. BLD_3']['max']]
         outputs['max_pitch_rate_sim'] = max(max_pitch_rates)  / np.rad2deg(self.qb_vt['DISCON_in']['PC_MaxRat'])        # normalize by ROSCO pitch rate
 
         # pitch travel and duty cycle

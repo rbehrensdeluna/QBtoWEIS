@@ -31,12 +31,12 @@ weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 magnitude_channels_default = {
     'LSShftF': ["X_s For. Shaft Const.", "Y_s For. Shaft Const.", "Z_s For. Shaft Const."], 
     'LSShftM': ["X_s Mom. Shaft Const.", "Y_s Mom. Shaft Const.", "Z_s Mom. Shaft Const."],
-    'RootMc1': ["X_c RootBend. Mom. (IP) BLD 1", "Y_c RootBend. Mom. (OOP) BLD 1", "Z_c RootBend. Mom. BLD 1"],
-    'RootMc2': ["X_c RootBend. Mom. (IP) BLD 2", "Y_c RootBend. Mom. (OOP) BLD 2", "Z_c RootBend. Mom. BLD 2"],
-    'RootMc3': ["X_c RootBend. Mom. (IP) BLD 3", "Y_c RootBend. Mom. (OOP) BLD 3", "Z_c RootBend. Mom. BLD 3"],
-    'TipDc1':  ['X_c Tip Trl.Def. (OOP) BLD 1', 'Y_c Tip Trl.Def. (IP) BLD 1', 'Z_c Tip Trl.Def. BLD 1'],
-    'TipDc2':  ['X_c Tip Trl.Def. (OOP) BLD 2', 'Y_c Tip Trl.Def. (IP) BLD 2', 'Z_c Tip Trl.Def. BLD 2'],
-    'TipDc3':  ['X_c Tip Trl.Def. (OOP) BLD 3', 'Y_c Tip Trl.Def. (IP) BLD 3', 'Z_c Tip Trl.Def. BLD 3'],
+    'RootMc1': ["X_c RootBend. Mom. (IP) BLD_1", "Y_c RootBend. Mom. (OOP) BLD_1", "Z_c RootBend. Mom. BLD_1"],
+    'RootMc2': ["X_c RootBend. Mom. (IP) BLD_2", "Y_c RootBend. Mom. (OOP) BLD_2", "Z_c RootBend. Mom. BLD_2"],
+    'RootMc3': ["X_c RootBend. Mom. (IP) BLD_3", "Y_c RootBend. Mom. (OOP) BLD_3", "Z_c RootBend. Mom. BLD_3"],
+    'TipDc1':  ['X_c Tip Trl.Def. (OOP) BLD_1', 'Y_c Tip Trl.Def. (IP) BLD_1', 'Z_c Tip Trl.Def. BLD_1'],
+    'TipDc2':  ['X_c Tip Trl.Def. (OOP) BLD_2', 'Y_c Tip Trl.Def. (IP) BLD_2', 'Z_c Tip Trl.Def. BLD_2'],
+    'TipDc3':  ['X_c Tip Trl.Def. (OOP) BLD_3', 'Y_c Tip Trl.Def. (IP) BLD_3', 'Z_c Tip Trl.Def. BLD_3'],
     'TwrBsM':  ['X_tb Mom. TWR Bot. Constr.', 'Y_tb Mom. TWR Bot. Constr.', 'Z_tb Mom. TWR Bot. Constr.'],
     'NcIMUTA': ['X_n Nac. Acc.','Y_n Nac. Acc.','Z_n Nac. Acc.']
 }
@@ -45,9 +45,9 @@ fatigue_channels_default = {
     'RootMc1': FatigueParams(slope=10),
     'RootMc2': FatigueParams(slope=10),
     'RootMc3': FatigueParams(slope=10),
-    'Y_b RootBend. Mom. BLD 1': FatigueParams(slope=10),   # 'RootMyb1': FatigueParams(slope=10),
-    'Y_b RootBend. Mom. BLD 2': FatigueParams(slope=10),   # 'RootMyb2': FatigueParams(slope=10),
-    'Y_b RootBend. Mom. BLD 3': FatigueParams(slope=10),   # 'RootMyb3': FatigueParams(slope=10),
+    'Y_b RootBend. Mom. BLD_1': FatigueParams(slope=10),   # 'RootMyb1': FatigueParams(slope=10),
+    'Y_b RootBend. Mom. BLD_2': FatigueParams(slope=10),   # 'RootMyb2': FatigueParams(slope=10),
+    'Y_b RootBend. Mom. BLD_3': FatigueParams(slope=10),   # 'RootMyb3': FatigueParams(slope=10),
     'TwrBsM': FatigueParams(slope=4),
     'LSShftM': FatigueParams(slope=4),
 }
