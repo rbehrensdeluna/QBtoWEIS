@@ -1975,9 +1975,6 @@ class QBLADELoadCases(ExplicitComponent):
             idx_pwrcrv = np.array(idx_pwrcrv, dtype=int)
             U = np.array(U)
 
-            print('failed_sim_ids: ', failed_sim_ids)
-            print('idx_pwrcrv: ', idx_pwrcrv)
-
             if len(failed_sim_ids) > 0:
                 mask = ~np.isin(idx_pwrcrv, failed_sim_ids)
                 idx_pwrcrv = np.arange(len(idx_pwrcrv[mask]))
@@ -2461,7 +2458,7 @@ class QBLADELoadCases(ExplicitComponent):
     def get_failed_sim_ids(self):
         failed_sim_ids = []
         failures = self.read_failure_log()
-        iteration_key = f"iteration_{self.qb_inumber}"
+        iteration_key = f"iteration_{self.qb_inumber:03d}"
 
         if iteration_key in failures and failures[iteration_key].get("failed_simulations"):
             for sim in failures[iteration_key]['failed_simulations']:
