@@ -573,7 +573,7 @@ class QBLADELoadCases(ExplicitComponent):
             beta =  (qb_vt['Blade']['CRITDAMP']/100) / (np.pi * inputs['flap_freq'])
             qb_vt['Blade']['RAYLEIGHDMP'] = float(beta)
 
-        if not modopt['SONATA']['flag']:
+        if not modopt['SONATA']['flag'] and not qb_vt['Blade'].get('beamdyn_file'):
             strpit    =  inputs['beam:Tw_iner'] - inputs['theta']
         
             qb_vt['Blade']['r_curved'], qb_vt['Blade']['LENFRACT'] = self.calc_fractional_curved_length(inputs['ref_axis_blade'])
@@ -599,8 +599,12 @@ class QBLADELoadCases(ExplicitComponent):
             qb_vt['Blade']['YCS']       =  inputs['beam:x_sc'] / inputs['chord']
         else:
             # path to beamdyn file in temporary folder, created by running sonata
-            beamdyn_blade_file = os.path.join(weis_dir,'sonata_temp', self.QBLADE_namingOut + '_BeamDyn_Blade.dat')
-            
+            if not qb_vt['Blade'].get('beamdyn_file'):
+                beamdyn_blade_file = os.path.join(weis_dir,'sonata_temp', self.QBLADE_namingOut + '_BeamDyn_Blade.dat')
+            else:
+                beamdyn_blade_file = os.path.join(os.path.dirname(self.options['opt_options']['fname_input_analysis']), self.options['modeling_options']['QBlade']['Blade']['beamdyn_file'])
+                print(f"Using user provided beamdyn file {beamdyn_blade_file}")
+
             # read sonata output with fast beam dyn reader
             fast = InputReader_OpenFAST()
             fast.read_BeamDynBlade(beamdyn_blade_file)
