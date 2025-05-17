@@ -1862,7 +1862,13 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']['monopile']:
                 outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
 
-            outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator, failed_sim_ids)
+            # AEP calculation is not very robust when various simulations in an iteration fail. to avoid crashing a full optimation, we wrap it in a try/except block
+            try:
+                outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator, failed_sim_ids)
+            except IndexError as ie:
+                logger.warning(f"[AEP] IndexError in calculate_AEP: {ie}. Skipping AEP calculation this iteration.")
+            except Exception as e:
+                logger.error(f"[AEP] Unexpected error in calculate_AEP: {e}", exc_info=True)
 
             outputs = self.get_weighted_DELs(DELs, damage, discrete_inputs, outputs, dlc_generator, failed_sim_ids)
             
@@ -1983,6 +1989,10 @@ class QBLADELoadCases(ExplicitComponent):
                 mask = ~np.isin(idx_pwrcrv, failed_sim_ids)
                 idx_pwrcrv = np.arange(len(idx_pwrcrv[mask]))
                 U = U[mask]
+
+                print("U:", U)
+                print("idx_pwrcrv:", idx_pwrcrv)
+                print("sum_stats.shape:", sum_stats.shape)
 
             stats_pwrcrv = sum_stats.iloc[idx_pwrcrv].copy()
         
