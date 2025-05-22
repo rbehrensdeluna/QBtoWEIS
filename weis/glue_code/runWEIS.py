@@ -170,6 +170,20 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options,
             # so these values are correctly placed in the problem.
             wt_opt = myopt.set_restart(wt_opt)
 
+            if modeling_options['General']['qblade_configuration']['restart_from_sql']:
+                restart_file = os.path.join(modeling_options['General']['qblade_configuration']['restart_file'])     
+                if not os.path.isfile(restart_file):
+                    raise FileNotFoundError('The restart file %s does not exist. Please check the path and try again.'%restart_file)
+                
+                cr = CaseReader(restart_file)
+                cases = list(cr.get_cases('driver'))
+                if len(cases) == 0:
+                    raise RuntimeError(f"No driver cases found in {restart_file}")
+
+                last_case = cases[-1]
+                for name, val in last_case.get_design_vars().items():
+                    wt_opt.set_val(name, val)
+            
             if 'check_totals' in opt_options['driver']['optimization']:
                 if opt_options['driver']['optimization']['check_totals']:
                     wt_opt.run_model()

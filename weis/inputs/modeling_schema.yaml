@@ -110,7 +110,7 @@ properties:
                         description: Flag to only generate a QBlade model and stop
                     path2qb_dll:
                         type: string
-                        default: none
+                        default: /home/robert/qblade/software/QBladeEE_2.0.8.7_dev/libQBladeEE_2.0.8.7_dev.so.1.0.0
                         description: Path to QBlade shared library (e.g. /home/user/QBlade/libqblade.so)
                     path2qb_libs:
                         type: string
@@ -153,6 +153,14 @@ properties:
                         type: boolean
                         default: True
                         description: delete .out file of a of a simulation after it was interpreted for (should not be used for optimizations)
+                    restart_from_sql:
+                        type: boolean
+                        default: False
+                        description: restart from an existing optimization ()
+                    restart_file:
+                        type: string
+                        default: none
+                        description: absolute path to the sql file to restart from
             goodman_correction:
                 type: boolean
                 default: False
