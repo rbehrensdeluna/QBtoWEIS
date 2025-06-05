@@ -76,7 +76,7 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
     
     # clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
 
-    simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
+    simulations = sorted([os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')])
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []
