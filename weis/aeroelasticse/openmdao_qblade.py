@@ -2437,7 +2437,13 @@ class QBLADELoadCases(ExplicitComponent):
             if "Time" not in channels_no_unit:
                 channels_no_unit.insert(0, "Time")
 
-        n_cases = dlc_generator.n_cases
+        if self.qb_vt['QSim']['DLCGenerator']:
+            n_cases = dlc_generator.n_cases
+        elif self.qb_vt['QSim']['WNDTYPE'] == 1:
+            n_cases = len(self.qb_vt['QTurbSim']['URef'])
+        else:
+            n_cases = len(self.qb_vt['QSim']['MEANINF'])
+            
         succesful_cases = np.delete(range(n_cases), failed_sim_ids)
         for i_ts, timeseries in enumerate(chan_time):
             
