@@ -1860,7 +1860,11 @@ class QBLADELoadCases(ExplicitComponent):
             if self.options['modeling_options']['flags']['tower']:
                 outputs = self.get_tower_loading(summary_stats, extreme_table, inputs, outputs)
             if modopt['flags']['monopile']:
-                outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
+                try:
+                    outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
+                except Exception as e:
+                    logger.error(f"[MONOPILE LOADING] Error in get_monopile_loading: {e}", exc_info=True)
+                    return outputs
 
             # AEP calculation is not very robust when various simulations in an iteration fail. to avoid crashing a full optimation, we wrap it in a try/except block
             try:
