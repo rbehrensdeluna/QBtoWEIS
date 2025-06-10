@@ -1,0 +1,105 @@
+General:
+    verbosity: False  # When set to True, the code prints to screen many infos
+   
+    qblade_configuration:
+        flag: True   
+        QB_run_mod: iea15mw_mono
+        path2qbtoweis_output_filter: QBtoWEIS_output_filter.txt
+        model_only: False  
+        number_of_workers: 6
+        delete_out_files: True   
+
+WISDEM:
+    RotorSE:
+        flag: True
+        n_pitch_perf_surfaces: 10
+        n_tsr_perf_surfaces: 10
+        spar_cap_ss: Spar_Cap_SS
+        spar_cap_ps: Spar_Cap_PS
+        te_ss: TE_reinforcement_SS
+        te_ps: TE_reinforcement_PS
+        n_span: 40
+    DriveSE:
+        flag: True
+    TowerSE:
+        flag: True
+        wind: PowerWind  # Wind used
+        gamma_f: 1.35    # Safety factor for fatigue loads
+        gamma_m: 1.3     # Safety factor for material properties
+        gamma_n: 1.0     # Safety factor for ...
+        gamma_b: 1.1     # Safety factor for ...
+        gamma_fatigue: 1.755  # Safety factor for fatigue loads
+        buckling_length: 30    # Buckling parameter
+        soil_springs: True
+        gravity_foundation: False
+        frame3dd:
+            shear: True
+            geom: True
+            tol: 1e-9
+    FixedBottomSE:
+        flag: True
+        soil_springs: True
+    BOS:
+        flag: True
+
+QBlade:
+    flag: True
+    simulation:
+        Simulate: True
+        DLCGenerator: True
+        ISOFFSHORE: 1
+        PRESCRIBETYPE: 0
+    Main:
+        GLBGEOEPS: 0.2
+        DRTRDOF: False
+    Tower:
+        RAYLEIGHDMP: 0.0161
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISCTYPE: 0         # (0 = linear, 1 = cosine, 2 = struct, 3= aero)  
+        DISC: 10
+        CD: 0.5
+    Blade:
+        RAYLEIGHDMP: 0.0172
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISCTYPE: 1         # (0 = linear, 1 = cosine, 2 = struct, 3= aero)  
+        DISC: 18
+    Turbine:
+        CONTROLLERTYPE: 1
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0'
+        DISCTYPE: 2         # (0=from blade table; 1=linear; 2=cosine)
+        NUMPANELS: 25
+        WAKETYPE: 1
+        BEMSPEEDUP: 30
+    QBladeOcean:
+        override_morison_coefficients: True
+        HydroCdN: 1.0
+        HydroCaN: 1.0
+        HydroCpN: 0.0
+        HydroCdA: 1.6
+        HydroCaA: 1.0
+        HydroCpA: 0.0
+        MCFC: 1
+        IsBuoy: 1
+
+ROSCO:
+    flag: True
+    
+DLC_driver:
+    metocean_conditions:
+        wind_speed: [4., 6., 8., 10., 12., 14., 16., 18., 20., 22., 24.]
+        wave_height_NSS: [0.83, 0.88, 0.94, 1.03, 1.16, 1.34, 1.57, 1.86, 2.22, 2.62, 3.07]
+        wave_period_NSS: [6.9, 6.96, 7.02, 7.12, 7.25, 7.43, 7.66, 7.94, 8.27, 8.63, 9.01]
+        wave_height_SSS: [6.3, 8, 8, 8.1, 8.5, 8.5, 9.8, 9.8, 9.8, 9.8, 9.9]
+        wave_period_SSS: [11.5, 12.7, 12.7, 12.8, 13.1, 13.1, 14.1, 14.1, 14.1, 14.1, 14.1]
+        wave_height_1: 6.98
+        wave_period_1: 11.7
+        wave_height_50: 10.68
+        wave_period_50: 14.2
+    DLCs:
+        - DLC: "1.1"
+          n_seeds: 1
+          wind_speed: [5.0, 8.0, 10.0, 12.0, 18.0, 24.0]
+          transient_time: 10.0  # 0.
+          analysis_time: 60.0  # 10.

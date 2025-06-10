@@ -561,6 +561,7 @@ class QBLADELoadCases(ExplicitComponent):
         r = r/r[-1]
         idx_out       = [np.argmin(abs(r-ri)) for ri in r_out_target]
         self.R_out_AD = [qb_vt['Aero']['BlPos'][i] for i in idx_out] 
+        del idx_out
         if len(self.R_out_AD) != len(np.unique(self.R_out_AD)):
             raise Exception('ERROR: the spanwise resolution is too coarse and does not support 9 channels along blade span. Please increase it in the modeling_options.yaml.')
         
@@ -870,6 +871,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QBladeOcean']['SUB_Sensors'] = [idx+1 for idx in idx_out] # index of the member
                 qb_vt['QBladeOcean']['SUB_Sensors_RelPos'] =  [0] * (len(idx_out) - 1) + [1.0]  # relative position along the member, should be 0 except for the last one
                 self.Z_out_QBO_mpl = [grid_joints_monopile[i] for i in idx_out]
+                del idx_out
                 
             elif modopt['flags']['floating']: 
                 qb_vt['QBladeOcean']['ISFLOATING']  =  True
@@ -1667,7 +1669,7 @@ class QBLADELoadCases(ExplicitComponent):
             # Sensors required for monopile post-processing
             if modopt['flags']['monopile']:
                 for idx, member in enumerate (self.qb_vt['QBladeOcean']['SUB_Sensors']):
-                    if idx == 8:
+                    if idx == len(self.qb_vt['QBladeOcean']['SUB_Sensors']) -1:
                         rel_member_pos = 1
                     else:
                         rel_member_pos = 0
@@ -2250,7 +2252,7 @@ class QBLADELoadCases(ExplicitComponent):
         monopile_chans_Mz = []
         
         for idx, member in enumerate (self.qb_vt['QBladeOcean']['SUB_Sensors']):
-            if idx == 8:
+            if idx == len(self.qb_vt['QBladeOcean']['SUB_Sensors']) - 1:
                 rel_member_pos = 1
             else:
                 rel_member_pos = 0

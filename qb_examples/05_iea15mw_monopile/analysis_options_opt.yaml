@@ -1,0 +1,72 @@
+general:
+    folder_output: opt_output
+    fname_output: refturb_output
+
+design_variables:
+  tower:
+    outer_diameter:
+      flag: True
+      lower_bound: 6
+      upper_bound: 10.0
+    layer_thickness:
+      flag: True
+      lower_bound: 4e-3
+      upper_bound: 2e-1
+  monopile:
+    outer_diameter:
+      flag: True
+      lower_bound: 6
+      upper_bound: 10.0
+    layer_thickness:
+      flag: True
+      lower_bound: 4e-3
+      upper_bound: 2e-1
+
+merit_figure: DEL_TwrBsMyt
+
+constraints:
+  tower:
+    stress:
+      flag: True
+    global_buckling:
+      flag: True
+    shell_buckling:
+      flag: True
+    d_to_t:
+      flag: True
+      lower_bound: 120.0
+      upper_bound: 500.0
+    taper:
+      flag: True
+      lower_bound: 0.2
+    slope:
+      flag: True
+    frequency_1:
+      flag: True
+      lower_bound: 0.13
+      upper_bound: 0.40
+  monopile:
+    stress:
+      flag: True
+    global_buckling:
+      flag: True
+    shell_buckling:
+      flag: True
+    d_to_t:
+      flag: True
+      lower_bound: 120.0
+      upper_bound: 500.0
+    tower_diameter_coupling:
+      flag: True
+
+driver:
+  optimization:
+    flag: True
+    tol: 5.e-4            # Optimality tolerance
+    max_iter: 1000           # Maximum number of iterations (SLSQP)
+    solver: LN_COBYLA     # Optimization solver. Other options are 'SLSQP' - 'CONMIN'
+    
+recorder:
+    flag: True              # Flag to activate OpenMDAO recorder
+    file_name: log_iea15mw_mono.sql  # Name of OpenMDAO recorder
+    includes: ['towerse.tower_mass', 'fixedse.monopile_mass', 'towerse.tower.tower_deflection']

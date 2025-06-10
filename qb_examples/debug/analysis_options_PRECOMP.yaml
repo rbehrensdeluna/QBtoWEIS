@@ -1,7 +1,0 @@
-general:
-    folder_output: output_v16.2.0_PRECOMP_PC
-    fname_output: MED15-300_v16.2.0_PRECOMP_PC
-    
-recorder:
-    flag: true             # Flag to activate OpenMDAO recorder
-    file_name: log_opt.sql # Name of OpenMDAO recorder
