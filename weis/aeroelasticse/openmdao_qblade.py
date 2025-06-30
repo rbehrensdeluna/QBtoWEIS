@@ -570,7 +570,7 @@ class QBLADELoadCases(ExplicitComponent):
         # get the damping as a function of critical damping in case user didn't RAYLEIGHDMP or used USECRITDAMP
         if qb_vt['Blade']['USECRITDAMP'] or qb_vt['Blade']['RAYLEIGHDMP'] == 0:
             if qb_vt['Blade']['RAYLEIGHDMP'] == 0:
-                logger.warning(f"Tower RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
+                logger.warning(f"Blade RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Blade']['CRITDAMP']/100) / (np.pi * inputs['flap_freq'])
             qb_vt['Blade']['RAYLEIGHDMP'] = float(beta)
 
@@ -739,7 +739,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         if qb_vt['Tower']['USECRITDAMP'] or qb_vt['Tower']['RAYLEIGHDMP'] == 0:
             if qb_vt['Tower']['RAYLEIGHDMP'] == 0:
-                logger.warning(f"Tower RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
+                logger.warning(f"Tower RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Tower']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Tower']['CRITDAMP']/100) / (np.pi * inputs['twr_freq'])
             qb_vt['Tower']['RAYLEIGHDMP'] = float(beta)
 
@@ -1868,7 +1868,7 @@ class QBLADELoadCases(ExplicitComponent):
                     logger.error(f"[MONOPILE LOADING] Error in get_monopile_loading: {e}", exc_info=True)
                     return outputs
 
-            # AEP calculation is not very robust when various simulations in an iteration fail. to avoid crashing a full optimation, we wrap it in a try/except block
+            # AEP calculation is not very robust when various simulations in an iteration fail. to avoid crashing a full optimization, we wrap it in a try/except block
             try:
                 outputs = self.calculate_AEP(summary_stats, inputs, outputs, discrete_inputs, dlc_generator, failed_sim_ids)
             except IndexError as ie:
@@ -1910,8 +1910,9 @@ class QBLADELoadCases(ExplicitComponent):
         # Get wind distribution probabilities, make sure they are normalized
         pp = PowerProduction(discrete_inputs['turbine_class'])
         ws_prob = pp.prob_WindDist(U, disttype='pdf')
+        print(f'Wind speed probabilities 1: {ws_prob}')
         ws_prob /= ws_prob.sum()
-
+        print(f'Wind speed probabilities 2: {ws_prob}')
         # Scale all DELs and damage by probability and collapse over the various DLCs (inner dot product)
         # Also work around NaNs
         DELs = DELs.fillna(0.0).multiply(ws_prob, axis=0).sum()

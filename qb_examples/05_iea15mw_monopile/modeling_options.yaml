@@ -4,7 +4,7 @@ General:
     qblade_configuration:
         flag: True   
         QB_run_mod: iea15mw_mono
-        path2qbtoweis_output_filter: QBtoWEIS_output_filter.txt
+        qbtoweis_output_filter: QBtoWEIS_output_filter.txt
         model_only: False  
         number_of_workers: 6
         delete_out_files: True   
