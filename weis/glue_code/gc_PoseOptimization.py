@@ -40,6 +40,7 @@ class PoseOptimizationWEIS(PoseOptimization):
         # Set merit figure. Each objective has its own scaling.  Check first for user override
         if self.opt["merit_figure_user"]["name"] != "":
             coeff = -1.0 if self.opt["merit_figure_user"]["max_flag"] else 1.0
+            print(f"Print out the coefficient for the user merit figure: {coeff}")
             wt_opt.model.add_objective(self.opt["merit_figure_user"]["name"],
                                        ref=coeff*np.abs(self.opt["merit_figure_user"]["ref"]))
             

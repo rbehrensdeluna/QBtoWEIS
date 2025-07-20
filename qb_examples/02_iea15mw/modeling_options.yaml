@@ -4,7 +4,6 @@ General:
     qblade_configuration:
         flag: True
         # Linux
-        # path2qb_libs: # enter path to Libraries directory here, e.g. <.../QBladeCE_2.0.8.1/Libraries>
         # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
         # Windows
         # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.1\QBladeEE_2.0.8.1.dll

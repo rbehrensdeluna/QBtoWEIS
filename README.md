@@ -67,9 +67,8 @@ The installation instructions below use the environment name, "qbweis-env," but 
    Before running simulations or optimizations using QBalde within WEIS, you must configure the paths to the necessary shared library files (.dll for Windows or .so for Linux/WSL2) within the `modeling_options.yaml` file of your WEIS problem. For example: `qb_examples\00_run_test\modeling_options.yaml`.
 
 ### **Linux/WSL2**
-   Specify both `path2qb_libs` and `path2qb_dll` as shown below:
+   Specify both and `path2qb_dll` as shown below:
 
-        path2qb_libs: /home/user/qblade/software/QBladeCE_2.0.8.5/Libraries
         path2qb_dll: /home/user/qblade/software/QBladeCE_2.0.8.5/libQBladeCE_2.0.8.5.so.1.0.0
 
 ### **Windows**
@@ -82,7 +81,7 @@ The installation instructions below use the environment name, "qbweis-env," but 
    
         QBtoWEIS/weis/inputs/modeling_schema.yaml 
         
-   "path2qb_libs" & "path2qb_dll" are found below the "qblade_configuration" object.
+   "path2qb_dll" are found below the "qblade_configuration" object.
 
 
 ## Troubleshoot.

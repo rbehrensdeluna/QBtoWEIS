@@ -4,13 +4,13 @@ General:
     qblade_configuration:
         flag: True
         QB_run_mod: IEA-22-280-RWT-Semi
-        QB_run_dir: output/qblade_runs
+        QB_run_dir: output2/qblade_runs
         model_only: False
         number_of_workers: 7
         qbtoweis_output_filter: QBtoWEIS_output_filter.txt
         # to restart from an existing optimization
-        # restart_from_sql: True
-        # restart_file: /home/robert/GitHub/QBtoWEIS/qb_examples/start_from_sql/log_iea22mw_umaine_restart.sql
+        restart_from_sql: True
+        restart_file: /home/robert/GitHub/QBtoWEIS/qb_examples/start_from_sql/log_iea22mw_umaine.sql
 
 WISDEM:
     RotorSE:

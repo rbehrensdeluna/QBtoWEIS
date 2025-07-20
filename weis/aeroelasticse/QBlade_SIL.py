@@ -29,14 +29,14 @@ import yaml
 
 max_retries = 5 # Number of retries for creating an instance in case license is not validaded by the server
 
-def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, qb_inumber):
+def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, qb_inumber, cl_device, cl_group_size):
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
 
     QBLIB = QBladeLibrary(QBlade_dll)
 
     for attempt in range(max_retries):
-        if QBLIB.createInstance(1, 32):
+        if QBLIB.createInstance(cl_device, cl_group_size):
             success = True
             print(f"Instance created successfully for {sim} on attempt {attempt + 1}.")
             break
@@ -72,19 +72,37 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
     
     QBLIB.unload()
 
-def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber):
+def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber, cl_devices, cl_group_size):
     
-    # clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
+    clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
 
     simulations = sorted([os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')])
+    num_cl_devices = len(cl_devices)
+
+    # Chunk the simulations for each device
+    sim_chunks = np.array_split(simulations, num_cl_devices)
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []
-        for sim in simulations:
-            futures.append(
-                executor.submit(qblade_sil, QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, qb_inumber)
-            )
-            time.sleep(0.25)  # Optional: Add a small delay to avoid overwhelming the system
+
+        # Distribute simulations evenly across cl_devices        
+        for device_index, cl_device in enumerate(cl_devices):
+            for sim in sim_chunks[device_index]:
+                futures.append(
+                    executor.submit(
+                        qblade_sil,
+                        QBlade_dll,
+                        QBLADE_runDirectory,
+                        sim,
+                        channels,
+                        store_qprs,
+                        out_file_format,
+                        qb_inumber,
+                        cl_device,           # Correct cl_device assigned to this chunk
+                        cl_group_size
+                    )
+                )
+                time.sleep(0.25)  # Optional: prevent overloading
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()
@@ -331,5 +349,10 @@ if __name__ == "__main__":
     store_qprs = sys.argv[5]
     out_file_format =  float(sys.argv[6])
     qb_inumber = int(sys.argv[7])
+    cl_devices =  sys.argv[8]
+    cl_group_size = int(sys.argv[9])
 
-    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber)
+    # convert string back to array:
+    cl_devices = np.array(sys.argv[8][1:-1].split(','), dtype=int)
+
+    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber, cl_devices, cl_group_size)

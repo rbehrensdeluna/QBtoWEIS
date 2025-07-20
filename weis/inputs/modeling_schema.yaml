@@ -112,10 +112,14 @@ properties:
                         type: string
                         default: None
                         description: Path to QBlade shared library (e.g. /home/user/QBlade/libqblade.so)
-                    path2qb_libs:
-                        type: string
-                        default: none
-                        description: Path to QBlade libraries
+                    cl_devices:
+                        type: array
+                        default: [1]
+                        description: Selevt OpenCL Device for the QBlde simulation. If multiple GPU's are available it is recommended to distribute the jobs over the available devices. Identify available OpenCL devices with pyopencl.get_platforms()
+                    cl_group_size:
+                        type: integer
+                        default: 32
+                        description: OpenCL group-size
                     number_of_workers:
                         type: integer
                         default: 1

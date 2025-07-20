@@ -67,6 +67,8 @@ class QBladeWrapper:
 
         self.channels           = {}
         self.number_of_workers  = 1
+        self.cl_devices          = []
+        self.cl_group_size      = 32
         self.no_structure       = False
         self.store_qprs         = False
         self.turbsim_params     = {}
@@ -216,6 +218,8 @@ class QBladeWrapper:
             str(self.store_qprs),
             str(self.out_file_format),
             str(self.qb_inumber),
+            str(self.cl_devices),
+            str(self.cl_group_size),
             ]
         
         cmd = ['python', script_path] + sim_params
@@ -332,5 +336,7 @@ if __name__ == "__main__":
     qblade.chunk_size           = 30000000
     qblade.out_file_format      = 2
     qblade.delete_out_files     = False
+    qblade.cl_device            = [1]
+    qblade.cl_group_size        = 32
     # failed = qblade.execute()
     summary_stats, extreme_table, DELs, Damage, ct =  qblade.run_multi()
