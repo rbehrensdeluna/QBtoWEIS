@@ -597,7 +597,7 @@ class QBLADELoadCases(ExplicitComponent):
         # get the damping as a function of critical damping in case user didn't RAYLEIGHDMP or used USECRITDAMP
         if qb_vt['Blade']['USECRITDAMP'] or qb_vt['Blade']['RAYLEIGHDMP'] == 0:
             if qb_vt['Blade']['RAYLEIGHDMP'] == 0:
-                logger.warning(f"Setting RAYLEIGHDMP to equivalent to value to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
+                logger.warning(f"Setting Blade RAYLEIGHDMP to equivalent to value to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Blade']['CRITDAMP']/100) / (np.pi * inputs['flap_freq'])
             qb_vt['Blade']['RAYLEIGHDMP'] = float(beta)
 
@@ -766,7 +766,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         if qb_vt['Tower']['USECRITDAMP'] or qb_vt['Tower']['RAYLEIGHDMP'] == 0:
             if qb_vt['Tower']['RAYLEIGHDMP'] == 0:
-                logger.warning(f"Tower RAYLEIGHDMP was zero. Updated RAYLEIGHDMP to equivalent to {qb_vt['Tower']['CRITDAMP']}% of critical damping")
+                logger.warning(f"Setting Tower RAYLEIGHDMP to equivalent to value to {qb_vt['Tower']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Tower']['CRITDAMP']/100) / (np.pi * inputs['twr_freq'])
             qb_vt['Tower']['RAYLEIGHDMP'] = float(beta)
 
