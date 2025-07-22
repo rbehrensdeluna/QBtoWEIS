@@ -20,6 +20,7 @@ from pCrunch.io import OpenFASTOutput, OpenFASTBinary, OpenFASTAscii
 from pCrunch import LoadsAnalysis, FatigueParams
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from packaging import version
+import numpy as np  
 import logging
 import re
 import sys
@@ -30,12 +31,12 @@ weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 magnitude_channels_default = {
     'LSShftF': ["X_s For. Shaft Const.", "Y_s For. Shaft Const.", "Z_s For. Shaft Const."], 
     'LSShftM': ["X_s Mom. Shaft Const.", "Y_s Mom. Shaft Const.", "Z_s Mom. Shaft Const."],
-    'RootMc1': ["X_c RootBend. Mom. (IP) BLD 1", "Y_c RootBend. Mom. (OOP) BLD 1", "Z_c RootBend. Mom. BLD 1"],
-    'RootMc2': ["X_c RootBend. Mom. (IP) BLD 2", "Y_c RootBend. Mom. (OOP) BLD 2", "Z_c RootBend. Mom. BLD 2"],
-    'RootMc3': ["X_c RootBend. Mom. (IP) BLD 3", "Y_c RootBend. Mom. (OOP) BLD 3", "Z_c RootBend. Mom. BLD 3"],
-    'TipDc1':  ['X_c Tip Trl.Def. (OOP) BLD 1', 'Y_c Tip Trl.Def. (IP) BLD 1', 'Z_c Tip Trl.Def. BLD 1'],
-    'TipDc2':  ['X_c Tip Trl.Def. (OOP) BLD 2', 'Y_c Tip Trl.Def. (IP) BLD 2', 'Z_c Tip Trl.Def. BLD 2'],
-    'TipDc3':  ['X_c Tip Trl.Def. (OOP) BLD 3', 'Y_c Tip Trl.Def. (IP) BLD 3', 'Z_c Tip Trl.Def. BLD 3'],
+    'RootMc1': ["X_c RootBend. Mom. (IP) BLD_1", "Y_c RootBend. Mom. (OOP) BLD_1", "Z_c RootBend. Mom. BLD_1"],
+    'RootMc2': ["X_c RootBend. Mom. (IP) BLD_2", "Y_c RootBend. Mom. (OOP) BLD_2", "Z_c RootBend. Mom. BLD_2"],
+    'RootMc3': ["X_c RootBend. Mom. (IP) BLD_3", "Y_c RootBend. Mom. (OOP) BLD_3", "Z_c RootBend. Mom. BLD_3"],
+    'TipDc1':  ['X_c Tip Trl.Def. (OOP) BLD_1', 'Y_c Tip Trl.Def. (IP) BLD_1', 'Z_c Tip Trl.Def. BLD_1'],
+    'TipDc2':  ['X_c Tip Trl.Def. (OOP) BLD_2', 'Y_c Tip Trl.Def. (IP) BLD_2', 'Z_c Tip Trl.Def. BLD_2'],
+    'TipDc3':  ['X_c Tip Trl.Def. (OOP) BLD_3', 'Y_c Tip Trl.Def. (IP) BLD_3', 'Z_c Tip Trl.Def. BLD_3'],
     'TwrBsM':  ['X_tb Mom. TWR Bot. Constr.', 'Y_tb Mom. TWR Bot. Constr.', 'Z_tb Mom. TWR Bot. Constr.'],
     'NcIMUTA': ['X_n Nac. Acc.','Y_n Nac. Acc.','Z_n Nac. Acc.']
 }
@@ -44,12 +45,14 @@ fatigue_channels_default = {
     'RootMc1': FatigueParams(slope=10),
     'RootMc2': FatigueParams(slope=10),
     'RootMc3': FatigueParams(slope=10),
-    'Y_b RootBend. Mom. BLD 1': FatigueParams(slope=10),   # 'RootMyb1': FatigueParams(slope=10),
-    'Y_b RootBend. Mom. BLD 2': FatigueParams(slope=10),   # 'RootMyb2': FatigueParams(slope=10),
-    'Y_b RootBend. Mom. BLD 3': FatigueParams(slope=10),   # 'RootMyb3': FatigueParams(slope=10),
+    'Y_b RootBend. Mom. BLD_1': FatigueParams(slope=10),   # 'RootMyb1': FatigueParams(slope=10),
+    'Y_b RootBend. Mom. BLD_2': FatigueParams(slope=10),   # 'RootMyb2': FatigueParams(slope=10),
+    'Y_b RootBend. Mom. BLD_3': FatigueParams(slope=10),   # 'RootMyb3': FatigueParams(slope=10),
     'TwrBsM': FatigueParams(slope=4),
     'LSShftM': FatigueParams(slope=4),
 }
+# all magnitude QBlade force and moment channells need to be scaled by 1e-3. These are the only ones that don't need to be scaled
+no_scale_channels = {'TipDc1', 'TipDc2', 'TipDc3', 'NcIMUTA'}
 
 logger = logging.getLogger("wisdem/weis") 
 
@@ -60,13 +63,15 @@ class QBladeWrapper:
         self.QBLADE_runDirectory = None
         self.QBLADE_namingOut = None
         self.qb_vt = None
+        self.qb_inumber = None
 
         self.channels           = {}
         self.number_of_workers  = 1
+        self.cl_devices          = []
+        self.cl_group_size      = 32
         self.no_structure       = False
         self.store_qprs         = False
         self.turbsim_params     = {}
-        self.chunk_size         = 30000
         self.out_file_format    = 2
         self.delete_out_files   = True
 
@@ -84,7 +89,13 @@ class QBladeWrapper:
                 #extreme_channels=channel_extremes_default,
             )
     def run_qblade_cases(self):
+        start_time = time.time()
+        
         self.execute()
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Elapsed time to complete all QBlade simulation: {elapsed_time:.2f} seconds.")
 
         if self.number_of_workers == 1:
             summary_stats, extreme_table, DELs, Damage, ct =  self.run_serial()	
@@ -175,7 +186,7 @@ class QBladeWrapper:
         
     def set_environment(self):
         # Set the environment variables to include the path to the shared libraries
-        libraries_path = self.QBlade_libs
+        libraries_path = os.path.join(os.path.dirname(self.QBlade_dll), "Libraries")
         os.environ['LD_LIBRARY_PATH'] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{libraries_path}"
         print(f"Environment variables set. Library path: {libraries_path}")
 
@@ -190,25 +201,25 @@ class QBladeWrapper:
             
         # Run the Python script using subprocess
         script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QBlade_SIL.py')
-
-        channels_str = ','.join(self.channels)  # convert channels to csv
-
-        if self.qb_vt['QSim']['TMax'] > 0:
-            self.qb_vt['QSim']['NUMTIMESTEPS'] = int(self.qb_vt['QSim']['TMax'] / self.qb_vt['QSim']['TIMESTEP'])
+        
+        # Write the WEIS channels to a filter file to make QBlade only serilaize and export the channels we need
+        filter_file = os.path.join(self.QBLADE_runDirectory,'QB_FILTERFILE.txt')
+        with open(filter_file, 'w') as f:
+            for channel in self.channels:
+                f.write(channel + '\n')
         
         self.qblade_version_check()
 
         sim_params = [
             self.QBlade_dll, 
             self.QBLADE_runDirectory, 
-            channels_str, 
-            str(self.qb_vt['QSim']['NUMTIMESTEPS']),
+            filter_file,
             str(self.number_of_workers),
-            str(self.no_structure),
             str(self.store_qprs),
-            str(self.qb_vt['QSim']['STOREFROM']),
-            str(self.chunk_size),
             str(self.out_file_format),
+            str(self.qb_inumber),
+            str(self.cl_devices),
+            str(self.cl_group_size),
             ]
         
         cmd = ['python', script_path] + sim_params
@@ -219,23 +230,44 @@ class QBladeWrapper:
         if self.out_file_format == 1 and os.path.exists(case):
             output_init = OpenFASTAscii(case, magnitude_channels=self.magnitude_channels)
         if self.out_file_format == 2 and  os.path.exists(case):
-            chan_char_length = max(len(channel[:channel.index(' [')]) for channel in self.channels)
-            unit_char_length = max(len(channel[channel.index('['):]) for channel in self.channels)
-            output_init = OpenFASTBinary(case,chan_char_length=chan_char_length, unit_char_length=unit_char_length, magnitude_channels=self.magnitude_channels)
+            output_init = OpenFASTBinary(case, magnitude_channels=self.magnitude_channels)
 
         output_init.read()
 
         # Make output dict
         output_dict = {}
         filename = os.path.basename(case)
-        for channel in output_init.channels:
-            output_dict[channel] = output_init.df[channel].to_numpy()
+
+        # Iterate through channels and apply scaling
+        for idx, channel in enumerate(output_init.channels):
+            # Determine the unit for the channel
+            if idx < len(output_init.units):
+                unit = output_init.units[idx]
+            else:
+                unit = None  # If no unit is provided
+
+            if unit:
+                # If there is a unit, scale according to the unit logic
+                scaled_data, scaled_unit = self.scale_channels(output_init.df[channel].to_numpy(), unit)
+            else:
+                # If there is no unit, check if the channel is in the no_scale_channels list
+                if channel in no_scale_channels:
+                    # If it's in the no_scale_channels list, don't scale
+                    scaled_data = output_init.df[channel].to_numpy()
+                    scaled_unit = unit
+                else:
+                    # If it's not in the list, scale by 1e-03
+                    scaled_data = output_init.df[channel].to_numpy() * 1e-03
+                    scaled_unit = unit
+
+            # Store the scaled data
+            output_dict[channel] = scaled_data
 
         # Re-make output
         output = OpenFASTOutput.from_dict(output_dict, filename)
 
         # Trim Data
-        if self.qb_vt['QSim']['STOREFROM'] > 0.0:
+        if self.qb_vt['QSim']['STOREFROM'] > 0.0 and not self.qb_vt['QSim']['DLCGenerator']: # in DLCGenerator QBlade never stores the values during the "tansient_time"
             output.trim_data(tmin=self.qb_vt['QSim']['STOREFROM'], tmax=self.qb_vt['QSim']['TMax'])
         case_name, sum_stats, extremes, dels, damage = self.la._process_output(output,
                                                                             return_damage=True,
@@ -250,13 +282,33 @@ class QBladeWrapper:
         else:
             raise ValueError("Version number not found in QBlade_dll path.")
         
-        mp_version = "2.0.8" # version that includes mp capability and allows for number_of_workers > 1
+        mp_version = "2.0.8.7" # version that exports to outb format directly
 
         if version.parse(qb_version) < version.parse(mp_version):
-            print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.8 or newer.")
+            print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.8.7 or newer.")
             sys.exit(1)
         else:
             print("QBlade version: ", version.parse(qb_version), "was found!")
+    
+    def scale_channels(self, data, unit):
+        """
+        Scale [N] -> [kN], [Nm] -> [kNm], and [W] -> [kW]
+        """
+        scaled_data = data  # default to unscaled
+        scaled_unit = unit  # default to original unit
+
+        if unit.endswith("N"):
+            scaled_data = data * 1e-03
+            scaled_unit = "kN"
+        elif unit.endswith("Nm"):
+            scaled_data = data * 1e-03
+            scaled_unit = "kNm"
+        elif unit.endswith("W"):
+            scaled_data = data * 1e-03
+            scaled_unit = "kW"
+
+        return scaled_data, scaled_unit
+
 
 # for testing
 if __name__ == "__main__":
@@ -284,5 +336,7 @@ if __name__ == "__main__":
     qblade.chunk_size           = 30000000
     qblade.out_file_format      = 2
     qblade.delete_out_files     = False
+    qblade.cl_device            = [1]
+    qblade.cl_group_size        = 32
     # failed = qblade.execute()
     summary_stats, extreme_table, DELs, Damage, ct =  qblade.run_multi()

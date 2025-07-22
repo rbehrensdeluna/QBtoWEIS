@@ -85,8 +85,8 @@ properties:
                     MODNEWTONITER:
                         type: integer
                         default: 0
-                        min: 0
-                        description: use the modified newton iteration?
+                        enum: [0,1]
+                        description: Use the modified newton iteration (0 = no; 1 = yes)
                     INCLUDEAERO:
                         type: integer
                         default: 1
@@ -319,6 +319,10 @@ properties:
                         type: boolean
                         default: false
                         description: should the controller data be stored
+                    FILTERFILE:
+                        type: string
+                        default: ''
+                        description: filename of the results data filter file
                     CALCMODAL:
                         type: boolean
                         default: false
@@ -956,7 +960,12 @@ properties:
                         type: boolean
                         default: False
                         description: is the turbine floating
-                    WAVEKINEVALTYPE:
+                    WAVEKINEVAL_MOR:
+                        type: integer
+                        default: 0
+                        enum: [0,1,2]
+                        description: 0 - local evaluation, 1 - eval at fixed ref pos, 2 - eval at lagged position
+                    WAVEKINEVAL_POT:
                         type: integer
                         default: 0
                         enum: [0,1,2]

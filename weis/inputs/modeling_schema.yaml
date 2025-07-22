@@ -110,12 +110,16 @@ properties:
                         description: Flag to only generate a QBlade model and stop
                     path2qb_dll:
                         type: string
-                        default: none
+                        default: None
                         description: Path to QBlade shared library (e.g. /home/user/QBlade/libqblade.so)
-                    path2qb_libs:
-                        type: string
-                        default: none
-                        description: Path to QBlade libraries
+                    cl_devices:
+                        type: array
+                        default: [1]
+                        description: Selevt OpenCL Device for the QBlde simulation. If multiple GPU's are available it is recommended to distribute the jobs over the available devices. Identify available OpenCL devices with pyopencl.get_platforms()
+                    cl_group_size:
+                        type: integer
+                        default: 32
+                        description: OpenCL group-size
                     number_of_workers:
                         type: integer
                         default: 1
@@ -136,6 +140,10 @@ properties:
                         type: boolean
                         default: True
                         description: Save summary stats and other info for each qlade iteration.
+                    qbtoweis_output_filter:
+                        type: string
+                        default: none
+                        description: Name of .txt file that contains a list of QBlade channel names (with units!!) that are written to the pickle file if save_iterations = True. Aim is to reduce memory usage. (should be located in the same directory as modeling_options.yaml)
                     store_qprs:
                         type: boolean
                         default: False
@@ -149,10 +157,14 @@ properties:
                         type: boolean
                         default: True
                         description: delete .out file of a of a simulation after it was interpreted for (should not be used for optimizations)
-                    chunk_size:
-                        type: integer
-                        default: 30000
-                        description: Defines the number of timesteps stored in each chunk of simulation results before being written to disk. Increasing the chunk size reduces the frequency of write operations but requires more memory. A smaller chunk size minimizes memory usage but may result in more frequent writes. (only available with ASCII type .out files)
+                    restart_from_sql:
+                        type: boolean
+                        default: False
+                        description: restart from an existing optimization ()
+                    restart_file:
+                        type: string
+                        default: none
+                        description: absolute path to the sql file to restart from
             goodman_correction:
                 type: boolean
                 default: False

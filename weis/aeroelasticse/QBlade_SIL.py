@@ -23,137 +23,117 @@ import time
 import os
 import numpy as np
 import pandas as pd
-import gc
 import struct as st
+import yaml
 
-def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, chunk_size, out_file_format):
+
+max_retries = 5 # Number of retries for creating an instance in case license is not validaded by the server
+
+def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_file_format, qb_inumber, cl_device, cl_group_size):
     bsim = sim.encode("utf-8")
     sim_name = os.path.basename(sim)
-    # dll_directory = os.path.dirname(QBlade_dll)
-    
-    # if sys.platform == 'win32':  
-    #     os.environ["PATH"] = dll_directory + os.pathsep + os.environ.get("PATH", "")
 
     QBLIB = QBladeLibrary(QBlade_dll)
-    QBLIB.createInstance(1,32) 
+
+    for attempt in range(max_retries):
+        if QBLIB.createInstance(cl_device, cl_group_size):
+            success = True
+            print(f"Instance created successfully for {sim} on attempt {attempt + 1}.")
+            break
+        else:
+            print(f"Attempt {attempt + 1} failed for {sim}.")
+            time.sleep(1)
+    if not success:
+        raise RuntimeError("Failed to create instance after 5 attempts.")
+    
     QBLIB.setOmpNumThreads(1)
     QBLIB.loadSimDefinition(bsim)
     QBLIB.initializeSimulation()
-    QBLIB.setAutoClearTemp(False)
+    QBLIB.setAutoCleanup(False)
 
+    simulation_success = QBLIB.runFullSimulation()
     
-    # Convert each item in the list to a bytes-like object
-    channels += ['qblade_failed [-]']
-    bchannels = [bytes(channel, 'utf-8') for channel in channels]
-    output_dict = {channel: [] for channel in channels}
-    sim_out_name = sim.strip('.sim')
-    file_path = os.path.join(QBLADE_runDirectory, sim_out_name + '_completed.out')
-
-    simulation_completed = True
-    start_time = time.time()
-    first_chunk = True 
-    for i in range(n_dt):
-
-        success = QBLIB.advanceTurbineSimulation() 
-
-        # Check if the simulation step was successful
-        if not success:
-            print(f"Simulation {sim_name} failed at timestep {i}, exiting simulation loop", flush=True)
-            simulation_completed = False
-            break
-
-        if 'False' in no_structure: # we can only advance the controller as long as a structural model is included in the simulation
-            ctr_vars = (c_double * 5)(0) 
-            QBLIB.advanceController_at_num(ctr_vars,0) 
-            # QBLIB.setControlVars_at_num(ctr_vars,0) 
-
-        if i % (n_dt // 10) == 0:
-            progress_percentage = i / n_dt * 100
-            elapsed_time = time.time() - start_time
-            print(f"Simulation Progress: {sim_name} at {progress_percentage:3.0f}% (time elapsed: {elapsed_time:.1f} s)", flush=True)
-
-        # extract channels from simulation    
-        if QBLIB.getCustomData_at_num(b'Time [s]', 0, 0) >= store_from:
-            for bchannel, channel in zip(bchannels, channels):
-                data = QBLIB.getCustomData_at_num(bchannel, 0, 0)
-                if isinstance(data, (float, int)):
-                    rounded_data = round(data, 5)
-                    output_dict[channel].append(rounded_data)
-                else:
-                    output_dict[channel].append(data)
-        
-        if (i + 1) % chunk_size == 0 and out_file_format == 1:  # Write every chunk_size, only availble for ascii type files
-            print(f"Writing chunk to {file_path}...", flush=True)
-            output_dict['qblade_failed [-]'] = np.zeros_like(output_dict['Time [s]'])
-            output_dict = scale_and_rename_channels(output_dict)
-            export_to_OF_ASCII(output_dict, directory=None, filename=file_path, first_chunk=first_chunk)
-            print(f"Chunk successfully written to {file_path}, continuing simulation...", flush=True)
-
-            # Reset dictionary and prepare for next chunk
-            output_dict.clear()
-            gc.collect()  # Force garbage collection to free up memory
-            output_dict = {channel: [] for channel in channels}
-            first_chunk = False # set to False after the first chunk has been written so the header is not written again
-        
-    if simulation_completed:  # This now handles ALL remaining data
-        print(f"Simulation Progress: {sim_name} complete (time elapsed: {elapsed_time:.1f} s); finalizing simulation data...", flush=True)
-        output_dict['qblade_failed [-]'] = np.zeros_like(output_dict['Time [s]'])
-        output_dict = scale_and_rename_channels(output_dict)
-        if out_file_format == 1:
-            export_to_OF_ASCII(output_dict, directory=None, filename=file_path, first_chunk=first_chunk)
-        elif out_file_format == 2:
-            export_to_OF_Binary(output_dict, outfilename=file_path.replace('.out', '.outb'))
-        print(f"Simulation results of {sim_name} successfully written to {file_path}.", flush=True)
+    if not simulation_success:
+        log_failed_simulation(sim_name, qb_inumber, QBLADE_runDirectory)
+        raise RuntimeError(f"Simulation {sim} failed.")  
+    
+    sim_out_name = sim_name.strip('.sim')
+    
+    # TODO: allow for out AND oub
+    if out_file_format == 2 and simulation_success: # 2 --> binary:
+        # QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), channels.encode()) # this is required to get the time channel
+        QBLIB.exportResults(3, QBLADE_runDirectory.encode(), (sim_out_name + '_completed').encode(), ''.encode())
     else:
-        output_dict['qblade_failed [-]'] = np.ones_like(output_dict['Time [s]'])
-        output_dict = scale_and_rename_channels(output_dict)
-        if out_file_format == 1:
-            export_to_OF_ASCII(output_dict, directory=None, filename=file_path, first_chunk=first_chunk)
-        elif out_file_format == 2:
-            export_to_OF_Binary(output_dict, outfilename=file_path.replace('.out', '.outb'))
-        print(f"Simulation results for {sim_name} successfully written to {file_path} (up to the point of failure).", flush=True)
-    
+        raise ValueError("Error: Only 'outb' format is supported for binary export (out_file_format = 2). 'out' is no longer supported.")
+        
     if 'True' in store_qprs:
-        output_file = f"{sim_out_name}_completed.qpr".encode('ASCII')
-        QBLIB.storeProject(output_file)
+        qpr_project = os.path.join(QBLADE_runDirectory, f"{sim_out_name}_completed.qpr".encode('ASCII'))
+        QBLIB.storeProject(qpr_project)
     
-    QBLIB.closeInstance()
-    del QBLIB.lib
+    QBLIB.unload()
 
-def run_with_retry(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, chunk_size, out_file_format, max_retries=2, delay=2):
-    attempt = 0
-    while attempt < max_retries:
-        try:
-            print(f"Running simulation attempt {attempt + 1} for {sim}...")
-            qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, chunk_size, out_file_format)
-            return  # Exit if successful
-        except Exception as e:
-            print(f"Simulation attempt {attempt + 1} failed with exception: {e}")
-            attempt += 1
-            if attempt < max_retries:
-                print("Retrying...")
-                time.sleep(delay)
-            else:
-                print(f"Max retries reached for {sim}. Moving on.")
-
-def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from, chunk_size, out_file_format):
+def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber, cl_devices, cl_group_size):
     
     clear_and_delete_temp(QBlade_dll) # delete TEMP folder within QBlade directory to prevent unnecessary data clogging
 
-    simulations = [os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')]
+    simulations = sorted([os.path.join(QBLADE_runDirectory, f) for f in os.listdir(QBLADE_runDirectory) if f.endswith('.sim')])
+    num_cl_devices = len(cl_devices)
+
+    # Chunk the simulations for each device
+    sim_chunks = np.array_split(simulations, num_cl_devices)
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []
-        for sim in simulations:
-            time.sleep(1)  # Introduce a one-second pause before submitting the next task
-            futures.append(
-                executor.submit(run_with_retry, QBlade_dll, QBLADE_runDirectory, sim, n_dt, channels, no_structure, store_qprs, store_from, chunk_size, out_file_format)
-            )
+
+        # Distribute simulations evenly across cl_devices        
+        for device_index, cl_device in enumerate(cl_devices):
+            for sim in sim_chunks[device_index]:
+                futures.append(
+                    executor.submit(
+                        qblade_sil,
+                        QBlade_dll,
+                        QBLADE_runDirectory,
+                        sim,
+                        channels,
+                        store_qprs,
+                        out_file_format,
+                        qb_inumber,
+                        cl_device,           # Correct cl_device assigned to this chunk
+                        cl_group_size
+                    )
+                )
+                time.sleep(0.25)  # Optional: prevent overloading
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()
             except Exception as e:
-                print(f"Simulation failed after retrying with exception: {e}")
+                print(f"Simulation failed with exception: {e}")
+
+def log_failed_simulation(sim_name, qb_inumber, run_directory):
+    status_file = os.path.join(run_directory, "qblade_run_failure_log.yaml")
+    key = f"iteration_{qb_inumber:03d}"
+
+    # Load existing failure log
+    if os.path.exists(status_file):
+        with open(status_file, "r") as f:
+            try:
+                failures = yaml.safe_load(f) or {}
+            except yaml.YAMLError:
+                failures = {}
+    else:
+        failures = {}
+
+    # Initialize structure if necessary
+    if key not in failures:
+        failures[key] = {"failed_simulations": []}
+
+    # Append simulation name if not already listed
+    if sim_name not in failures[key]["failed_simulations"]:
+        failures[key]["failed_simulations"].append(sim_name)
+
+    # Write updated log
+    with open(status_file, "w") as f:
+        yaml.dump(failures, f)
 
 def export_to_OF_Binary(data, outfilename):
     """
@@ -161,11 +141,10 @@ def export_to_OF_Binary(data, outfilename):
     
     Parameters:
     - data: A DataFrame with channel names and data. Channel names are in the format 'ChannelName [Unit]'.
-    - filename: The path to the output binary file.
-    - description: A description string to be written in the header.
+    - outfilename: The path to the output binary file.
     """
 
-    FileID = 2
+    FileID = 4
     DescStr = "Generated by export_to_OF_Binary"
     PackingData = None
 
@@ -181,21 +160,21 @@ def export_to_OF_Binary(data, outfilename):
     dataframe = pd.DataFrame(data)
     col_names = dict(zip(dataframe.columns, channels))
     Chans = dataframe.rename(col_names, axis=1)
+
+    if 'Time' not in Chans.columns:
+        raise ValueError("'Time' column is required and must be named exactly 'Time'")
+
+    cols = Chans.columns.tolist()
+    cols.insert(0, cols.pop(cols.index('Time')))  # Move 'Time' to front
+    Chans = Chans[cols]
     
-    # Scaling Parameters
-    Int32Max = np.float64(65535.0)                          
-    Int32Min = np.float64(-65536.0)                         
-    Int32Rang = np.float64(Int32Max-Int32Min)               
+    # Scaling Parameters                                 
     IntMax = np.float64(32757.0)                            
     IntMin = np.float64(-32768.0)                           
     IntRang = np.float64(IntMax-IntMin)                     
 
     # Time parameters
-    Time = np.float64(Chans.Time)
-    TimeMax = Time.max()                                    
-    TimeMin = Time.min()                                    
-    TimeOff = 0                                             
-    TimeScl = 0                                             
+    Time = np.float64(Chans.Time)                                           
     TimeOut1 = Time[0]                                      
     TimeIncrement = Time[1]-Time[0]                         
 
@@ -210,85 +189,52 @@ def export_to_OF_Binary(data, outfilename):
     NT = len(Time)                                          
     NumOutChans = len(ChansMod.columns)                                        
 
-    TmpOutArray = np.zeros((ChansMod.size), dtype=np.int16) 
-    TmpTimeArray = np.zeros(NT, dtype=np.int32)                                               
-    ChanNameASCII = []                                      
-    ChanUnitASCII = []                                      
-
-    # FileID = 1 is with time, FileID =2 is without time
-    if FileID == 1:
-        TmpTimeArray = np.zeros(len(Time), dtype=np.int32)
-
-    # for Name in ChansMod.columns:
-    LenName = Chans.columns.str.len().max()
-    for Name in Chans.columns:
-        ChanNameASCII.append(Name.ljust(LenName).encode('utf-8'))
-
-    LenUnit = len(max(ChanUnit, key=len))
-    for Unit in ChanUnit:
-        ChanUnitASCII.append(Unit.ljust(LenUnit).encode('latin_1'))
+    TmpOutArray = np.zeros((ChansMod.size), dtype=np.int16)                                            
+    
+    maxChanLen = max(len(name) for name in channels)
+    maxUnitLen = max(len(unit) for unit in ChanUnit)
+    nChar = max(maxChanLen, maxUnitLen)        
 
     if PackingData is None:
         for i in range(len(ColMax)):
             if ColMax[i] == ColMin[i]:
                 ColScl.append(np.float32(1))
             else:
-                ColScl.append(np.float32(IntRang/(ColMax[i] - ColMin[i])))
-
-            ColOff.append(np.float32(IntMin-ColScl[i]*ColMin[i]))
-
-        if FileID == 1:
-            if TimeMax == TimeMin:
-                TimeScl = np.float64(1)
-            else:
-                TimeScl = Int32Rang/np.float64((TimeMax-TimeMin))
-            TimeOff = Int32Min - TimeScl*np.float64((TimeMin))
-            
+                ColScl.append(np.float32(IntRang / (ColMax[i] - ColMin[i])))
+            ColOff.append(np.float32(IntMin - ColScl[i] * ColMin[i]))
     else:
         ColScl = PackingData['ColScl']
-        ColOff = PackingData['ColOff']
-        TimeScl = PackingData['TimeScl']
-        TimeOff = PackingData['TimeOff']
+        ColOff = PackingData['ColOff']                         
 
     TempFrame = ChansMod.copy()
-
-
     for j in range(NumOutChans):
         TempFrame[TempFrame.columns[j]] = ColScl[j] * TempFrame[TempFrame.columns[j]] + ColOff[j]
+    TmpOutArray = np.clip(TempFrame.values.flatten(), IntMin, IntMax).astype(np.int16)
 
-    TmpOutArray = np.clip((TempFrame.values.flatten()), IntMin, IntMax).astype(np.int16)
+    ChanNameASCII = [name[:nChar].ljust(nChar).encode('latin_1') for name in Chans.columns]
+    ChanUnitASCII = [unit[:nChar].ljust(nChar).encode('latin_1') for unit in ChanUnit]
+    
+    with open(outfilename, 'wb') as outfile:
+        outfile.write(st.pack('h', np.int16(FileID)))
+        outfile.write(st.pack('@h', np.int16(nChar)))
+        outfile.write(st.pack('i', np.int32(NumOutChans)))
+        outfile.write(st.pack('i', np.int32(NT)))
 
-    # Pack the time into 32-bit integers
-    if FileID == 1:
-        TmpTimeArray = np.clip(TimeScl*Time+TimeOff, Int32Min, Int32Max).astype(np.int32)
+        outfile.write(st.pack('d', np.float64(TimeOut1)))
+        outfile.write(st.pack('d', np.float64(TimeIncrement)))
 
-    outfile = open(outfilename, 'wb')
+        outfile.write(np.array(ColScl, dtype=np.float32))
+        outfile.write(np.array(ColOff, dtype=np.float32))
 
-    outfile.write(st.pack('h',np.int16(FileID)))
-    outfile.write(st.pack('i',np.int32(NumOutChans)))
-    outfile.write(st.pack('i',np.int32(NT)))
+        outfile.write(np.int32(LenDesc))
+        outfile.write(DescStr.encode('utf-8'))
 
-    if FileID == 1:
-        outfile.write(st.pack('d',np.float64(TimeScl)))
-        outfile.write(st.pack('d',np.float64(TimeOff)))
-    else:
-        outfile.write(st.pack('d',np.float64(TimeOut1)))
-        outfile.write(st.pack('d',np.float64(TimeIncrement)))
+        
 
-    outfile.write(np.array(ColScl, dtype=np.float32))
-    outfile.write(np.array(ColOff, dtype=np.float32))
+        outfile.write(np.array(ChanNameASCII))
+        outfile.write(np.array(ChanUnitASCII))
 
-    outfile.write(np.int32(LenDesc))
-
-    outfile.write(DescStr.encode('utf-8'))
-    outfile.write(np.array(ChanNameASCII))
-    outfile.write(np.array(ChanUnitASCII))
-
-    if FileID == 1:
-        outfile.write(TmpTimeArray)
-
-    outfile.write(TmpOutArray)
-    outfile.close()
+        outfile.write(TmpOutArray)
 
 def export_to_OF_ASCII(data, directory=None, filename=None, first_chunk=True):
     """
@@ -300,7 +246,7 @@ def export_to_OF_ASCII(data, directory=None, filename=None, first_chunk=True):
     for idx, entry in enumerate(data):
         split_string = entry.split(" [")
         channels.append(split_string[0])
-        # channels.append(split_string[0].replace(' ','_')) # This would be required to make the result file compatible with PDAP
+        # channels.append(split_string[0].replace(' ','_')) # This would be required to make the result file compatible with PDAP becaus blank spaces are not allowed
         units.append(''.join(('(',split_string[1].strip("]"),')')))
     dataframe = pd.DataFrame(data)
 
@@ -314,7 +260,7 @@ def export_to_OF_ASCII(data, directory=None, filename=None, first_chunk=True):
     # Apply scientific notation format with 6 decimal places
     dataframe = dataframe.apply(lambda col: col.map(lambda x: f"{x:.6E}" if isinstance(x, (int, float)) else x))
 
-    if first_chunk:  # Write header only for the first chunk
+    if first_chunk:  # Write header only for the first chunk of data
         with open(filename, 'w') as f:  # Open in 'w' mode for the first chunk
             f.write('---------------------------------------- file generated with WEIS QBlade API ----------------------------------------\n')
             f.write('Results are written in OpenFAST ASCII (.out) format\n')
@@ -323,7 +269,7 @@ def export_to_OF_ASCII(data, directory=None, filename=None, first_chunk=True):
             data_string = dataframe.to_csv(sep='\t', index=False, header=True, lineterminator='\n')
             f.write(data_string)
 
-    else:  # Append data for subsequent chunks, skipping the header and units row
+    else:  # Append data for subsequent chunks,
         with open(filename, 'a') as f:  # Open in 'a' mode to append
             data_string = dataframe.iloc[1:].to_csv(sep='\t', index=False, header=False, lineterminator='\n')  # Skip first two rows
             f.write(data_string)
@@ -398,16 +344,15 @@ if __name__ == "__main__":
     
     QBlade_dll = sys.argv[1]
     QBLADE_runDirectory = sys.argv[2]
-    channels_str = sys.argv[3]
-    n_dt = int(sys.argv[4])
-    number_of_workers = int(sys.argv[5])
-    no_structure = sys.argv[6]
-    store_qprs = sys.argv[7]
-    store_from =  float(sys.argv[8])
-    chunk_size =  float(sys.argv[9])
-    out_file_format =  float(sys.argv[10])
+    channels = sys.argv[3]
+    number_of_workers = int(sys.argv[4])
+    store_qprs = sys.argv[5]
+    out_file_format =  float(sys.argv[6])
+    qb_inumber = int(sys.argv[7])
+    cl_devices =  sys.argv[8]
+    cl_group_size = int(sys.argv[9])
 
-    # required inputs are converted back into the datatype that we need
-    channels = channels_str.split(',') #convert back to list
+    # convert string back to array:
+    cl_devices = np.array(sys.argv[8][1:-1].split(','), dtype=int)
 
-    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, n_dt, number_of_workers, no_structure, store_qprs, store_from, chunk_size, out_file_format)
+    run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers, store_qprs, out_file_format, qb_inumber, cl_devices, cl_group_size)

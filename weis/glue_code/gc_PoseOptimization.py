@@ -40,6 +40,7 @@ class PoseOptimizationWEIS(PoseOptimization):
         # Set merit figure. Each objective has its own scaling.  Check first for user override
         if self.opt["merit_figure_user"]["name"] != "":
             coeff = -1.0 if self.opt["merit_figure_user"]["max_flag"] else 1.0
+            print(f"Print out the coefficient for the user merit figure: {coeff}")
             wt_opt.model.add_objective(self.opt["merit_figure_user"]["name"],
                                        ref=coeff*np.abs(self.opt["merit_figure_user"]["ref"]))
             
@@ -244,7 +245,7 @@ class PoseOptimizationWEIS(PoseOptimization):
         # Rotor overspeed
         if control_constraints['rotor_overspeed']['flag']:
             if not any(self.level_flags):
-                raise Exception('Please turn on the call to OpenFAST or RAFT if you are trying to optimize rotor overspeed constraints.')
+                raise Exception('Please turn on the call to OpenFAST, QBlade or RAFT if you are trying to optimize rotor overspeed constraints.')
             wt_opt.model.add_constraint(f'{self.floating_solve_component}.rotor_overspeed',
                 lower = control_constraints['rotor_overspeed']['min'],
                 upper = control_constraints['rotor_overspeed']['max'])
@@ -259,31 +260,31 @@ class PoseOptimizationWEIS(PoseOptimization):
         # Nacelle Accelleration magnitude
         if control_constraints['nacelle_acceleration']['flag']:
             if not any(self.level_flags):
-                raise Exception('Please turn on the call to OpenFAST or RAFT if you are trying to optimize with nacelle_acceleration constraint.')
+                raise Exception('Please turn on the call to OpenFAST, QBlade or RAFT if you are trying to optimize with nacelle_acceleration constraint.')
             wt_opt.model.add_constraint(f'{self.floating_solve_component}.max_nac_accel',
                     upper = control_constraints['nacelle_acceleration']['max'])
         
         # Max platform pitch
         if control_constraints['Max_PtfmPitch']['flag']:
             if not any(self.level_flags):
-                raise Exception('Please turn on the call to OpenFAST or RAFT if you are trying to optimize Max_PtfmPitch constraints.')
+                raise Exception('Please turn on the call to OpenFAST, QBlade or RAFT if you are trying to optimize Max_PtfmPitch constraints.')
             wt_opt.model.add_constraint(f'{self.floating_solve_component}.Max_PtfmPitch',
                 upper = control_constraints['Max_PtfmPitch']['max'])
         
         # Platform pitch motion
         if control_constraints['Std_PtfmPitch']['flag']:
             if not any(self.level_flags):
-                raise Exception('Please turn on the call to OpenFAST or RAFT if you are trying to optimize Std_PtfmPitch constraints.')
+                raise Exception('Please turn on the call to OpenFAST, QBlade or RAFT if you are trying to optimize Std_PtfmPitch constraints.')
             wt_opt.model.add_constraint(f'{self.floating_solve_component}.Std_PtfmPitch',
                 upper = control_constraints['Std_PtfmPitch']['max'])
         if control_constraints['Max_TwrBsMyt']['flag']:
-            if self.modeling['OpenFAST']['flag'] != True:
-                raise Exception('Please turn on the call to OpenFAST if you are trying to optimize Max_TwrBsMyt constraints.')
+            if self.modeling['OpenFAST']['flag'] != True and self.modeling['QBlade']['flag'] != True:
+                raise Exception('Please turn on the call to OpenFAST of QBlade if you are trying to optimize Max_TwrBsMyt constraints.')
             wt_opt.model.add_constraint(f'{self.floating_solve_component}.max_TwrBsMyt_ratio', 
                 upper = 1.0)
         if control_constraints['DEL_TwrBsMyt']['flag']:
-            if self.modeling['OpenFAST']['flag'] != True:
-                raise Exception('Please turn on the call to OpenFAST if you are trying to optimize Max_TwrBsMyt constraints.')
+            if self.modeling['OpenFAST']['flag'] != True and self.modeling['QBlade']['flag'] != True:
+                raise Exception('Please turn on the call to OpenFAST or QBlade if you are trying to optimize Max_TwrBsMyt constraints.')
             wt_opt.model.add_constraint(f'{self.floating_solve_component}.DEL_TwrBsMyt_ratio', 
                 upper = 1.0)
             
@@ -316,7 +317,7 @@ class PoseOptimizationWEIS(PoseOptimization):
         # Max offset
         if self.opt['constraints']['floating']['Max_Offset']['flag']:
             if not any(self.level_flags):
-                raise Exception('Please turn on the call to OpenFAST or RAFT if you are trying to optimize with openfast_failed constraint.')
+                raise Exception('Please turn on the call to OpenFAST, QBlade or RAFT if you are trying to optimize with openfast_failed constraint.')
             wt_opt.model.add_constraint(
                 f'{self.floating_solve_component}.Max_Offset',
                 upper = self.opt['constraints']['floating']['Max_Offset']['max']

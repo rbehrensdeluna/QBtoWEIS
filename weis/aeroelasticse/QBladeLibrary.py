@@ -9,7 +9,7 @@ class QBladeLibrary:
 
         # Define all functions with argument types and return types
         self.functions: Dict[str, Dict[str, Any]] = {
-            "createInstance": {"argtypes": [c_int, c_int], "restype": c_void_p},
+            "createInstance": {"argtypes": [c_int, c_int], "restype": c_bool},
             "closeInstance": {"argtypes": None, "restype": c_void_p},
             "loadProject": {"argtypes": [c_char_p], "restype": c_void_p},
             "loadSimDefinition": {"argtypes": [c_char_p], "restype": c_void_p},
@@ -42,8 +42,8 @@ class QBladeLibrary:
             "setControlVars_at_num": {"argtypes": [POINTER(c_double * 5), c_int], "restype": c_void_p},
             "getTurbineOperation_at_num": {"argtypes": [POINTER(c_double * 41), c_int], "restype": c_void_p},
             "setPowerLawWind": {"argtypes": [c_double, c_double, c_double, c_double, c_double], "restype": c_void_p},
-            "runFullSimulation": {"argtypes": None, "restype": c_void_p},
-            "setAutoClearTemp": {"argtypes": [c_bool], "restype": c_void_p},
+            "runFullSimulation": {"argtypes": None, "restype": c_bool},
+            "setAutoCleanup": {"argtypes": [c_bool], "restype": c_void_p},
         }
         
         # Automatically load the library

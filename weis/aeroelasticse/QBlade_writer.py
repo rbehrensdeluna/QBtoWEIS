@@ -616,9 +616,9 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR']):<{object_length}}{'ZONE1FACTOR':<{keyword_length}} - the wake zone 1 factor (integer!) [-]\n")
             f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR']):<{object_length}}{'ZONE2FACTOR':<{keyword_length}} - the wake zone 2 factor (integer!) [-]\n")
             f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR']):<{object_length}}{'ZONE3FACTOR':<{keyword_length}} - the wake zone 3 factor (integer!) [-]\n")
-            f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR_S']):<{object_length}}{'ZONE1FACTOR':<{keyword_length}} - the wake zone 1 spanwise factor (integer) [-]\n")
-            f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR_S']):<{object_length}}{'ZONE2FACTOR':<{keyword_length}} - the wake zone 2 spanwise factor (integer) [-]\n")
-            f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR_S']):<{object_length}}{'ZONE3FACTOR':<{keyword_length}} - the wake zone 3 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE1FACTOR_S']):<{object_length}}{'ZONE1FACTOR_S':<{keyword_length}} - the wake zone 1 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE2FACTOR_S']):<{object_length}}{'ZONE2FACTOR_S':<{keyword_length}} - the wake zone 2 spanwise factor (integer) [-]\n")
+            f.write(f"{str(self.qb_vt['Turbine']['ZONE3FACTOR_S']):<{object_length}}{'ZONE3FACTOR_S':<{keyword_length}} - the wake zone 3 spanwise factor (integer) [-]\n")
             f.write('\n')
 
             f.write('----------------------------------------Vortex Core Parameters----------------------------------------------------------\n')
@@ -681,7 +681,8 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['QBladeOcean']['WATERDEPTH']):<{object_length}}{'WATERDEPTH':<{keyword_length}} - design water depth [m]\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['ISFLOATING']):<{object_length}}{'ISFLOATING':<{keyword_length}} - if the structure is fixed the joint coordinates are assigned in a coordinate system with O(0,0,0) at the mudline, for floaters O(0,0,0) is at the MSL and marks the floaters's NP\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['WATERDENSITY']):<{object_length}}{'WATERDENSITY':<{keyword_length}} -design density, used in flooded member mass calculations\n")
-            f.write(f"{str(self.qb_vt['QBladeOcean']['WAVEKINEVALTYPE']):<{object_length}}{'WAVEKINEVALTYPE':<{keyword_length}} - 0 - local evaluation, 1 - eval at fixed ref pos, 2 - eval at lagged position\n")
+            f.write(f"{str(self.qb_vt['QBladeOcean']['WAVEKINEVAL_MOR']):<{object_length}}{'WAVEKINEVAL_MOR':<{keyword_length}} - 0 - local evaluation, 1 - eval at fixed ref pos, 2 - eval at lagged position\n")
+            f.write(f"{str(self.qb_vt['QBladeOcean']['WAVEKINEVAL_POT']):<{object_length}}{'WAVEKINEVAL_MOR':<{keyword_length}} - 0 - local evaluation, 1 - eval at fixed ref pos, 2 - eval at lagged position\n")
             f.write(f"{str(self.qb_vt['QBladeOcean']['WAVEKINTAU']):<{object_length}}{'WAVEKINTAU':<{keyword_length}} - time constant for the lagged waveKin position evaluation\n")
             if self.qb_vt['QBladeOcean']['USEADVANCEDBUOYANCY']:
                 f.write(f"{str(self.qb_vt['QBladeOcean']['ADVANCEDBUOYANCY']):<{object_length}}{'ADVANCEDBUOYANCY':<{keyword_length}} - using an advanced discretization technique (N must be a square int number) to calculate buoyancy of partially submerged members, especially usefull if \"lying\" cylinders are used to generate the draft\n")
@@ -1286,6 +1287,7 @@ class InputWriter_QBlade(object):
             f.write(f"{str(self.qb_vt['QSim']['STORESIM']):<{object_length}}{'STORESIM':<{keyword_length}} - should the simulation (performance) data be stored [bool]\n")
             f.write(f"{str(self.qb_vt['QSim']['STOREHYDRO']):<{object_length}}{'STOREHYDRO':<{keyword_length}} - should the controller data be stored [bool]\n")
             f.write(f"{str(self.qb_vt['QSim']['STORECONTROLLER']):<{object_length}}{'STORECONTROLLER':<{keyword_length}} - should the controller data be stored [bool]\n")
+            f.write(f"{str(self.qb_vt['QSim']['FILTERFILE']+' '):<{object_length}}{'FILTERFILE':<{keyword_length}} - filename of the results data filter file, leave blank if unused\n")
             f.write('\n')
 
             f.write('----------------------------------------Modal Analysis Parameters--------------------------------------------------\n')

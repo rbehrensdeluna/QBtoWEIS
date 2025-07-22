@@ -953,7 +953,7 @@ class WindPark(om.Group):
         # Make relevant connections between WISDEM/WEIS and QBlade relevant components (mainly aeroelastic_qblade)
         if modeling_options['QBlade']['flag']:
             
-            self.add_subsystem('aeroelastic_qblade',       QBLADELoadCases(modeling_options = modeling_options, opt_options = opt_options))
+            self.add_subsystem('aeroelastic_qblade',       QBLADELoadCases(modeling_options = modeling_options, opt_options = opt_options, cache=opt_options.get('cache', None)))
             self.add_subsystem('stall_check_of',           NoStallConstraint(modeling_options = modeling_options))
 
             if modeling_options['WISDEM']['RotorSE']['flag']: 
