@@ -282,7 +282,7 @@ class QBladeWrapper:
         else:
             raise ValueError("Version number not found in QBlade_dll path.")
         
-        mp_version = "2.0.8.7" # version that exports to outb format directly
+        mp_version = "2.0.9"
 
         if version.parse(qb_version) < version.parse(mp_version):
             print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.8.7 or newer.")

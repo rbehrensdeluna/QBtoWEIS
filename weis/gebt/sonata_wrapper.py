@@ -15,8 +15,12 @@ class SONATA_WEIS(ExplicitComponent):
         self.options.declare('modeling_options')
         self.options.declare('analysis_options')
         self.options.declare('wt_init')
+        self.options.declare('cache', default=None)
 
     def setup(self):
+
+        self.qb_inumber = 0
+        
         modeling_options = self.options["modeling_options"]
         analysis_options = self.options["analysis_options"]
         # wt_init = self.options["wt_init"]
@@ -86,6 +90,14 @@ class SONATA_WEIS(ExplicitComponent):
         )
 
     def compute(self, inputs, outputs):
+
+        cache = self.options['cache']
+
+        # This block is used to skip the SONATA run if the cache is enabled and the current iteration has been cached
+        # As sonata does not directly contribute to wt_op, no outputs have to be read from the cache
+        if cache is not None and self.qb_inumber < len(cache):             
+                return  
+        
         modeling_options = self.options["modeling_options"]
         analysis_options = self.options["analysis_options"]
 
@@ -109,6 +121,8 @@ class SONATA_WEIS(ExplicitComponent):
                 fem_dict['internal_structure_2d_fem']['layers'][i]["thickness"]["grid"] = inputs["s_opt_te_ps"]
                 fem_dict['internal_structure_2d_fem']['layers'][i]["thickness"]["values"] = inputs["te_ps_opt"]
 
+        twist_in_rad = np.deg2rad(inputs["twist"])
+
         sonata_blade_dict = {
             "name": 
                 str(modeling_options['General']['qblade_configuration']['QB_run_mod']),
@@ -125,7 +139,7 @@ class SONATA_WEIS(ExplicitComponent):
                         },
                         "twist": {
                             "grid": inputs["grid"].tolist(),
-                            "values": inputs["twist"].tolist()
+                            "values": twist_in_rad.tolist()
                         },
                         "pitch_axis": {
                             "grid": inputs["grid"].tolist(),
@@ -225,6 +239,7 @@ class SONATA_WEIS(ExplicitComponent):
         # if flag_3d:
         #     job.blade_post_3dtopo(flag_wf=flags_dict['flag_wf'], flag_lft=flags_dict['flag_lft'], flag_topo=flags_dict['flag_topo'])
 
+        self.qb_inumber += 1
     def get_n_opt(self, analysis_options, modeling_options, layer_name):
         return next(
             (layer['n_opt'] for layer in analysis_options['design_variables']['blade']['structure'] if layer['layer_name'].lower() == layer_name), 

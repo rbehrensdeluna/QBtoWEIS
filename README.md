@@ -2,7 +2,6 @@
 
 **QBtoWEIS** is an extension of the WEIS (Wind Energy with Integrated Servo-control) framework that integrates the capabilities of QBlade to expand the design and optimization process for floating offshore wind turbines. By adding computationally highly optimized methods for wake aerodynamics and structural modeling, QBtoWEIS creates an even more versatile and powerful multi-fidelity toolchain, offering greater flexibility in co-design and optimization.
 
-**NOTE:** To use the DLC Generation capabilities of WEIS within QBtoWEIS, please switch to the test-develop branch.
 ## WEIS
 
 [WEIS](https://github.com/WISDEM/WEIS) is a comprehensive framework developed by the National Renewable Energy Laboratory (NREL) that integrates several NREL-developed tools for the design optimization of floating offshore wind turbines. It facilitates aero-servo-hydro-elastic modeling, structural analysis, and control system design, enabling a holistic approach to floating wind turbine development.
@@ -18,7 +17,7 @@
 QBtoWEIS integrates the following packages in addition to the stack of tools already available in WEIS:
 * [QBlade](https://qblade.org/) - freely available wind turbine simulation tool
 
-## Additional Packages (coming soon)
+## Additional Packages
 
 * [SONATA](https://github.com/ptrbortolotti/SONATA) - toolbox for Multidisciplinary Rotor Blade Design Environment for Structural Optimization and Aeroelastic Analysis
 
@@ -26,7 +25,7 @@ QBtoWEIS integrates the following packages in addition to the stack of tools alr
 
 The installation process is almost equivalent to the one of the main branch of WEIS:
 
-On laptop and personal computers, installation with [Anaconda](https://www.anaconda.com) is the recommended approach because of the ability to create self-contained environments suitable for testing and analysis. WEIS requires [Anaconda 64-bit](https://www.anaconda.com/distribution/). However, the `conda` command has begun to show its age, and we now recommend the one-for-one replacement with the [Miniforge3 distribution](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge3), which is much more lightweight and more easily solves for the package dependencies. Sometimes, using `mamba` in place of `conda` with this distribution speeds up the installation process. QBtoWEIS is currently supported on Linux, Windows Subsystem for Linux (WSL2) and Windows.
+On laptop and personal computers, installation with [Miniforge3 distribution](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge3) is the recommended approach because of the ability to create self-contained environments suitable for testing and analysis. Sometimes, using `mamba` in place of `conda` with this distribution speeds up the installation process. QBtoWEIS is currently supported on Linux, Windows Subsystem for Linux (WSL2) and Windows.
 
 The installation instructions below use the environment name, "qbweis-env," but any name is acceptable. For those working behind company firewalls, you may have to change the conda authentication with `conda config --set ssl_verify no`. Proxy servers can also be set with `conda config --set proxy_servers.http http://id:pw@address:port` and `conda config --set proxy_servers.https https://id:pw@address:port`.
 
@@ -60,7 +59,7 @@ The installation instructions below use the environment name, "qbweis-env," but 
         chmod +x run_qblade.sh
         chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.5
 
-**NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.8 or newer
+**NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.9 or newer
 
 ## Instructions for Running Simulations/Optimizations with QBalde
 

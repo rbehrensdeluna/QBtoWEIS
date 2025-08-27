@@ -81,6 +81,9 @@ def run_qblade_sil(QBlade_dll, QBLADE_runDirectory, channels, number_of_workers,
 
     # Chunk the simulations for each device
     sim_chunks = np.array_split(simulations, num_cl_devices)
+    
+    # Useful if some simulations take a lot longer than others
+    # sim_chunks = [simulations[i::num_cl_devices] for i in range(num_cl_devices)]
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=number_of_workers) as executor:
         futures = []

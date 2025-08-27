@@ -447,8 +447,8 @@ class QBLADELoadCases(ExplicitComponent):
                 sys.stdout.flush() 
                 qb_vt = self.init_QBlade_model()
 
-                if not modopt['QBlade']['from_qblade']:
-                    qb_vt = self.update_QBLADE_model(qb_vt, inputs, discrete_inputs)
+                # if not modopt['QBlade']['from_qblade']:
+                    # qb_vt = self.update_QBLADE_model(qb_vt, inputs, discrete_inputs)
                 
                 return  
         
@@ -1939,9 +1939,9 @@ class QBLADELoadCases(ExplicitComponent):
         # Get wind distribution probabilities, make sure they are normalized
         pp = PowerProduction(discrete_inputs['turbine_class'])
         ws_prob = pp.prob_WindDist(U, disttype='pdf')
-        ws_prob /= ws_prob.sum()
-
         print("Wind speeds and corresponding probabilities, wind speeds: ", np.unique(U), "probablities: ", np.unique(ws_prob))
+        ws_prob /= ws_prob.sum()
+        
         
         # Scale all DELs and damage by probability and collapse over the various DLCs (inner dot product)
         # Also work around NaNs

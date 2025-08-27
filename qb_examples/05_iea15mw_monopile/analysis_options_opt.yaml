@@ -1,5 +1,4 @@
 general:
-    folder_output: opt_output
     fname_output: refturb_output
 
 design_variables:

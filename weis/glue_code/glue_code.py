@@ -235,7 +235,7 @@ class WindPark(om.Group):
                 self.connect('tune_rosco_ivc.flp_tau',     'sse_tune.tune_rosco.flp_tau')
         if SONATA_WEIS:
             if modeling_options['SONATA']['flag']:
-                        self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init))
+                        self.add_subsystem('sonata',          SONATA_WEIS(modeling_options = modeling_options, analysis_options = opt_options, wt_init = wt_init, cache=opt_options.get('cache', None)))
 
         if modeling_options['RAFT']['flag']:
             self.add_subsystem('raft', RAFT_WEIS(modeling_options = modeling_options, analysis_options=opt_options))
