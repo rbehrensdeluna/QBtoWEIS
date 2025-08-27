@@ -5,7 +5,7 @@ authors:
     given-names: "Robert"
     orcid: "0000-0002-0360-7399"
 title: "QBtoWEIS"
-version: "1.0.0"
-doi: 10.5281/zenodo.14754213
-date-released: "2025-01-01"
+version: "1.1.0"
+doi: 10.5281/zenodo.16964579
+date-released: "2025-08-27"
 repository-code: "https://github.com/rbehrensdeluna/QBtoWEIS"
