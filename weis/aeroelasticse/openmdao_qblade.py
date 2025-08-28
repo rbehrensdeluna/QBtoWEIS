@@ -379,11 +379,21 @@ class QBLADELoadCases(ExplicitComponent):
         self.add_output('hub_Mxyz',             val=np.zeros(3),    	    units='kN*m',   desc = 'Maximum hub moments in the non rotating frame')
 
         # Tower related outputs
-        self.add_output('max_TwrBsMyt',         val=0.0,                    units='kN*m',   desc='maximum of tower base bending moment in fore-aft direction')
+        self.add_output('max_TwrBsMyt',         val=0.0,                    units='kN*m',   desc='maximum of L2-norm of tower base moment around x,y,z') #'maximum of tower base bending moment in fore-aft direction')
         self.add_output('max_TwrBsMyt_ratio',   val=0.0,                                    desc='ratio of maximum of tower base bending moment in fore-aft direction to maximum allowable bending moment')
-        self.add_output('DEL_TwrBsMyt',         val=0.0,                    units='kN*m',   desc='damage equivalent load of tower base bending moment in fore-aft direction')
+        self.add_output('DEL_TwrBsMyt',         val=0.0,                    units='kN*m',   desc='damage equivalent load of L2-norm of tower base moment around x,y,z') # 'damage equivalent load of tower base bending moment in fore-aft direction')
         self.add_output('DEL_TwrBsMyt_ratio',   val=0.0,                                    desc='ratio of damage equivalent load of tower base bending moment in fore-aft direction to maximum allowable bending moment')
-        # Tower outputs
+        self.add_output('max_XtbMom',         val=0.0,                                    desc='maximum of tower base bending moment in side-side direction')
+        self.add_output('max_YtbMom',         val=0.0,                                    desc='maximum of tower base bending moment in fore-aft direction')
+        self.add_output('max_ZtbMom',         val=0.0,                                    desc='maximum of tower base bending moment in torsion')
+        self.add_output('DEL_XtbMom',         val=0.0,                                    desc='damage equivalent load of tower base bending moment in side-side direction')
+        self.add_output('DEL_YtbMom',         val=0.0,                                    desc='damage equivalent load of tower base bending moment in fore-aft direction')
+        self.add_output('DEL_ZtbMom',         val=0.0,                                    desc='damage equivalent load of tower base bending moment in torsion')
+        self.add_output('DEL_XtbMom_ratio',   val=0.0,                                    desc='ratio of damage equivalent load of tower base bending moment in side-side direction to maximum allowable bending moment')
+        self.add_output('DEL_YtbMom_ratio',   val=0.0,                                    desc='ratio of damage equivalent load of tower base bending moment in fore-aft direction to maximum allowable bending moment')
+        self.add_output('DEL_ZtbMom_ratio',   val=0.0,                                    desc='ratio of damage equivalent load of tower base bending moment in torsion to maximum allowable bending moment')
+
+        # Tower outputs 
         if not self.options['modeling_options']['QBlade']['from_qblade']:
             self.add_output('tower_maxMy_Fx',       val=np.zeros(n_full_tow-1), units='kN',     desc='distributed force in tower-aligned x-direction corresponding to maximum fore-aft moment at tower base')
             self.add_output('tower_maxMy_Fy',       val=np.zeros(n_full_tow-1), units='kN',     desc='distributed force in tower-aligned y-direction corresponding to maximum fore-aft moment at tower base')
@@ -637,11 +647,13 @@ class QBLADELoadCases(ExplicitComponent):
             fast = InputReader_OpenFAST()
             fast.read_BeamDynBlade(beamdyn_blade_file)
             
-            if os.path.exists(os.path.join(weis_dir, 'sonata_temp')):
-                shutil.rmtree(os.path.join(weis_dir, 'sonata_temp'))
-                print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} has been deleted.")
-            else:
-                print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} does not exist.")
+            # Deleting the sonata_temp folder creates problem when restarting. Leaving it in for now.
+            
+            # if os.path.exists(os.path.join(weis_dir, 'sonata_temp')):
+            #     shutil.rmtree(os.path.join(weis_dir, 'sonata_temp'))
+            #     print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} has been deleted.")
+            # else:
+            #     print(f"Directory {os.path.join(weis_dir, 'sonata_temp')} does not exist.")
             
             blade_6x6 = fast.fst_vt['BeamDynBlade']
 
@@ -1951,6 +1963,9 @@ class QBLADELoadCases(ExplicitComponent):
         # Standard DELs for blade root and tower base
         outputs['DEL_RootMyb'] = np.max([DELs[f'Y_b RootBend. Mom. BLD_{k+1}'] for k in range(self.n_blades)])
         outputs['DEL_TwrBsMyt'] = DELs['TwrBsM']
+        outputs['DEL_XtbMom'] = DELs['XtbMom']
+        outputs['DEL_YtbMom'] = DELs['YtbMom']
+        outputs['DEL_ZtbMom'] = DELs['ZtbMom']
         outputs['DEL_TwrBsMyt_ratio'] = DELs['TwrBsM']/self.options['opt_options']['constraints']['control']['DEL_TwrBsMyt']['max']
             
         # Compute total fatigue damage in spar caps at blade root and trailing edge at max chord location
@@ -2234,6 +2249,9 @@ class QBLADELoadCases(ExplicitComponent):
         # Get the maximum fore-aft moment at tower base, 
         # We use OF channel naming convention from here on out to be able to use the standard constraint convetnions
         outputs["max_TwrBsMyt"] = np.max(sum_stats[fatb_max_chan]['max'])
+        outputs["max_XtbMom"] = np.max(sum_stats["X_tb Mom. TWR Bot. Constr."]['max'])
+        outputs["max_YtbMom"] = np.max(sum_stats["Y_tb Mom. Twr Bot. Constr."]['max'])
+        outputs["max_ZtbMom"] = np.max(sum_stats["Z_tb Mom. TWR Bot. Constr."]['max'])
         outputs["max_TwrBsMyt_ratio"] = np.max(sum_stats[fatb_max_chan]['max'])/self.options['opt_options']['constraints']['control']['Max_TwrBsMyt']['max']
         # Return forces and moments along tower height at instance of largest fore-aft tower base moment
         Fx = [extreme_table[fatb_max_chan][np.argmax(sum_stats[fatb_max_chan]['max'])][var] for var in tower_chans_Fx]

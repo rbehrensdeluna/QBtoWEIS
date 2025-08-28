@@ -38,6 +38,9 @@ magnitude_channels_default = {
     'TipDc2':  ['X_c Tip Trl.Def. (OOP) BLD_2', 'Y_c Tip Trl.Def. (IP) BLD_2', 'Z_c Tip Trl.Def. BLD_2'],
     'TipDc3':  ['X_c Tip Trl.Def. (OOP) BLD_3', 'Y_c Tip Trl.Def. (IP) BLD_3', 'Z_c Tip Trl.Def. BLD_3'],
     'TwrBsM':  ['X_tb Mom. TWR Bot. Constr.', 'Y_tb Mom. TWR Bot. Constr.', 'Z_tb Mom. TWR Bot. Constr.'],
+    'XtbMom':  ['X_tb Mom. TWR Bot. Constr.'],
+    'YtbMom':  ['Y_tb Mom. TWR Bot. Constr.'],
+    'ZtbMom':  ['Z_tb Mom. TWR Bot. Constr.'],
     'NcIMUTA': ['X_n Nac. Acc.','Y_n Nac. Acc.','Z_n Nac. Acc.']
 }
 
@@ -49,6 +52,9 @@ fatigue_channels_default = {
     'Y_b RootBend. Mom. BLD_2': FatigueParams(slope=10),   # 'RootMyb2': FatigueParams(slope=10),
     'Y_b RootBend. Mom. BLD_3': FatigueParams(slope=10),   # 'RootMyb3': FatigueParams(slope=10),
     'TwrBsM': FatigueParams(slope=4),
+    'XtbMom': FatigueParams(slope=4),
+    'YtbMom': FatigueParams(slope=4),
+    'ZtbMom': FatigueParams(slope=4),
     'LSShftM': FatigueParams(slope=4),
 }
 # all magnitude QBlade force and moment channells need to be scaled by 1e-3. These are the only ones that don't need to be scaled
