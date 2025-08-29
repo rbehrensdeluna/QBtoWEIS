@@ -2250,7 +2250,7 @@ class QBLADELoadCases(ExplicitComponent):
         # We use OF channel naming convention from here on out to be able to use the standard constraint convetnions
         outputs["max_TwrBsMyt"] = np.max(sum_stats[fatb_max_chan]['max'])
         outputs["max_XtbMom"] = np.max(sum_stats["X_tb Mom. TWR Bot. Constr."]['max'])
-        outputs["max_YtbMom"] = np.max(sum_stats["Y_tb Mom. Twr Bot. Constr."]['max'])
+        outputs["max_YtbMom"] = np.max(sum_stats["Y_tb Mom. TWR Bot. Constr."]['max'])
         outputs["max_ZtbMom"] = np.max(sum_stats["Z_tb Mom. TWR Bot. Constr."]['max'])
         outputs["max_TwrBsMyt_ratio"] = np.max(sum_stats[fatb_max_chan]['max'])/self.options['opt_options']['constraints']['control']['Max_TwrBsMyt']['max']
         # Return forces and moments along tower height at instance of largest fore-aft tower base moment
