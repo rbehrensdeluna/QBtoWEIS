@@ -605,7 +605,7 @@ class QBLADELoadCases(ExplicitComponent):
         ## Blade structural definition inputs    
 
         # get the damping as a function of critical damping in case user didn't RAYLEIGHDMP or used USECRITDAMP
-        if qb_vt['Blade']['USECRITDAMP'] or qb_vt['Blade']['RAYLEIGHDMP'] == 0:
+        if not qb_vt['Blade']['USERAYLEIGHDMP_ANISO'] and (qb_vt['Blade']['USECRITDAMP'] or qb_vt['Blade']['RAYLEIGHDMP'] == 0):
             if qb_vt['Blade']['RAYLEIGHDMP'] == 0:
                 logger.warning(f"Setting Blade RAYLEIGHDMP to equivalent to value to {qb_vt['Blade']['CRITDAMP']}% of critical damping")
             beta =  (qb_vt['Blade']['CRITDAMP']/100) / (np.pi * inputs['flap_freq'])
