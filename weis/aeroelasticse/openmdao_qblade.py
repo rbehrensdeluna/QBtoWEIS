@@ -808,6 +808,7 @@ class QBLADELoadCases(ExplicitComponent):
             
             qb_vt['QBladeOcean']['WATERDEPTH'] = float(inputs['water_depth'])
             qb_vt['QBladeOcean']['WATERDENSITY'] = float(inputs['rho_water'])
+            qb_vt['QBladeOcean']['ADVANCEDBUOYANCY'] = int(qb_vt['QBladeOcean']['ADVANCEDBUOYANCY'])
             
             if not qb_vt['QBladeOcean']['override_wave']:
                 qb_vt['QBladeOcean']['SIGHEIGHT'] = float(inputs['Hsig_wave'])
