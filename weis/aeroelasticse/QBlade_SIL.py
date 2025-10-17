@@ -67,7 +67,7 @@ def qblade_sil(QBlade_dll, QBLADE_runDirectory, sim, channels, store_qprs, out_f
         raise ValueError("Error: Only 'outb' format is supported for binary export (out_file_format = 2). 'out' is no longer supported.")
         
     if 'True' in store_qprs:
-        qpr_project = os.path.join(QBLADE_runDirectory, f"{sim_out_name}_completed.qpr".encode('ASCII'))
+        qpr_project = os.path.join(QBLADE_runDirectory.encode('ASCII'), f"{sim_out_name}_completed.qpr".encode('ASCII'))
         QBLIB.storeProject(qpr_project)
     
     QBLIB.unload()
