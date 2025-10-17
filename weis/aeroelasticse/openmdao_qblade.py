@@ -1952,7 +1952,7 @@ class QBLADELoadCases(ExplicitComponent):
         # Get wind distribution probabilities, make sure they are normalized
         pp = PowerProduction(discrete_inputs['turbine_class'])
         ws_prob = pp.prob_WindDist(U, disttype='pdf')
-        print("Wind speeds and corresponding probabilities, wind speeds: ", np.unique(U), "probablities: ", np.unique(ws_prob))
+        # print("Wind speeds and corresponding probabilities, wind speeds: ", np.unique(U), "probablities: ", np.unique(ws_prob))
         ws_prob /= ws_prob.sum()
         
         
