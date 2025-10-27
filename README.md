@@ -21,73 +21,119 @@ QBtoWEIS integrates the following packages in addition to the stack of tools alr
 
 * [SONATA](https://github.com/ptrbortolotti/SONATA) - toolbox for Multidisciplinary Rotor Blade Design Environment for Structural Optimization and Aeroelastic Analysis
 
-## Installation
+## **Installation**
+The setup process is fully automated. You can install QBtoWEIS with a single command or by using the provided installer scripts for your operating system.
 
-The installation process is almost equivalent to the one of the main branch of WEIS:
+### **Quick Install (Recommended)**
 
-On laptop and personal computers, installation with [Miniforge3 distribution](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge3) is the recommended approach because of the ability to create self-contained environments suitable for testing and analysis. Sometimes, using `mamba` in place of `conda` with this distribution speeds up the installation process. QBtoWEIS is currently supported on Linux, Windows Subsystem for Linux (WSL2) and Windows.
+If you want to get started quickly, use the provided installer script for your operating system.
 
-The installation instructions below use the environment name, "qbweis-env," but any name is acceptable. For those working behind company firewalls, you may have to change the conda authentication with `conda config --set ssl_verify no`. Proxy servers can also be set with `conda config --set proxy_servers.http http://id:pw@address:port` and `conda config --set proxy_servers.https https://id:pw@address:port`.
+---
 
-1. Clone the repository and create a virtual environment install the software:
-   
-        conda config --add channels conda-forge
-        git clone https://github.com/rbehrensdeluna/QBtoWEIS.git
-        cd QBtoWEIS
+> **About Conda**
+> QBtoWEIS uses [Conda](https://github.com/conda-forge/miniforge) to manage dependencies and environments cleanly.
+> We recommend installing the **Miniforge3** distribution, as it’s lightweight, cross-platform, and uses the community-maintained **conda-forge** channel by default.
+>
+> If you already have Anaconda or Miniconda installed, you can still use them — just make sure Conda is initialized in your terminal (e.g., run `conda init bash` once).
+>
+> *Tip:* Using `mamba` instead of `conda` can significantly speed up environment creation. Once Miniforge is installed, you can enable it with:
+>
+> ```bash
+> conda install -n base -c conda-forge mamba
+> ```
+>
+> and then simply replace `conda` with `mamba` in the commands or installer script.
 
+---
+Make sure you are in the root directory of the cloned repository before running these commands.
 
-2. Add in final packages and install the software
+#### **Windows**
 
-        conda env create --name qbweis-env -f environment.yml
-        conda activate qbweis-env
-        conda install -y petsc4py mpi4py pyoptsparse     # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
-        pip install -e .
+Download or clone this repository, then double-click:
 
-**NOTE:** To use QBtoWEIS again after installation is complete, you will always need to activate the conda environment first with conda activate qbweis-env (or source activate qbweis-env).
+```
+Install-QBtoWEIS.bat
+```
 
-## Download and configure QBladeCE
+> You can also run it from the command line:
+>
+> ```cmd
+> Install-QBtoWEIS.bat
+> ```
 
-   Download QBladeCE from https://qblade.org/downloads/ and place it in your prefered directory # (Linux/WSL2 & Windows).
-   
-   install some libraries that are required to run qblade # (Linux/WSL2 only):
-       	
-        sudo apt-get update -y
-        sudo apt-get install -y libqt5opengl5 libqt5xml5 libquadmath0 libglu1-mesa
-        
-   Make QBladeCE executable
-   
-        chmod +x run_qblade.sh
-        chmod +x QBladeCE_x.y.z # x.y.z should be replaced by the actual version number, e.g. 2.0.8.5
+#### **Linux / macOS / WSL2**
 
-**NOTE:** QBtoWEIS requires QBladeCE/QBladeEE version 2.0.9 or newer
+Download or clone this repository, then run the shell installer:
 
-## Instructions for Running Simulations/Optimizations with QBalde
+```bash
+chmod +x install_qbtoweis.sh
+./install_qbtoweis.sh
+```
 
-   Before running simulations or optimizations using QBalde within WEIS, you must configure the paths to the necessary shared library files (.dll for Windows or .so for Linux/WSL2) within the `modeling_options.yaml` file of your WEIS problem. For example: `qb_examples\00_run_test\modeling_options.yaml`.
+---
 
-### **Linux/WSL2**
-   Specify both and `path2qb_dll` as shown below:
+### **Manual Installation (Alternative)**
 
-        path2qb_dll: /home/user/qblade/software/QBladeCE_2.0.8.5/libQBladeCE_2.0.8.5.so.1.0.0
+If you prefer to install everything manually, follow these steps:
 
-### **Windows**
-   in Windows only "path2qb_dll" has to be specified:
+```bash
+conda config --add channels conda-forge
+git clone https://github.com/rbehrensdeluna/QBtoWEIS.git
+cd QBtoWEIS
+conda env create --name qbweis-env -f environment.yml
+conda activate qbweis-env
+conda install -y petsc4py mpi4py pyoptsparse # (Mac / Linux only, sometimes Windows users may need to install mpi4py)
+pip install -e .
+```
 
-        path2qb_dll: C:\Users\User\QBladeCE_2.0.8.5\QBladeEE_2.0.8.5.dll
+Whenever you want to run QBtoWEIS later don't forget to run:
 
-### **Default Path**
-   To avoid modifying the path in every new WEIS problem you can specify your default path in the modeling_schema.yaml:
-   
-        QBtoWEIS/weis/inputs/modeling_schema.yaml 
-        
-   "path2qb_dll" are found below the "qblade_configuration" object.
+```bash
+conda activate qbweis-env
+```
+
+---
+
+### **Download QBlade after Installation**
+
+1. Download **QBladeCE (v2.0.9+)**
+   → [https://qblade.org/downloads/](https://qblade.org/downloads/)
+
+   Place it in any directory you prefer — we recommend using the same directory as your QBtoWEIS repository.
+
+2. *(Optional but recommended)* Configure the QBlade DLL path.
+
+   Navigate to and open the file in an editor:
+
+   ```
+   <directory>/QBtoWEIS/weis/inputs/modeling_schema.yaml
+   ```
+
+   Locate the `path2qb_dll` entry.
+   Change its default value from:
+
+   ```yaml
+   default: None
+   ```
+
+   to the full path of your **QBladeEE_2.0.9.dll** (Windows) or **libQBladeEE_2.0.9.so.1.0.0** (Linux/macOS), for example:
+
+   ```yaml
+   default: C:\Users\JohnDoe\QBtoWEIS\QBladeCE_2.0.9.4\QBladeCE_2.0.9.4.dll
+   ```
+
+3. Save the file.
+
+4. Try a test case in the `qb_examples`:
+
+   ```bash
+   cd QBtoWEIS/qb_examples/00_run_test
+   python weis_driver_oc3.py
+   ```
+
+[Windows installer](install/Install-QBtoWEIS.bat)
+[Linux/macOS installer](install/install_qbtoweis.sh)
 
 
 ## Troubleshoot.
 If you are having trouble creating the virtual environment try allocating more RAM to the WSL2 (e.g. https://learn.microsoft.com/en-us/answers/questions/1296124/how-to-increase-memory-and-cpu-limits-for-wsl2-win)
-
-Verify if correct package versions were installed
-
-        conda list openfast # (check if openfast version equals 3.5.2 otherwise uninstall and revert)
-        pip uninstall openfast
-        pip install wisdem==3.5.2
