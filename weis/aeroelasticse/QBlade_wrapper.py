@@ -291,7 +291,7 @@ class QBladeWrapper:
         mp_version = "2.0.9"
 
         if version.parse(qb_version) < version.parse(mp_version):
-            print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.8.7 or newer.")
+            print("Error: QBlade version:", version.parse(qb_version), "not compatible with QBtoWEIS. Please use QBlade Version 2.0.9 or newer.")
             sys.exit(1)
         else:
             print("QBlade version: ", version.parse(qb_version), "was found!")
