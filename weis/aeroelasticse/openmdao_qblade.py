@@ -41,7 +41,7 @@ from weis.aeroelasticse.FAST_wrapper import Turbsim_wrapper, IEC_CoherentGusts
 from weis.aeroelasticse.utils import generate_wind_files
 from weis.aeroelasticse.utils import OLAFParams
 from rosco.toolbox import control_interface as ROSCO_ci
-from pCrunch.io import OpenFASTOutput
+# from pCrunch.io import OpenFASTOutput
 # from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
 from weis.control.dtqp_wrapper          import dtqp_wrapper
 from weis.aeroelasticse.CaseGen_General import case_naming
