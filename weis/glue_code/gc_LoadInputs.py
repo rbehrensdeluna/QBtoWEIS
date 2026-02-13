@@ -162,20 +162,20 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
                     self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.join(bemDir,'Output','Wamit_format','Buoy')
                     
 
+                else:
+                    if self.modeling_options['RAFT']['runPyHAMS']:
+                        print('Found existing potential model: {}\n    - Trying to use this instead of running PyHAMS.'.format(potpath))
+                        self.modeling_options['RAFT']['runPyHAMS'] = False
+                    if osp.exists( potpath+'.1' ):
+                        self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath(potpath)
+                    elif osp.exists( osp.join(cwd, potpath+'.1') ):
+                        self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(cwd, potpath) )
+                    elif osp.exists( osp.join(weis_dir, potpath+'.1') ):
+                        self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(weis_dir, potpath) )
+                    elif osp.exists( osp.join(mod_opt_dir, potpath+'.1') ):
+                        self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(mod_opt_dir, potpath) )
                     else:
-                        if self.modeling_options['RAFT']['runPyHAMS']:
-                            print('Found existing potential model: {}\n    - Trying to use this instead of running PyHAMS.'.format(potpath))
-                            self.modeling_options['RAFT']['runPyHAMS'] = False
-                        if osp.exists( potpath+'.1' ):
-                            self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath(potpath)
-                        elif osp.exists( osp.join(cwd, potpath+'.1') ):
-                            self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(cwd, potpath) )
-                        elif osp.exists( osp.join(weis_dir, potpath+'.1') ):
-                            self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(weis_dir, potpath) )
-                        elif osp.exists( osp.join(mod_opt_dir, potpath+'.1') ):
-                            self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(mod_opt_dir, potpath) )
-                        else:
-                            raise Exception(f'No valid Wamit-style output found for specified PotFile option, {potpath}.1')
+                        raise Exception(f'No valid Wamit-style output found for specified PotFile option, {potpath}.1')
         
         # QBlade
         if self.modeling_options['QBlade']['flag']:
