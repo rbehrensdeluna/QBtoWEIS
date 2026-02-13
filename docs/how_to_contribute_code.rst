@@ -38,7 +38,7 @@ To make changes in WISDEM, first conda uninstall it::
 
 Clone the WISDEM repository::
 
-  git clone https://github.com/WISDEM/WISDEM.git
+  git clone https://github.com/NLRWindSystems/WISDEM.git
 
 and follow the installation instructions of that repository, **while staying within the conda environment used to install weis.**
 Since most dependencies will already be installed for each module, you can likely simply navigate to the desired repository and::
@@ -54,7 +54,7 @@ These tests should be a balance between minimizing computational cost and maximi
 This ensures continued functionality of WEIS while keeping development time short.
 
 Any Python file with :code:`test` in its name within the :code:`weis` package directory is tested with each commit to WEIS.
-This is done through GitHub Actions and you can see the automated testing progress on the GitHub repo under the :code:`Actions` tab, `located here <https://github.com/WISDEM/WEIS/actions>`_.
+This is done through GitHub Actions and you can see the automated testing progress on the GitHub repo under the :code:`Actions` tab, `located here <https://github.com/NLRWindSystems/WEIS/actions>`_.
 If any test fails, this information is passed on to GitHub and a red X will be shown next to the commit.
 Otherwise, if all tests pass, a green check mark appears to signify the code changes are valid.
 
@@ -62,7 +62,7 @@ Unit tests
 ~~~~~~~~~~ 
 
 Each discipline sub-directory should contain tests in the :code:`test` folder.
-For example, :code:`weis/multifidelity/test` hosts the tests for multifidelity optimization within WEIS.
+For example, :code:`weis/multifidelity/test` hosts the tests for multi-fidelity optimization within WEIS.
 Look at :code:`test_simple_models.py` within that folder for a simple unit test that you can mimic when you add new code.
 Another simple unit test is contained in :code:`weis/aeroelasticse/test` called :code:`test_IECWind.py`.
 
@@ -74,7 +74,7 @@ Regression tests
 
 Regression tests examine much larger portions of the code by examining top-level input and output relationships.
 Specifically, these tests check the values that the code produces against "truth" values and returns an error if they do not match.
-As an example, a low-level coding change might alter a default within a subsystem of the model being tested, which might result in a different AEP value for the wind turbine.
+As an example, a low-level coding change might alter a default within a subsystem of the model being tested, which might result in a different AEP value for the turbine.
 The regression test would report that the AEP value differs, and thus the tests fail.
 Of course, it would be challenging to completely diagnose a coding change based on only regression tests, so well-made unit tests can help narrow down a problem much more quickly.
 

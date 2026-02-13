@@ -28,6 +28,9 @@ class RAFT_WEIS(om.Group):
         frequencies = np.arange(min_freq, max_freq+0.5*min_freq, min_freq)
         raft_opt['nfreq'] = len(frequencies)
         raft_opt['n_cases'] = weis_opt['DLC_driver']['n_cases']
+        raft_opt['floating'] = weis_opt['floating']  # Give RAFT all the WEIS floating options
+        raft_opt['potential_model_override'] = weis_opt['General']['potential_flow_modeling']['bem_method']
+
 
         turbine_opt = {}
         turbine_opt['npts'] = weis_opt['WISDEM']['TowerSE']['n_height_tower']
@@ -37,10 +40,10 @@ class RAFT_WEIS(om.Group):
         turbine_opt['n_span'] = weis_opt['WISDEM']['RotorSE']['n_span']
         turbine_opt['n_aoa'] = weis_opt['WISDEM']['RotorSE']['n_aoa']
         turbine_opt['n_Re'] = weis_opt['WISDEM']['RotorSE']['n_Re']
-        turbine_opt['n_tab'] = weis_opt['WISDEM']['RotorSE']['n_tab']
+        turbine_opt['n_tab'] = 0
         turbine_opt['n_pc'] = weis_opt['WISDEM']['RotorSE']['n_pc']
-        turbine_opt['n_af'] = weis_opt['WISDEM']['RotorSE']['n_af']
-        turbine_opt['af_used_names'] = weis_opt['WISDEM']['RotorSE']['af_used']
+        turbine_opt['n_af'] = weis_opt['WISDEM']['RotorSE']['n_af_master']
+        turbine_opt['af_used_names'] = weis_opt['WISDEM']['RotorSE']['af_master']
 
         members_opt = {}
         members_opt['nmembers'] = len(weis_opt["floating"]["members"]["name"])
@@ -238,15 +241,15 @@ class RAFT_WEIS_Prep(om.ExplicitComponent):
         outputs['turbine_yaw_stiffness'] = 1.0/np.sum(1.0/k_tow_tor)
 
         # Tower drag
-        Re = float(inputs['rho_air'])*inputs['tower_U']*inputs['turbine_tower_d']/float(inputs['mu_air'])
+        Re = inputs['rho_air']*inputs['tower_U']*inputs['turbine_tower_d']/inputs['mu_air']
         cd, _ = cylinderDrag(Re)
         outputs['turbine_tower_Cd'] = cd
 
         # Move tower-top MoI to hub height
-        m_rna = float(inputs['turbine_mRNA'])
+        m_rna = float(inputs['turbine_mRNA'][0])
         I_rna = util.assembleI( inputs['rna_I_TT'] )
         # Vector from WISDEM tower-top c.s. to raft tower center-line at hub height c.s.
-        r = np.r_[0.0, 0.0, float(inputs['drive_height'])]
+        r = np.r_[0.0, 0.0, float(inputs['drive_height'][0])]
         outputs['turbine_xCG_RNA'] = (inputs['rna_cm'] - r)[0]
         I_rna_raft = util.unassembleI( I_rna + m_rna * (np.dot(r, r) * np.eye(3) - np.outer(r, r)) )
         outputs['turbine_IxRNA'] = I_rna_raft[0]
@@ -275,8 +278,8 @@ class RAFT_WEIS_Prep(om.ExplicitComponent):
                 outputs[f"platform_member{k+1}_Cd"][:, 0] = inputs[f"member{k}:Cdy"] if np.all(inputs[f"member{k}:Cdy"]>0.0) else 1
 
             # Ring stiffener discretization conversion
-            if ( (float(inputs[f"member{k}:ring_stiffener_spacing"]) > 0.0) and
-                 (float(inputs[f"member{k}:ring_stiffener_spacing"]) < 1.0) ):
+            if ( (float(inputs[f"member{k}:ring_stiffener_spacing"][0]) > 0.0) and
+                 (float(inputs[f"member{k}:ring_stiffener_spacing"][0]) < 1.0) ):
                 outputs[f"platform_member{k+1}_ring_spacing"] = inputs[f"member{k}:ring_stiffener_spacing"]
                 h_web = inputs[f"member{k}:ring_stiffener_web_height"]
                 t_web = inputs[f"member{k}:ring_stiffener_web_thickness"]

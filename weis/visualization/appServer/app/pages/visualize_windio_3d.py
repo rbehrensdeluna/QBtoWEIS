@@ -1,12 +1,9 @@
-'''This is the page for visualize the WEIS inputs in 3D simulation model'''
+'''This is the page for visualize the WEIS inputs in 3D VTK model'''
 
-import random
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, register_page, callback, Input, Output, State, dcc
 from dash.exceptions import PreventUpdate
-import plotly.express as px
-import plotly
 from weis.visualization.utils import *
 from weis.visualization.meshRender import *
 
@@ -26,7 +23,7 @@ component_types = ['blade', 'hub', 'nacelle', 'tower', 'substructure']
 geometries = [
                 dash_vtk.GeometryRepresentation(
                     id = f'{idx}-{gtype}-rep',
-                ) for idx in range(5) for gtype in component_types         # We are expecting less than 10 geometry files..
+                ) for idx in range(10) for gtype in component_types         # We are expecting less than 10 geometry files..
             ] + [
                 dash_vtk.GeometryRepresentation(
                     id = 'axes',
@@ -200,16 +197,15 @@ def update_local_table_content(info, geom_3d_names, wt_options_by_names):
 
         table = dbc.Table(table_header + table_body, bordered=True)
     
-    elif gtype == 'nacelle':
+    elif gtype == 'drivetrain':
         multiindex_df = {}
-        for field in ['drivetrain', 'generator']:
+        for field in ['outer_shape', 'generator']:
             data = [wt_options_by_names[gname]['components'][gtype][field] if field in wt_options_by_names[gname]['components'][gtype] else {} for gname in geom_3d_names]
             columns = list(dict.fromkeys(key for dictionary in data for key, value in dictionary.items() if not isinstance(value, list) and not isinstance(value, dict)).keys())
 
             for c in columns:
                 multiindex_df[(field, c)] = {geom_3d_names[idx] : (html.Code(dictionary[c], style={'color': f'rgb({colors_scale[idx][0]*255}, {colors_scale[idx][1]*255}, {colors_scale[idx][2]*255})'}) if c in dictionary else html.Code("-", style={'color': f'rgb({colors_scale[idx][0]*255}, {colors_scale[idx][1]*255}, {colors_scale[idx][2]*255})'})) for idx, dictionary in enumerate(data)}
 
-        
         df = pd.DataFrame(multiindex_df)
         df.index.set_names("Label", inplace=True)
         # TODO: Freeze first column with fixed_columns={'headers': True, 'data': 1} => Doesn't work..
@@ -219,6 +215,8 @@ def update_local_table_content(info, geom_3d_names, wt_options_by_names):
         # TODO: How and What to visualize for substructure tables?
         table = dbc.Table(children=[])      # Return blank table for now..
 
+    else:
+        breakpoint()
     return table
 
 
@@ -318,7 +316,7 @@ def click_local_view(info):
 
 # We are using card container where we define sublayout with rows and cols.
 def layout():
-    # Define layout for tower structures
+    # Define layout
     geom_items = dcc.Dropdown(id='geom-3d-names', options=[], value=None, multi=True)
 
     geom_inputs = dbc.Card([
@@ -351,12 +349,12 @@ def layout():
                 dbc.Row([
                     dbc.Col(geom_inputs),
                 ], className='g-0'),         # No gutters where horizontal spacing is added between the columns by default
-                dcc.Loading(vtk_view),
+                dcc.Loading(vtk_view),       # Global View
 
-                # Modal Window layout for visualizing Outlier timeseries data
+                # Modal Window layout for visualizing Local View
                 dbc.Modal([
-                    dbc.ModalHeader(dbc.ModalTitle(html.Div(id='vtk-view-local-header'))),                                 # Related function: display_outlier()
-                    dbc.ModalBody([html.Div(id='vtk-text-description', style={"overflow": "scroll"}), vtk_view_local])],                                                         # Related function: display_outlier()
+                    dbc.ModalHeader(dbc.ModalTitle(html.Div(id='vtk-view-local-header'))),
+                    dbc.ModalBody([html.Div(id='vtk-text-description', style={"overflow": "scroll"}), vtk_view_local])],
                     id='vtk-view-local-div',
                     size='xl',
                     is_open=False)

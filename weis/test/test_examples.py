@@ -1,48 +1,75 @@
 import os
 import unittest
 from weis.test.utils import execute_script
+from weis import weis_main
 
+# Run for each push on all platforms (choose one from each example directory)
 skinny_scripts = [
-    "02_run_openfast_cases/weis_driver_rosco_opt",       #It's fast, I promise (49 sec. locally)
-    "02_run_openfast_cases/weis_driver_sm",    #Not as fast as weis_driver, but not too bad (120 sec. locally)
-    "03_NREL5MW_OC3_spar/weis_freq_driver",
-    "05_IEA-3.4-130-RWT/weis_driver_model_only", 
-    "06_IEA-15-240-RWT/weis_driver_monopile",
-    "06_IEA-15-240-RWT/weis_driver_TMDs",
-    "09_design_of_experiments/DOE_openfast",
-    # "13_DTQP/gen_oloc",
+    "01_simulate_own_openfast_model/dlc_sim_driver",
+    "03_design_with_openfast/iea22_ptfm_opt_driver",                # these are used to test visualization
+    "04_frequency_domain_analysis_design/iea22_raft_opt_driver",    # these are used to test visualization
+    "05_control_optimization/rosco_opt_driver", 
+    "08_potential_flow_modeling/raft_potmod_driver",
 ]
 
-
-all_scripts = [
-    "01_aeroelasticse/run_general",
-    "01_aeroelasticse/run_OLAF",
-    #"02_run_openfast_cases/weis_driver_rosco_opt",  # executed in examples_skinny
-    #"02_run_openfast_cases/weis_driver_sm", # executed in examples_skinny
-    "02_run_openfast_cases/weis_driver_loads",
-    "03_NREL5MW_OC3_spar/weis_driver",
-    # "03_NREL5MW_OC3_spar/weis_freq_driver", # executed in examples_skinny
-    # "04_NREL5MW_OC4_semi/weis_driver",  # skipping until we resolve multiple variable ballasts
-    "04_NREL5MW_OC4_semi/weis_freq_driver",
-    "05_IEA-3.4-130-RWT/weis_driver", # also executed via mpi in the gitthub workflow
-    #"05_IEA-3.4-130-RWT/weis_driver_model_only",  # executed in examples_skinny
-    #"06_IEA-15-240-RWT/weis_driver", # executed in the test_IEA15.py
-    #"06_IEA-15-240-RWT/weis_driver_monopile", # executed in examples_skinny
-    #"06_IEA-15-240-RWT/weis_driver_TMDs", # executed in examples_skinny
-    # "07_te_flaps/dac_driver",
-    "08_OLAF/weis_driver",
-    #"09_design_of_experiments/weis_driver", # executed in the test_DOE.py
-    #"09_design_of_experiments/DOE_openfast", # executed in examples_skinny
-    "10_override_example/weis_driver",
-    #"12_linearization/doe_driver", # Soul crushingly long
-    "12_linearization/weis_driver",
-    "15_RAFT_Studies/weis_driver_raft_opt",
-    "17_IEA22_Optimization/driver_weis_openfast_opt",
-    "17_IEA22_Optimization/driver_weis_raft_opt",
+# Only run on PR on Ubuntu
+extra_scripts = [
+    "01_simulate_own_openfast_model/run_openfast_cases",
+    "01_simulate_own_openfast_model/fatigue_driver",
+    "02_generate_openfast_model_for_dlcs/iea15_monopile_driver",
+    "02_generate_openfast_model_for_dlcs/iea15_semi_driver", 
+    "02_generate_openfast_model_for_dlcs/iea34_driver",
+    "02_generate_openfast_model_for_dlcs/oc3_driver",
+    "02_generate_openfast_model_for_dlcs/olaf_driver",
+    "03_design_with_openfast/tower_design_driver",
+    "04_frequency_domain_analysis_design/oc3_raft_driver",
+    "04_frequency_domain_analysis_design/umaine_semi_raft_opt_driver",
+    "05_control_optimization/tmd_opt_driver",
+    "10_user_custom_setup/user_elastic_driver",
+    "10_user_custom_setup/variable_overrides_driver",
+    "11_model_creation_process/1_drivers/stage-0-baseline/stage-0-baseline_driver",
+    "11_model_creation_process/1_drivers/stage-1-aeroStruct/stage-1-aeroStruct_nonOptimized",
+    "11_model_creation_process/1_drivers/stage-1-aeroStruct/stage-1-aeroStruct_driver",
+    "11_model_creation_process/1_drivers/stage-2-controller/stage-2-controller_driver",
+    "11_model_creation_process/1_drivers/stage-3-semisub/stage-3-semisub_raft_driver",
+    "11_model_creation_process/1_drivers/stage-3-semisub/stage-3-semisub_of_driver",
+    "11_model_creation_process/1_drivers/stage-3.5-semisubCCD/stage-3.5-semisub_of_driver",
+    "11_model_creation_process/1_drivers/stage-4-dlcs/stage-4-dlcs_driver",
+    # "08_potential_flow_modeling/openfast_potmod_driver",   #skip this one for now
 ]
+
+# Notes:
+# 06_parameteric_analysis is run when testing MPI configuration
+# 07_postprocessing_notebooks are also tested separately
 
 class TestExamples(unittest.TestCase):
 
+    def test_model_only(self):
+        # TEST_RUN will reduce the number and duration of simulations
+        TEST_RUN = False
+
+        ## File management
+        run_dir = os.path.dirname( os.path.realpath(__file__) )
+        examples_dir = os.path.join(run_dir, "..", "..", "examples")
+        fname_wt_input = os.path.join(examples_dir, "00_setup", "ref_turbines", "IEA-3p4-130-RWT.yaml")
+        fname_modeling_options = os.path.join(examples_dir, "02_generate_openfast_model_for_dlcs", "iea34_modeling.yaml")
+        fname_analysis_options = os.path.join(examples_dir, "02_generate_openfast_model_for_dlcs", "iea34_analysis.yaml")
+        
+        modeling_override = {}
+        modeling_override["General"] = {}
+        modeling_override["General"]["openfast_configuration"] = {}
+        modeling_override["General"]["openfast_configuration"]["model_only"] = True
+        try:
+            wt_opt, modeling_options, opt_options = weis_main(fname_wt_input, 
+                                                              fname_modeling_options, 
+                                                              fname_analysis_options,
+                                                              modeling_override=modeling_override,
+                                                              test_run=TEST_RUN)
+            self.assertTrue(True)
+        except:
+            self.assertEqual("model_only", "Success")
+        
+        
     def test_skinny(self):
         for ks,s in enumerate(skinny_scripts):
             with self.subTest(f"Running: {s}", i=ks):
@@ -53,8 +80,8 @@ class TestExamples(unittest.TestCase):
                     self.assertEqual(s, "Success")
 
     @unittest.skipUnless("RUN_EXHAUSTIVE" in os.environ, "exhaustive on pull request only")
-    def test_all_scripts(self):
-        for ks,s in enumerate(all_scripts):
+    def test_extra_scripts(self):
+        for ks,s in enumerate(extra_scripts):
             with self.subTest(f"Running: {s}", i=ks):
                 try:
                     execute_script(s)
@@ -62,16 +89,5 @@ class TestExamples(unittest.TestCase):
                 except:
                     self.assertEqual(s, "Success")
 
-def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestExamples))
-    return suite
-
-
 if __name__ == "__main__":
-    result = unittest.TextTestRunner().run(suite())
-
-    if result.wasSuccessful():
-        exit(0)
-    else:
-        exit(1)
+    unittest.main()

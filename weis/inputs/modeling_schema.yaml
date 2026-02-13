@@ -71,11 +71,11 @@ properties:
                     allow_fails:
                         type: boolean
                         default: False
-                        description: Allow WEIS to continue if OpenFAST fails?  All outputs will be filled with fail_value. Use with caution!
+                        description: Allow WEIS to continue if OpenFAST fails  All outputs will be filled with fail_value. Use with caution!
                     fail_value:
                         type: number
                         default: -9999
-                        decription: All OpenFAST outputs will be filled with this if the simulation fails. 
+                        decription: All OpenFAST outputs will be filled with this if the simulation fails.
                     write_stdout:
                         type: boolean
                         default: False
@@ -88,6 +88,13 @@ properties:
                         type: integer
                         default: 1
                         description: Number of parallel OpenFAST runs performed by OpenMDAO. WEIS sets this number once the preMPI keyword argument is set
+                    wind_directory:
+                        type: string
+                        description: Location of previously generated wind inputs
+                    overwrite_outputs:
+                        type: boolean
+                        description: If False, will check for existing .outb file before running OpenFAST.
+                        default: True
             qblade_configuration:
                 type: object
                 default: {}
@@ -169,6 +176,31 @@ properties:
                 type: boolean
                 default: False
                 description: Flag whether to apply the Goodman correction for mean stress value to the stress amplitude value in fatigue calculations
+            test_mode:
+                type: boolean
+                default: False
+                description: Flag for using streamlined models in the WEIS simulation.
+            potential_flow_modeling:
+                type: object
+                default: {}
+                description: Options for potential flow modeling of submerged members
+                properties:
+                    bem_method: 
+                        type: integer
+                        default: 0
+                        enum: [0, 1, 2, 3]
+                        description: User override for potential boundary element modeling. 0 = uses the potential_bem_members list for inviscid force and computes viscous drag with strip theory (members not listed use only strip theory), 1 = no potential BEM modeling for any member (just strip theory), 2 = potential BEM modeling for all members (no strip theory), 3 = use potential BEM modeling only for inviscid forces
+                    bem_members:
+                        type: array
+                        description: List of submerged member names to model with potential flow boundary element methods.  Members not listed here will be modeled with strip theory
+                        default: []
+                        items:
+                            type: string
+                            uniqueItems: True
+                    bem_file_base:
+                        type: string
+                        default: none
+                        description: Base filename (no extension) for potential BEM mesh files.  WEIS will look for <bem_file_base>.* files.  If not present, they will be generated using pyHAMS.
     WISDEM:
         type: object
         default: {}
@@ -196,18 +228,23 @@ properties:
                 minimum: 0.0
                 maximum: 1e3
                 units: Hz
-            potential_bem_members:
-                type: array
-                description: List of submerged member names to model with potential flow boundary element methods.  Members not listed here will be modeled with strip theory
-                default: []
-                items:
-                    type: string
-                    uniqueItems: True
-            potential_model_override:
+            intersection_mesh:
                 type: integer
                 default: 0
-                enum: [0, 1, 2]
-                description: User override for potential boundary element modeling. 0 = uses the potential_bem_members list for inviscid force and computes viscous drag with strip theory (members not listed use only strip theory), 1 = no potential BEM modeling for any member (just strip theory), 2 = potential BEM modeling for all members (no strip theory)
+                enum: [0, 1]
+                description: Enable intersection mesh for potential BEM modeling. 0 = no intersection mesh, 1 = intersection mesh; turn on plot_design option for visualizing the mesh.
+            characteristic_length_min:
+                type: number
+                default: 1.0
+                minimum: 0.0
+                maximum: 1000.0
+                description: Minimum characteristic length of the mesh for potential BEM modeling.
+            characteristic_length_max:
+                type: number
+                default: 3.0
+                minimum: 0.0
+                maximum: 1000.0
+                description: Maximum characteristic length of the mesh for potential BEM modeling. This is the dominant length scale for the mesh.
             xi_start:
                 type: number
                 default: 0.0
@@ -331,7 +368,7 @@ properties:
                     # CalcSteady:
                     #     type: boolean
                     #     default: False
-                    #     description: Calculate a steady-state periodic operating point before linearization? [unused if Linearize=False] (flag)
+                    #     description: Calculate a steady-state periodic operating point before linearization [unused if Linearize=False] (flag)
                     # DZ: For now, we determine TrimCase this automatically based on whether wind_speeds > v_rated
                     # TrimCase:
                     #     type: string
@@ -399,7 +436,7 @@ properties:
                     # LinOutMod:
                     #     type: boolean
                     #     default: False
-                    #     description: Write module-level linearization output files in addition to output for full system? (flag) [unused if Linearize=False]
+                    #     description: Write module-level linearization output files in addition to output for full system (flag) [unused if Linearize=False]
             DTQP: # this may be shared with OpenFAST IEC load cases in the future
                 type: object
                 default: {}
@@ -534,17 +571,46 @@ properties:
     DLC_driver:
         type: object
         default: {}
+        required:
+          - DLCs
         properties:
             DLCs:
                 type: array
                 default: [{}]
                 items:
                     type: object
+                    required:
+                        - DLC
+                    optional:
+                        - ws_bin_size
+                        - wind_speed
+                        - n_seeds
+                        - n_azimuth
+                        - wind_seed
+                        - wave_seed
+                        - wind_heading
+                        - yaw_misalign
+                        - wave_spectrum
+                        - turbine_status
+                        - wave_period
+                        - wave_height
+                        - wave_heading
+                        - wave_gamma
+                        - probabilities
+                        - IEC_WindType
+                        - analysis_time
+                        - transient_time
+                        - shutdown_time
+                        - wind_file
+                        - TI_factor
+                        - turbulence_class
+                        - user_group
+                        - turbulent_wind
                     properties:
                         DLC:
                             type: string
                             default: '1.1'
-                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.3', '3.1', '3.2', '3.3', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '12.1', 'Custom']
+                            enum: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '4.1', '4.2', '5.1', '6.1', '6.2', '6.3', '6.4', '6.5', '7.1', '7.2', '9.1', '9.2', '10.1', '10.2', '12.1','steady','step','ramp','AEP','freedecay','force_excursion','userwind','userwave']
                             description: IEC design load case to run. The DLCs currently supported are 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.1, 6.1, 6.3, and 6.4
                         wind_speed:
                             type: array
@@ -613,26 +679,27 @@ properties:
                                 minItems: 1
                                 minimum: -180.0
                                 maximum: 180.0
-                        wave_spectrum:
-                            type: array
-                            description: Spectrum of the waves. This array must currently have either length=1, i.e. one constant spectrum, or the same length of the array wind_speed
-                            #default: ["JONSWAP"]
-                            items:
-                                type: str
-                                enum: ["JONSWAP","unit"]
-                                minItems: 1
                         turbine_status:
                             type: string
                             description: Status of the turbine, it can be either operating, parked-idling, or parked-still. Each DLC come with its default turbine status specified by the standards.
                             default: operating
                             enum: ['operating','parked-idling','parked-still']
+                        wave_seed:
+                            type: array
+                            default: []
+                            description: Wave random number generator seeds for HydroDyn
+                            items:
+                                type: integer
+                                unit: none
+                                minItems: 1
+                                uniqueItems: true
                         wave_period:
                             type: array
                             description: Period between waves. If this array is populated by the user, then the field metocean_conditions is neglected. If wave_period is not defined, metocean_conditions will be used, either in the values provided by the user or with its default values (the first option is highly recommended).
                             default: []
                             items:
                                 type: number
-                                unit: s
+                                unit: seconds
                                 minItems: 1
                                 minimum: 0.0
                                 maximum: 1000.0
@@ -665,9 +732,18 @@ properties:
                                 minItems: 1
                                 minimum: 0.0
                                 maximum: 10.0
-                        probabilities:
+                        wave_spectrum:
                             type: array
-                            description: Probability of occurrance for each case. This entry is relevant only for DLC 1.2 and 6.4. This array must currently have either length=1, i.e. one constant value, or the same length of the array wind_speed.
+                            description: "Spectrum of the waves. This array must currently have either length=1, i.e. one constant spectrum, or the same length of the array wind_speed"
+                            #default: ["JONSWAP"]
+                            items:
+                                type: string
+                                enum: [JONSWAP,unit]
+                                minItems: 1
+                                uniqueItems: false
+                        probability:
+                            type: array
+                            description: Probability of occurrance for each case. This entry is relevant only for DLC 1.2 and 6.4. This array must currently have either length=1, i.e. one constant value, or the same length of the array wind_speed_fatigue.
                             default: [1.]
                             items:
                                 type: number
@@ -677,7 +753,7 @@ properties:
                         IEC_WindType:
                             type: string
                             default: NTM
-                            enum: ['NTM', '1ETM', '2ETM', '3ETM', '1EWM1', '2EWM1', '3EWM1', '1EWM50', '2EWM50', '3EWM50', 'ECD', 'EDC', 'EOG','EWS']
+                            enum: ['NTM', '1ETM', '2ETM', '3ETM', '1EWM1', '2EWM1', '3EWM1', '1EWM50', '2EWM50', '3EWM50', 'ECD', 'EDC', 'EOG', 'EWS', 'NWP', 'Steady','Ramp','Step']
                             description: IEC turbulence type ('NTM'=normal, 'xETM'=extreme turbulence, 'xEWM1'=extreme 1-year wind, 'xEWM50'=extreme 50-year wind, where x=wind turbine class 1, 2, or 3), 'ECD'=extreme coherent gust with direction change, 'EDC'=extreme direction change, 'EOG'=extreme operating gust. Normally the user does not need to define this entry, 'EWS'='extreme wind shear'
                         analysis_time:
                             type: number
@@ -703,12 +779,13 @@ properties:
                         wind_file:
                             type: string
                             description: File path of custom wind file
-                        TI_factor: 
+                        TI_factor:
                             type: number
                             unit: Percentage
                             description: The fraction of the TI, relative to the class defined in the geometry options or by turbulence_class
-                        turbulence_class: 
-                            type: string
+                        turbulence_class:
+
+
                             enum: ['A+','A','B','C']
                             description: The class of turbulence, will overwrite class defined in geometry options. Only valid in the AEP DLC.
                         user_group:
@@ -717,11 +794,67 @@ properties:
                                 type: object
                                 description: Groups
                             default: {}
-                            description: Define additional groups to alter DLCs or sweep additional paramters.  Users can input single values to change all of the simulations in a DLC, multiple values to add an additional group to sweep over, or a list of new groups in the yaml format.
+                            description: Define additional groups to alter DLCs or sweep additional parameters.  Users can input single values to change all of the simulations in a DLC, multiple values to add an additional group to sweep over, or a list of new groups in the yaml format.
                         turbulent_wind:
                             type: object
                             default: {}
                             description: These are all inputs to TurbSim. These inputs usually do not need to be set unless you are trying to customize a DLC
+                            optional:
+                              - flag
+                              - Echo
+                              - RandSeed1
+                              - RandSeed2
+                              - WrBHHTP
+                              - WrFHHTP
+                              - WrADHH
+                              - WrADFF
+                              - WrBLFF
+                              - WrADTWR
+                              - WrFMTFF
+                              - WrACT
+                              - Clockwise
+                              - ScaleIEC
+                              - NumGrid_Z
+                              - NumGrid_Y
+                              - TimeStep
+                              - UsableTime
+                              - HubHt
+                              - GridHeight
+                              - GridWidth
+                              - VFlowAng
+                              - HFlowAng
+                              - TurbModel
+                              - UserFile
+                              - IECstandard
+                              - ETMc
+                              - WindProfileType
+                              - ProfileFile
+                              - RefHt
+                              - URef
+                              - IECturbc
+                              - ZJetMax
+                              - PLExp
+                              - Z0
+                              - Latitude
+                              - RICH_NO
+                              - UStar
+                              - ZI
+                              - PC_UW
+                              - PC_UV
+                              - PC_VW
+                              - SCMod1
+                              - SCMod2
+                              - SCMod3
+                              - InCDec1
+                              - InCDec2
+                              - InCDec3
+                              - CohExp
+                              - CTEventPath
+                              - CTEventFile
+                              - Randomize
+                              - CTLy
+                              - CTLz
+                              - CTStartTime
                             properties:
                                 flag:
                                     type: boolean
@@ -741,44 +874,44 @@ properties:
                                 WrBHHTP:
                                     type: boolean
                                     default: False
-                                    description: Output hub-height turbulence parameters in binary form?  (Generates RootName.bin)
+                                    description: Output hub-height turbulence parameters in binary form  (Generates RootName.bin)
                                 WrFHHTP:
                                     type: boolean
                                     default: False
-                                    description: Output hub-height turbulence parameters in formatted form?  (Generates RootName.dat)
+                                    description: Output hub-height turbulence parameters in formatted form  (Generates RootName.dat)
                                 WrADHH:
                                     type: boolean
                                     default: False
-                                    description: Output hub-height time-series data in AeroDyn form?  (Generates RootName.hh)
+                                    description: Output hub-height time-series data in AeroDyn form  (Generates RootName.hh)
                                 WrADFF:
                                     type: boolean
                                     default: True
-                                    description: Output full-field time-series data in TurbSim/AeroDyn form? (Generates RootName.bts)
+                                    description: Output full-field time-series data in TurbSim/AeroDyn form (Generates RootName.bts)
                                 WrBLFF:
                                     type: boolean
                                     default: False
-                                    description: Output full-field time-series data in BLADED/AeroDyn form?  (Generates RootName.wnd)
+                                    description: Output full-field time-series data in BLADED/AeroDyn form  (Generates RootName.wnd)
                                 WrADTWR:
                                     type: boolean
                                     default: False
-                                    description: Output tower time-series data? (Generates RootName.twr)
+                                    description: Output tower time-series data (Generates RootName.twr)
                                 WrFMTFF:
                                     type: boolean
                                     default: False
-                                    description: Output full-field time-series data in formatted (readable) form?  (Generates RootName.u, RootName.v, RootName.w)
+                                    description: Output full-field time-series data in formatted (readable) form  (Generates RootName.u, RootName.v, RootName.w)
                                 WrACT:
                                     type: boolean
                                     default: False
-                                    description: Output coherent turbulence time steps in AeroDyn form? (Generates RootName.cts)
+                                    description: Output coherent turbulence time steps in AeroDyn form (Generates RootName.cts)
                                 Clockwise:
                                     type: boolean
                                     default: False
-                                    description: Clockwise rotation looking downwind? (used only for full-field binary files - not necessary for AeroDyn)
+                                    description: Clockwise rotation looking downwind (used only for full-field binary files - not necessary for AeroDyn)
                                 ScaleIEC:
                                     type: integer
                                     enum: [0, 1, 2]
                                     default: 0
-                                    description: Scale IEC turbulence models to exact target standard deviation? [0=no additional scaling; 1=use hub scale uniformly; 2=use individual scales]
+                                    description: Scale IEC turbulence models to exact target standard deviation [0=no additional scaling; 1=use hub scale uniformly; 2=use individual scales]
                                 NumGrid_Z:
                                     type: integer
                                     default: 25
@@ -961,7 +1094,7 @@ properties:
                                 Randomize:
                                     type: boolean
                                     default: True
-                                    description: Randomize the disturbance scale and locations? (true/false)
+                                    description: Randomize the disturbance scale and locations (true/false)
                                 DistScl:
                                     type: number
                                     default: 1.
@@ -986,7 +1119,9 @@ properties:
                                     minimum: 0
                                     maximum: 1.e+3
                                     unit: s
-                                    description: Minimum start time for coherent structures in RootName.cts
+                                    description: "Minimum start time for coherent structures in RootName.cts"
+
+
             fix_wind_seeds:
                 type: boolean
                 default: True
@@ -1011,6 +1146,15 @@ properties:
                             minimum: 0.0
                             maximum: 50.0
                             uniqueItems: true
+                    wind_speed_fatigue:
+                        type: array
+                        description: Array of wind speeds to calculate fatigue
+                        default: []
+                        items:
+                            type: number
+                            unit: m/s
+                            minItems: 0
+                            minimum: 0.0
                     wave_height_NSS:
                         type: array
                         description: Array of Hs for NSS conditional to wind speed
@@ -1035,7 +1179,7 @@ properties:
                             uniqueItems: false
                     wave_height_fatigue:
                         type: array
-                        description: Array of Hs for fatigue computations conditional to wind speed
+                        description: Array of Hs for each fatigue bin
                         default: [1.10, 1.18, 1.32, 1.54, 1.84, 2.19, 2.60, 3.06, 3.62, 4.03, 4.52]
                         items:
                             type: number
@@ -1046,8 +1190,8 @@ properties:
                             uniqueItems: false
                     wave_period_fatigue:
                         type: array
-                        description: Array of Tp for fatigue computations conditional to wind speed
-                        default: [8.52, 8.31, 8.01, 7.65, 7.44, 7.46, 7.64, 8.05, 8.52, 8.99, 9.45]
+                        description: Array of Tp for each fatigue bin
+                        default: []
                         items:
                             type: number
                             unit: s
@@ -1055,6 +1199,37 @@ properties:
                             minimum: 0.0
                             maximum: 1000.0
                             uniqueItems: false
+                    wave_direction_fatigue:
+                        type: array
+                        description: Array of wave direction for each fatigue bin
+                        default: []
+                        items:
+                            type: number
+                            unit: s
+                            minItems: 0
+                            minimum: 0.0
+                            maximum: 1000.0  # TODO: check wrapping of these *_direction_fatigue inputs
+                            uniqueItems: false
+                    wind_direction_fatigue:
+                        type: array
+                        description: Array of wind direction for each fatigue bin
+                        default: []
+                        items:
+                            type: number
+                            unit: s
+                            minItems: 0
+                            minimum: 0.0
+                            maximum: 1000.0
+                            uniqueItems: false
+                    probability:
+                        type: array
+                        description: Probability of occurrance for each fatigue bin in DLC 1.2
+                        default: [1.]
+                        items:
+                            type: number
+                            minItems: 1
+                            minimum: 0.
+                            maximum: 1.
                     wave_height_SSS:
                         type: array
                         description: Array of Hs for SSS conditional to wind speed
@@ -1109,12 +1284,12 @@ properties:
                 type: object
                 default: {}
                 description: Users can add to the openfast_input_map of the DLC driver here, with key value pairs
-                
+
     ROSCO:
         type: object
         default: {}
         description: Options for WEIS fidelity level 3 = nonlinear time domain. Inherited from ROSCO/rosco/toolbox/inputs/toolbox_shema.yaml
-        properties: 
+        properties:
             tuning_yaml:
                 type: string
                 description: yaml file to tune the ROSCO controller, only used for control-only optimizations using an OpenFAST model.  Absolute path or relative to modeling input.
@@ -1136,4 +1311,4 @@ properties:
             save_error:
                 type: boolean
                 default: True
-                description: Save error timeseries?
+                description: Save error timeseries

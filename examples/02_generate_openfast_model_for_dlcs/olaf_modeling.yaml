@@ -1,0 +1,120 @@
+General:
+    verbosity: False  # When set to True, the code prints to screen many infos
+    openfast_configuration:
+        OF_run_fst: BAR0
+        
+WISDEM:
+    RotorSE:
+        flag: True
+        spar_cap_ss: Spar_cap_ss
+        spar_cap_ps: Spar_cap_ps
+        te_ss: TE_reinf_ss
+        te_ps: TE_reinf_ps
+    TowerSE:
+        flag: True
+    DriveSE:
+        flag: True
+    FloatingSE:
+        flag: False
+    BOS:
+        flag: True
+        plant_row_spacing: 7
+        commissioning_cost_kW: 44.0
+        decommissioning_cost_kW: 58.0
+        distance_to_substation: 50.0
+        distance_to_interconnection: 8.
+        interconnect_voltage: 130
+    LCOE:
+        flag: True
+        wake_loss_factor: 0.15
+        fixed_charge_rate: 0.075
+        bos_per_kW: 459.
+        opex_per_kW: 44.
+        turbine_number: 178.
+        labor_rate: 58.8
+        painting_rate: 30.0
+        blade_mass_cost_coeff: 14.6
+        hub_mass_cost_coeff: 3.9
+        pitch_system_mass_cost_coeff: 22.1
+        spinner_mass_cost_coeff: 11.1
+        lss_mass_cost_coeff: 11.9
+        bearing_mass_cost_coeff: 4.5
+        gearbox_torque_cost: 50.
+        hss_mass_cost_coeff: 6.8
+        generator_mass_cost_coeff: 12.4
+        bedplate_mass_cost_coeff: 2.9
+        yaw_mass_cost_coeff: 8.3
+        converter_mass_cost_coeff: 18.8
+        transformer_mass_cost_coeff: 18.8
+        hvac_mass_cost_coeff: 124.0
+        cover_mass_cost_coeff: 5.7
+        elec_connec_machine_rating_cost_coeff: 41.85
+        platforms_mass_cost_coeff: 17.1
+        tower_mass_cost_coeff: 2.9
+        controls_machine_rating_cost_coeff: 21.15
+        crane_cost: 12.e+3
+Environment:
+    air_density: 1.225
+    air_dyn_viscosity: 1.81e-5
+    weib_shape_parameter: 2.
+    air_speed_sound: 340.
+    shear_exp: 0.2
+    water_density: 1025.0
+    water_dyn_viscosity: 1.3351e-3
+    soil_shear_modulus: 140.e+6
+    soil_poisson: 0.4
+
+OpenFAST: # Options for WEIS fidelity level 3 = nonlinear time domain
+    flag: True
+    simulation:
+        DT: 0.2
+        SttsTime: 1.
+    ElastoDyn:
+        flag: True
+        FlapDOF1: False
+        FlapDOF2: False
+        EdgeDOF: False
+        TeetDOF: False
+        DrTrDOF: False 
+        GenDOF: False
+        YawDOF: False  
+        TwFADOF1 : False
+        TwFADOF2 : False
+        TwSSDOF1 : False
+        TwSSDOF2 : False
+        PtfmSgDOF: False
+        PtfmSwDOF: False
+        PtfmHvDOF: False
+        PtfmRDOF : False
+        PtfmPDOF : False
+        PtfmYDOF : False
+    AeroDyn:
+        Wake_Mod: 3
+        UA_Mod: 0
+        TwrShadow: 0
+        TwrAero: False
+        OLAF:
+            FullCircStart: 5.0     
+            nNWPanel: 120     
+            WakeLength: 600     
+            FreeWakeLength: 120     
+            RegDeterMethod: 1     
+            WakeRegMethod: 3       
+            WakeRegFactor: 0.25      
+            WingRegFactor: 0.25      
+            CoreSpreadEddyVisc: 1000    
+            ShearModel: 0       
+            VelocityMethod: 2       
+            TreeBranchFactor: 1.5     
+
+ROSCO:
+    flag: True
+    SDMode: 0
+    
+DLC_driver:
+    DLCs:
+        - DLC: "1.1"
+          wind_speed: [ 8. ]
+          n_seeds: 1
+          analysis_time: .25
+          transient_time: 0.
