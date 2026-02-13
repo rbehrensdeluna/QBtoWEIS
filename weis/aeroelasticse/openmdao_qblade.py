@@ -36,13 +36,13 @@ from weis.dlc_driver.dlc_generator    import DLCGenerator
 from weis.dlc_driver.dlc_generator    import DLCInstance
 from weis.aeroelasticse.CaseGen_General import CaseGen_General
 from functools import partial
-from pCrunch import PowerProduction
+# from pCrunch import PowerProduction
 from weis.aeroelasticse.FAST_wrapper import Turbsim_wrapper, IEC_CoherentGusts
 from weis.aeroelasticse.utils import generate_wind_files
 from weis.aeroelasticse.utils import OLAFParams
 from rosco.toolbox import control_interface as ROSCO_ci
 from pCrunch.io import OpenFASTOutput
-from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
+# from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
 from weis.control.dtqp_wrapper          import dtqp_wrapper
 from weis.aeroelasticse.CaseGen_General import case_naming
 from wisdem.inputs import load_yaml, write_yaml
