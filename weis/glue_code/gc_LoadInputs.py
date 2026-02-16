@@ -176,19 +176,35 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
                         self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"] = osp.realpath( osp.join(mod_opt_dir, potpath) )
                     else:
                         raise Exception(f'No valid Wamit-style output found for specified PotFile option, {potpath}.1')
+                    
+                     # Update RAFT BEM dir
+                    if not self.modeling_options['RAFT']['runPyHAMS']:
+                        self.modeling_options["RAFT"]['BEM_dir'] = self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"]
         
         # QBlade
         if self.modeling_options['QBlade']['flag']:
             self.modeling_options['General']['qblade_configuration']['qb_vt'] = {}
 
             if self.modeling_options["flags"]["offshore"] or self.modeling_options["QBlade"]["from_qblade"]:
-                if self.modeling_options["RAFT"]["potential_model_override"] == 2:
-                 self.modeling_options["QBlade"]["QBladeOcean"]["POTFLOW"] = True
-                elif ( (self.modeling_options["RAFT"]["potential_model_override"] == 0) and
-                    (len(self.modeling_options["RAFT"]["potential_bem_members"]) > 0) ):
+
+                # RAFT option is equivalent to potential_flow_modeling, bem_method
+                self.modeling_options["RAFT"]["potModMaster"] = self.modeling_options["General"]["potential_flow_modeling"]["bem_method"]
+                
+                # QBlade PotMod logic:
+
+                # Model all members with BEM
+                if self.modeling_options["General"]["potential_flow_modeling"]["bem_method"] in [2,3]:
                     self.modeling_options["QBlade"]["QBladeOcean"]["POTFLOW"] = True
-                elif self.modeling_options["RAFT"]["potential_model_override"] == 1:
+                
+                # Modeling some members with BEM
+                elif ( (self.modeling_options["General"]["potential_flow_modeling"]["bem_method"] == 0) and
+                        (len(self.modeling_options["General"]["potential_flow_modeling"]["bem_members"]) > 0) ):
+                    self.modeling_options["QBlade"]["QBladeOcean"]["POTFLOW"] = True
+                
+                # Modeling no members with BEM
+                elif self.modeling_options["General"]["potential_flow_modeling"]["bem_method"] == 1:
                     self.modeling_options["QBlade"]["QBladeOcean"]["POTFLOW"] = False
+                
                 else:
                     # Keep user defined value of PotMod
                     pass
@@ -196,9 +212,9 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
             if self.modeling_options["QBlade"]["QBladeOcean"]["POTFLOW"] == True:
 
                 # If user requested POTFLOW but didn't specify any override or members, just run everything
-                if ( (self.modeling_options["RAFT"]["potential_model_override"] == 0) and
-                    (len(self.modeling_options["RAFT"]["potential_bem_members"]) == 0) ):
-                    self.modeling_options["RAFT"]["potential_model_override"] == 2
+                if ( (self.modeling_options["General"]["potential_flow_modeling"]["bem_method"] == 0) and
+                    (len(self.modeling_options["General"]["potential_flow_modeling"]["bem_members"]) > 0) ):
+                    self.modeling_options["General"]["potential_flow_modeling"]["bem_method"] == 2
                     
                 cwd = os.getcwd()
                 weis_dir = osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__))))
@@ -219,12 +235,10 @@ class WindTurbineOntologyPythonWEIS(WindTurbineOntologyPython):
                         if len(potexcpath) > 0:
                             print('Found existing potential model: {}\n    - Trying to use this instead of running PyHAMS.'.format(potexcpath))
                         self.modeling_options['RAFT']['runPyHAMS'] = False
-
-
                     
                 # Update RAFT BEM dir
                 if not self.modeling_options['RAFT']['runPyHAMS']:
-                    self.modeling_options["RAFT"]['BEM_dir'] = self.modeling_options["OpenFAST"]["HydroDyn"]["PotFile"]
+                    self.modeling_options["RAFT"]['BEM_dir'] = osp.join(cwd, bemDir,'Output','Wamit_format','Buoy') 
     
 
         # OpenFAST dir

@@ -626,8 +626,6 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
 
     return wind_file_type, wind_file_plexp, wind_file_path_InflowWind
 
-    return wind_file_type, wind_file_path_InflowWind
-
 # def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, hub_height, turbsim_exe, i_case):
 
 #     if dlc_generator.cases[i_case].turbulent_wind:

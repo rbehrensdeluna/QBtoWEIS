@@ -36,13 +36,11 @@ from weis.dlc_driver.dlc_generator    import DLCGenerator
 from weis.dlc_driver.dlc_generator    import DLCInstance
 from weis.aeroelasticse.CaseGen_General import CaseGen_General
 from functools import partial
-# from pCrunch import PowerProduction
 from weis.aeroelasticse.FAST_wrapper import Turbsim_wrapper, IEC_CoherentGusts
 from weis.aeroelasticse.utils import generate_wind_files
 from weis.aeroelasticse.utils import OLAFParams
 from rosco.toolbox import control_interface as ROSCO_ci
-# from pCrunch.io import OpenFASTOutput
-# from pCrunch import LoadsAnalysis, PowerProduction, FatigueParams
+from pCrunch import AeroelasticOutput, FatigueParams
 from weis.control.dtqp_wrapper          import dtqp_wrapper
 from weis.aeroelasticse.CaseGen_General import case_naming
 from wisdem.inputs import load_yaml, write_yaml
@@ -107,7 +105,6 @@ class QBLADELoadCases(ExplicitComponent):
             self.n_xy          = n_xy      = rotorse_options['n_xy'] # Number of coordinate points to describe the airfoil geometry
             self.n_Re          = n_Re      = rotorse_options['n_Re'] # Number of Reynolds, so far hard set at 1
             self.n_aoa         = n_aoa     = rotorse_options['n_aoa']# Number of angle of attacks
-            self.n_tab         = n_tab     = rotorse_options['n_tab']# Number of tabulated data. For distributed aerodynamic control this could be > 1
             self.n_mat         = n_mat     = mat_init_options['n_mat']
             self.n_layers      = n_layers  = rotorse_options['n_layers']
 
@@ -161,9 +158,9 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('pitch_axis',            val=np.zeros(n_span),                       desc='1D array of the chordwise position of the pitch axis (0-LE, 1-TE), defined along blade span.')
             self.add_input('coord_xy_interp',       val=np.zeros((n_span, n_xy, 2)),            desc='2D array of the non-dimensional x and y airfoil coordinates of the airfoils interpolated along span for n_span stations. The leading edge is placed at x=0 and y=0.')
             self.add_input('airfoils_Re',           val=np.zeros((n_Re)),                       desc='Reynolds numbers of polars')
-            self.add_input('airfoils_cl',           val=np.zeros((n_span, n_aoa, n_Re, n_tab)), desc='lift coefficients, spanwise')
-            self.add_input('airfoils_cd',           val=np.zeros((n_span, n_aoa, n_Re, n_tab)), desc='drag coefficients, spanwise')
-            self.add_input('airfoils_cm',           val=np.zeros((n_span, n_aoa, n_Re, n_tab)), desc='moment coefficients, spanwise')
+            self.add_input('airfoils_cl',           val=np.zeros((n_span, n_aoa, n_Re)), desc='lift coefficients, spanwise')
+            self.add_input('airfoils_cd',           val=np.zeros((n_span, n_aoa, n_Re)), desc='drag coefficients, spanwise')
+            self.add_input('airfoils_cm',           val=np.zeros((n_span, n_aoa, n_Re)), desc='moment coefficients, spanwise')
             self.add_input('airfoils_aoa',          val=np.zeros((n_aoa)), units='deg', desc='angle of attack grid for polars')
             
             # CHRONO blade structural definition inputs
@@ -237,16 +234,40 @@ class QBLADELoadCases(ExplicitComponent):
             if modopt['flags']["floating"]:
                 n_member = modopt["floating"]["members"]["n_members"]
                 for k in range(n_member):
+                    kname = modopt['floating']['members']['name'][k]
                     n_height_mem = modopt["floating"]["members"]["n_height"][k]
-                    self.add_input(f"member{k}:joint1", np.zeros(3), units="m")
-                    self.add_input(f"member{k}:joint2", np.zeros(3), units="m")
-                    self.add_input(f"member{k}:Cd", 0)
-                    self.add_input(f"member{k}:Ca", 0)
-                    self.add_input(f"member{k}:s", np.zeros(n_height_mem))
-                    self.add_input(f"member{k}:s_ghost1", 0.0)
-                    self.add_input(f"member{k}:s_ghost2", 0.0)
-                    self.add_input(f"member{k}:outer_diameter", np.zeros(n_height_mem), units="m")
-                    self.add_input(f"member{k}:wall_thickness", np.zeros(n_height_mem-1), units="m")
+                    self.add_input(f"member{k}_{kname}:joint1", np.zeros(3), units="m")
+                    self.add_input(f"member{k}_{kname}:joint2", np.zeros(3), units="m")
+                    self.add_input(f"member{k}_{kname}:s", np.zeros(n_height_mem))
+                    self.add_input(f"member{k}_{kname}:s_ghost1", 0.0)
+                    self.add_input(f"member{k}_{kname}:s_ghost2", 0.0)
+                    self.add_input(f"member{k}_{kname}:wall_thickness", np.zeros(n_height_mem-1), units="m")
+                    self.add_input(f"member{k}_{kname}:E", np.zeros(n_height_mem-1), units="Pa")
+                    self.add_input(f"member{k}_{kname}:G", np.zeros(n_height_mem-1), units="Pa")
+                    self.add_input(f"member{k}_{kname}:rho", np.zeros(n_height_mem-1), units="kg/m**3")
+
+                    self.add_input(f"member{k}_{kname}:ballast_z_cg", units="m")
+                    self.add_input(f"member{k}_{kname}:ballast_mass", units="kg")
+                    self.add_input(f"member{k}_{kname}:ballast_I_base", np.zeros(6), units="kg*m**2")
+                    self.add_input(f"member{k}_{kname}:variable_ballast_cg", np.zeros(3), units="m")
+                    self.add_input(f"member{k}_{kname}:variable_ballast_mass", 0.0, units="kg")
+                    self.add_input(f"member{k}_{kname}:variable_ballast_I", np.zeros(6), units="kg*m**2")
+                    self.add_input(f"member{k}_{kname}:bulkhead_mass", 0.0, units="kg")
+                    self.add_input(f"member{k}_{kname}:bulkhead_z_cg", 0.0, units="m")
+                    self.add_input(f"member{k}_{kname}:bulkhead_I_base", np.zeros(6), units="kg*m**2")
+
+                    if modopt["floating"]["members"]["outer_shape"][k] == "circular":
+                        self.add_input(f"member{k}_{kname}:outer_diameter", val=np.zeros(n_height_mem), units="m")
+                        self.add_input(f"member{k}_{kname}:Ca", val=np.zeros(n_height_mem))
+                        self.add_input(f"member{k}_{kname}:Cd", val=np.zeros(n_height_mem))
+                        self.add_output(f"platform_member{k+1}_d", val=np.zeros(n_height_mem), units="m")
+                    elif modopt["floating"]["members"]["outer_shape"][k] == "rectangular":
+                        self.add_input(f"member{k}_{kname}:side_length_a", val=np.zeros(n_height_mem), units="m")
+                        self.add_input(f"member{k}_{kname}:side_length_b", val=np.zeros(n_height_mem), units="m")
+                        self.add_input(f"member{k}_{kname}:Ca", val=np.zeros(n_height_mem))
+                        self.add_input(f"member{k}_{kname}:Cd", val=np.zeros(n_height_mem))
+                        self.add_input(f"member{k}_{kname}:Cay", val=np.zeros(n_height_mem))
+                        self.add_input(f"member{k}_{kname}:Cdy", val=np.zeros(n_height_mem))
             
             # Blade composit layup info (used for fatigue analysis)
             self.add_input('sc_ss_mats',   val=np.zeros((n_span, n_mat)),        desc="spar cap, suction side,  boolean of materials in each composite layer spanwise, passed as floats for differentiablity, used for Fatigue Analysis")
@@ -489,10 +510,10 @@ class QBLADELoadCases(ExplicitComponent):
 
         if modopt['flags']['offshore']:
             # qb_vt['QSim']['ISOFFSHORE'] = 0 # Use QBladeOcean if not set in modeling inputs TODO: should be 1 once testing is done
-            qb_vt['QSim']['WATERDEPTH'] = float(inputs['water_depth'])
-        qb_vt['QSim']['DENSITYAIR'] = float(inputs['rho'])
+            qb_vt['QSim']['WATERDEPTH'] = float(inputs['water_depth'][0])
+        qb_vt['QSim']['DENSITYAIR'] = float(inputs['rho'][0])
         qb_vt['QSim']['VISCOSITYAIR'] = inputs['mu'][0] / inputs['rho'][0]
-        qb_vt['QSim']['DENSITYWATER'] = float(inputs['rho_water'])
+        qb_vt['QSim']['DENSITYWATER'] = float(inputs['rho_water'][0])
         qb_vt['QSim']['VISCOSITYWATER'] = inputs['mu_water'][0] /inputs['rho_water'][0]  
         
         # if DLCGenerator is true, NUMT
@@ -500,7 +521,7 @@ class QBLADELoadCases(ExplicitComponent):
             qb_vt['QSim']['NUMTIMESTEPS'] = int(qb_vt['QSim']['TMax'] / qb_vt['QSim']['TIMESTEP'])
 
         twr_top_height = float(inputs['hub_height'][0]) - float(inputs['distance_tt_hub'][0])
-        tower_base_height = max(float(inputs['tower_base_height']), float(inputs["platform_total_center_of_mass"][2]))
+        tower_base_height = max(float(inputs['tower_base_height'][0]), float(inputs["platform_total_center_of_mass"][2]))
 
         qb_vt['Main']['TurbineName'] = modopt['General']['qblade_configuration']['QB_run_mod']        
         # if discrete_inputs['rotor_orientation'] == 'upwind':
@@ -510,7 +531,7 @@ class QBLADELoadCases(ExplicitComponent):
         qb_vt['Main']['PreCone']        = round(inputs['cone'][0], precision) 
         qb_vt['Main']['ShftTilt']       = round(inputs['tilt'][0], precision)
         qb_vt['Main']['OverHang']       = round(inputs['overhang'][0], precision)
-        qb_vt['Main']['Twr2Shft']       = round(float(inputs['hub_height']) - twr_top_height - abs(qb_vt['Main']['OverHang'])*np.sin(np.deg2rad(inputs['tilt'][0])), precision)
+        qb_vt['Main']['Twr2Shft']       = round(float(inputs['hub_height'][0]) - twr_top_height - abs(qb_vt['Main']['OverHang'])*np.sin(np.deg2rad(inputs['tilt'][0])), precision)
         
         qb_vt['Main']['YawBrMass']      = round(inputs['yaw_mass'][0], precision)
         qb_vt['Main']['NacMass']        = round(inputs['above_yaw_mass'][0], precision)
@@ -523,11 +544,11 @@ class QBLADELoadCases(ExplicitComponent):
 
         qb_vt['Main']['GBRATIO']        = round(inputs['gearbox_ratio'][0], precision)
         qb_vt['Main']['GBOXEFF']        = round(inputs['gearbox_efficiency'][0], precision)
-        qb_vt['Main']['GENEFF']         = round(float(inputs['generator_efficiency']/inputs['gearbox_efficiency']), precision)
+        qb_vt['Main']['GENEFF']         = round(float(inputs['generator_efficiency'][0]/inputs['gearbox_efficiency'][0]), precision)
 
-        qb_vt['Main']['GENINER']        = round(float(inputs['GenIner']), precision)
-        qb_vt['Main']['DTTORSPR']       = round(float(inputs['drivetrain_spring_constant']), precision)
-        qb_vt['Main']['DTTORDMP']       = round(float(inputs['drivetrain_damping_coefficient']), precision)
+        qb_vt['Main']['GENINER']        = round(float(inputs['GenIner'][0]), precision)
+        qb_vt['Main']['DTTORSPR']       = round(float(inputs['drivetrain_spring_constant'][0]), precision)
+        qb_vt['Main']['DTTORDMP']       = round(float(inputs['drivetrain_damping_coefficient'][0]), precision)
 
         qb_vt['Main']['NUMBLD']         = self.n_blades
         qb_vt['Main']['TWRHEIGHT']      = round(twr_top_height - tower_base_height, precision)
@@ -535,10 +556,10 @@ class QBLADELoadCases(ExplicitComponent):
 
         ## Blade Aerodnyamic Definition Inputs
         r = (inputs['r']-inputs['Rhub']) # get blade radius
-        r[0]  = inputs['Rhub']
-        r[-1] = inputs['Rtip']
+        r[0]  = inputs['Rhub'][0]
+        r[-1] = inputs['Rtip'][0]
          # qb_vt['Aero']['BlPos']          = r # --> BlSpn in OpenFast
-        qb_vt['Aero']['BlPos']          = inputs['ref_axis_blade'][:,2] + inputs['Rhub']
+        qb_vt['Aero']['BlPos']          = inputs['ref_axis_blade'][:,2] + inputs['Rhub'][0]
         qb_vt['Aero']['NumBlNds']       = self.n_span
         qb_vt['Aero']['BlTwist']        = inputs['theta']
         qb_vt['Aero']['BlChord']        = inputs['chord']
@@ -552,10 +573,10 @@ class QBLADELoadCases(ExplicitComponent):
         if qb_vt['Aero']['AFTabMod'] == 1:
             # If AFTabMod is the default coming form the schema, check the value from WISDEM, which might be set to 2 if more Re per airfoil are defined in the geometry yaml
             qb_vt['Aero']['AFTabMod'] = modopt["WISDEM"]["RotorSE"]["AFTabMod"]
-        if self.n_tab > 1 and qb_vt['Aero']['AFTabMod'] == 1:
-            raise Exception('This case has to be implemented in the WEIS QBldae coupling')
-        elif self.n_tab > 1 and qb_vt['Aero']['AFTabMod'] == 2:
-            raise Exception('This case has to be implemented in the WEIS QBldae coupling. The case of multiple user defined tables and multiple RE was triggered')
+        # if self.n_tab > 1 and qb_vt['Aero']['AFTabMod'] == 1:
+        #     raise Exception('This case has to be implemented in the WEIS QBldae coupling')
+        # elif self.n_tab > 1 and qb_vt['Aero']['AFTabMod'] == 2:
+        #     raise Exception('This case has to be implemented in the WEIS QBldae coupling. The case of multiple user defined tables and multiple RE was triggered')
         
         for i in range(self.n_span): # No of blade radial stations
             qb_vt['Aero']['af_data'].append([])
@@ -565,14 +586,18 @@ class QBLADELoadCases(ExplicitComponent):
             elif qb_vt['Aero']['AFTabMod'] == 2:
                 loop_index = self.n_Re
             else:
-                loop_index = self.n_tab
+                # loop_index = self.n_tab
+                #loop_index = self.n_tab
+                print("Something about n_tab and DAC.  Should not get here")
+                breakpoint()
 
             for j in range(loop_index): # Number of tabs or Re
                 if qb_vt['Aero']['AFTabMod'] == 1:
-                    unsteady = eval_unsteady(inputs['airfoils_aoa'], inputs['airfoils_cl'][i,:,0,0], inputs['airfoils_cd'][i,:,0,0], inputs['airfoils_cm'][i,:,0,0])
+                    unsteady = eval_unsteady(inputs['airfoils_aoa'], inputs['airfoils_cl'][i,:,0], inputs['airfoils_cd'][i,:,0], inputs['airfoils_cm'][i,:,0])
                 elif qb_vt['Aero']['AFTabMod'] == 2:
-                    unsteady = eval_unsteady(inputs['airfoils_aoa'], inputs['airfoils_cl'][i,:,j,0], inputs['airfoils_cd'][i,:,j,0], inputs['airfoils_cm'][i,:,j,0])
+                    unsteady = eval_unsteady(inputs['airfoils_aoa'], inputs['airfoils_cl'][i,:,j], inputs['airfoils_cd'][i,:,j], inputs['airfoils_cm'][i,:,j])
                 else:
+                    # Leftover from DAC, shouldn't get here
                     unsteady = eval_unsteady(inputs['airfoils_aoa'], inputs['airfoils_cl'][i,:,0,j], inputs['airfoils_cd'][i,:,0,j], inputs['airfoils_cm'][i,:,0,j])
 
                 qb_vt['Aero']['af_data'][i].append({})
@@ -806,13 +831,13 @@ class QBLADELoadCases(ExplicitComponent):
         ## Sub-Structure QBladeOcean structural definition inputs
         if modopt['flags']['offshore']: # only if an offshore turbine is modeled
             
-            qb_vt['QBladeOcean']['WATERDEPTH'] = float(inputs['water_depth'])
-            qb_vt['QBladeOcean']['WATERDENSITY'] = float(inputs['rho_water'])
+            qb_vt['QBladeOcean']['WATERDEPTH'] = float(inputs['water_depth'][0])
+            qb_vt['QBladeOcean']['WATERDENSITY'] = float(inputs['rho_water'][0])
             qb_vt['QBladeOcean']['ADVANCEDBUOYANCY'] = int(qb_vt['QBladeOcean']['ADVANCEDBUOYANCY'])
             
             if not qb_vt['QBladeOcean']['override_wave']:
-                qb_vt['QBladeOcean']['SIGHEIGHT'] = float(inputs['Hsig_wave'])
-                qb_vt['QBladeOcean']['PEAKPERIOD'] = float(inputs['Tsig_wave'])
+                qb_vt['QBladeOcean']['SIGHEIGHT'] = float(inputs['Hsig_wave'][0])
+                qb_vt['QBladeOcean']['PEAKPERIOD'] = float(inputs['Tsig_wave'][0])
             else:
                 if len(qb_vt['QSim']['MEANINF']) != len(qb_vt['QBladeOcean']['SIGHEIGHT']) != len(qb_vt['QBladeOcean']['PEAKPERIOD']):
                     qb_vt['QBladeOcean']['SIGHEIGHT'] = np.ones_like(qb_vt['QSim']['MEANINF']) * 5
@@ -821,7 +846,7 @@ class QBLADELoadCases(ExplicitComponent):
             
             if modopt['flags']['monopile']:
                 qb_vt['QBladeOcean']['ISFLOATING']  =  False
-                qb_vt['QBladeOcean']['SUB_MASS']    =  float(inputs["platform_mass"])
+                qb_vt['QBladeOcean']['SUB_MASS']    =  float(inputs["platform_mass"][0])
                 qb_vt['QBladeOcean']['SUB_INER']    = inputs["platform_I_total"][0:3]
                 qb_vt['QBladeOcean']['REF_COG_POS'] = inputs['platform_total_center_of_mass']
                 qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'+str(m+1)] for m in range(6)]) )
@@ -840,7 +865,7 @@ class QBLADELoadCases(ExplicitComponent):
                 n_joints = len(mono_d[1:]) # Omit submerged pile
                 n_members = n_joints - 1
                 joints_xyz = np.c_[np.zeros((n_joints,2)), mono_elev[1:]]
-                joints_xyz[:,2] += float(inputs['water_depth'])
+                joints_xyz[:,2] += float(inputs['water_depth'][0])
                 N1 = np.arange( n_members, dtype=np.int_ ) + 1
                 N2 = np.arange( n_members, dtype=np.int_ ) + 2
                 ijoints = np.arange(n_joints, dtype=np.int_) + 1
@@ -915,7 +940,7 @@ class QBLADELoadCases(ExplicitComponent):
                 
             elif modopt['flags']['floating']: 
                 qb_vt['QBladeOcean']['ISFLOATING']  =  True
-                qb_vt['QBladeOcean']['SUB_MASS']    =  float(inputs["platform_mass"])
+                qb_vt['QBladeOcean']['SUB_MASS']    =  float(inputs["platform_mass"][0])
                 qb_vt['QBladeOcean']['SUB_INER']    = inputs["platform_I_total"][0:3]
                 qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROADDEDMASS'+str(m+1)] for m in range(6)]) )
                 qb_vt['QBladeOcean']['SUB_HYDROSTIFFNESS'] = np.vstack( tuple([qb_vt['QBladeOcean']['SUB_HYDROSTIFFNESS'+str(m+1)] for m in range(6)]) )
@@ -934,14 +959,26 @@ class QBLADELoadCases(ExplicitComponent):
                 # Look over members and grab all nodes and internal connections
                 n_member = modopt["floating"]["members"]["n_members"]
                 for k in range(n_member):
-                    s_grid = inputs[f"member{k}:s"]         
-                    idiam = inputs[f"member{k}:outer_diameter"]
+                    
+                    member_shape = modopt['floating']['members']['outer_shape'][k]
+
+                    kname = modopt['floating']['members']['name'][k]
+                    s_grid = inputs[f"member{k}_{kname}:s"]
+
+                    if member_shape == 'circular':
+                        idiam = inputs[f"member{k}_{kname}:outer_diameter"]
+                        i_dim = idiam
+                    elif member_shape == 'rectangular': # doesn't wor for rectangular members yet.
+                        i_a = inputs[f"member{k}_{kname}:side_length_a"]
+                        i_b = inputs[f"member{k}_{kname}:side_length_b"]
+                        i_dim = i_a
+    
                     s_coarse = make_coarse_grid(s_grid, idiam)
-                    s_coarse = np.unique( np.minimum( np.maximum(s_coarse, inputs[f"member{k}:s_ghost1"]), inputs[f"member{k}:s_ghost2"]) )
+                    s_coarse = np.unique( np.minimum( np.maximum(s_coarse, inputs[f"member{k}_{kname}:s_ghost1"]), inputs[f"member{k}_{kname}:s_ghost2"]) )
                     id_coarse = np.interp(s_coarse, s_grid, idiam)
-                    it_coarse = util.sectional_interp(s_coarse, s_grid, inputs[f"member{k}:wall_thickness"])
-                    xyz0 = inputs[f"member{k}:joint1"]
-                    xyz1 = inputs[f"member{k}:joint2"]
+                    it_coarse = util.sectional_interp(s_coarse, s_grid, inputs[f"member{k}_{kname}:wall_thickness"])
+                    xyz0 = inputs[f"member{k}_{kname}:joint1"]
+                    xyz1 = inputs[f"member{k}_{kname}:joint2"]
                     dxyz = xyz1 - xyz0
                     inode_xyz = np.outer(s_coarse, dxyz) + xyz0[np.newaxis, :]
 
@@ -1021,7 +1058,7 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QBladeOcean']['TP_INTERFACE_POS']    = inputs['transition_node'] # this is a seperate input in the substructure file required in QBladeOcean
 
                 if not qb_vt['QBladeOcean']['IsBuoy'] and len(qb_vt['QBladeOcean']['POT_HST_FILE']) > 0:
-                    qb_vt['QBladeOcean']['SUB_HYDROCONSTFORCE'][2] = float(inputs['platform_displacement']) * float(inputs['rho_water']) * 9.81
+                    qb_vt['QBladeOcean']['SUB_HYDROCONSTFORCE'][2] = float(inputs['platform_displacement'][0]) * float(inputs['rho_water'][0]) * 9.81
                 elif qb_vt['QBladeOcean']['IsBuoy'] and len(qb_vt['QBladeOcean']['POT_HST_FILE']) > 0:
                     qb_vt['QBladeOcean']['POT_HST_FILE'] = ''
                     logger.warning('WARNING: isBuoy is set to 1 AND an .hst file is provided. Buoyancy will be estimated based on explicit buoyancy!')
@@ -1225,7 +1262,7 @@ class QBLADELoadCases(ExplicitComponent):
 
             # Also set some default values to make TurbSim not crash in case the user didn't provide them
             hubht = float(inputs['hub_height'][0])
-            PLExp = float(inputs['shearExp'])
+            PLExp = float(inputs['shearExp'][0])
             if qb_vt['QTurbSim']['IECturbc'] == '':
                 qb_vt['QTurbSim']['IECturbc'] = discrete_inputs['turbulence_class'] # use windIO input if not set by user
             if qb_vt['QTurbSim']['RefHt'] == 0.0:
@@ -1300,14 +1337,14 @@ class QBLADELoadCases(ExplicitComponent):
             modopt = self.options['modeling_options']
             DLCs = modopt['DLC_driver']['DLCs']
             # Initialize the DLC generator
-            cut_in = float(inputs['V_cutin'])
-            cut_out = float(inputs['V_cutout'])
-            rated = float(inputs['Vrated'])
+            cut_in = float(inputs['V_cutin'][0])
+            cut_out = float(inputs['V_cutout'][0])
+            rated = float(inputs['Vrated'][0])
             ws_class = discrete_inputs['turbine_class']
             wt_class = discrete_inputs['turbulence_class']
-            hub_height = float(inputs['hub_height'])
-            rotorD = float(inputs['Rtip'])*2.
-            PLExp = float(inputs['shearExp'])
+            hub_height = float(inputs['hub_height'][0])
+            rotorD = float(inputs['Rtip'][0])*2.
+            PLExp = float(inputs['shearExp'][0])
             fix_wind_seeds = modopt['DLC_driver']['fix_wind_seeds']
             fix_wave_seeds = modopt['DLC_driver']['fix_wave_seeds']
             metocean = modopt['DLC_driver']['metocean_conditions']
@@ -1355,6 +1392,7 @@ class QBLADELoadCases(ExplicitComponent):
             
             # Initialize parametric inputs
             WindFile_type = np.zeros(dlc_generator.n_cases, dtype=int)
+            WindFile_plexp = PLExp * np.ones(dlc_generator.n_cases, dtype=int)
             WindFile_name = [''] * dlc_generator.n_cases
 
             self.TMax = np.zeros(dlc_generator.n_cases)
@@ -1389,7 +1427,7 @@ class QBLADELoadCases(ExplicitComponent):
                     dlc_generator.cases[i_case].AnalysisTime = dlc_generator.cases[i_case].total_time
             
             for i_case in range(dlc_generator.n_cases):
-                WindFile_type[i_case] , WindFile_name[i_case] = generate_wind_files(
+                WindFile_type[i_case], WindFile_plexp[i_case], WindFile_name[i_case] = generate_wind_files(
                         dlc_generator, self.QBLADE_namingOut, self.wind_directory, rotorD, hub_height, self.turbsim_exe, i_case, generate_for_qblade=True)
             
             script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script      
@@ -1546,6 +1584,11 @@ class QBLADELoadCases(ExplicitComponent):
                         else:
                             magnitude_channels[f'LSShft{s}{k}{x}a'] = ['Y_h For. Hub Const.', 'Z_h For. Hub Const.'] if ik==0 else ['Y_h Mom. Hub Const.', 'Z_h Mom. Hub Const.'] # TODO: Equivalent sensors in QBlade are required
 
+            # TODO: Aero-only hub loads add them here
+            # magnitude_channels["RtFldF"] = ["RtFldFxh", "RtFldFyh", "RtFldFzh"]
+            # magnitude_channels["RtFldM"] = ["RtFldMxh", "RtFldMyh", "RtFldMzh"]
+
+
             # Fatigue at the tower base
             # Convert ultstress and S_intercept values to kPa with 1e-3 factor
             tower_fatigue_base = FatigueParams(load2stress=1.0,
@@ -1585,14 +1628,8 @@ class QBLADELoadCases(ExplicitComponent):
             # X_l For. SUB_member_{member-1} pos {rel_member_pos:.3f}
             qblade.fatigue_channels   = fatigue_channels
             qblade.magnitude_channels = magnitude_channels
-            self.la = LoadsAnalysis(
-                outputs=[],
-                magnitude_channels=magnitude_channels,
-                fatigue_channels=fatigue_channels,
-            )
-            self.magnitude_channels = magnitude_channels
 
-        summary_stats, extreme_table, DELs, Damage, chan_time = qblade.run_qblade_cases()
+        summary_stats, extreme_table, DELs, Damage, chan_time = qblade.run_qblade_cases() #till here
 
         return summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator
 

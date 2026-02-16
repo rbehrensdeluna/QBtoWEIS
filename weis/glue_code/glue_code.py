@@ -1027,11 +1027,11 @@ class WindPark(om.Group):
                 self.connect("blade.opt_var.s_opt_layer_%d"%spars_tereinf[1], "rotorse.rs.constr.s_opt_spar_cap_ps")
 
                 # Connections to the stall check 
-                self.connect('blade.outer_shape_bem.s',        'stall_check_of.s')
+                self.connect('blade.outer_shape.s',        'stall_check_of.s')
                 self.connect('airfoils.aoa',                   'stall_check_of.airfoils_aoa')
-                self.connect('xf.cl_interp_flaps',             'stall_check_of.airfoils_cl')
-                self.connect('xf.cd_interp_flaps',             'stall_check_of.airfoils_cd')
-                self.connect('xf.cm_interp_flaps',             'stall_check_of.airfoils_cm')
+                self.connect("af_3d.cl_corrected",             "stall_check_of.airfoils_cl")
+                self.connect("af_3d.cd_corrected",             "stall_check_of.airfoils_cd")
+                self.connect("af_3d.cm_corrected",             "stall_check_of.airfoils_cm")
                 self.connect('aeroelastic_qblade.max_aoa',     'stall_check_of.aoa_along_span')
             
             if modeling_options["flags"]["monopile"]:
@@ -1070,38 +1070,38 @@ class WindPark(om.Group):
 
                 # Main file connections
                 self.connect('hub.cone',                                'aeroelastic_qblade.cone')
-                self.connect('nacelle.uptilt',                          'aeroelastic_qblade.tilt')
-                self.connect('nacelle.overhang',                        'aeroelastic_qblade.overhang')
+                self.connect('drivetrain.uptilt',                          'aeroelastic_qblade.tilt')
+                self.connect('drivetrain.overhang',                        'aeroelastic_qblade.overhang')
                 self.connect('drivese.above_yaw_mass',                  'aeroelastic_qblade.above_yaw_mass')
                 self.connect('drivese.yaw_mass',                        'aeroelastic_qblade.yaw_mass')
                 self.connect('drivese.above_yaw_cm',                    'aeroelastic_qblade.nacelle_cm')
                 self.connect('drivese.hub_system_mass',                 'aeroelastic_qblade.hub_system_mass')
                 self.connect('drivese.hub_system_I',                    'aeroelastic_qblade.hub_system_I')
-                self.connect('nacelle.gear_ratio',                      'aeroelastic_qblade.gearbox_ratio')
+                self.connect('drivetrain.gear_ratio',                      'aeroelastic_qblade.gearbox_ratio')
                 self.connect('rotorse.rp.powercurve.rated_efficiency',  'aeroelastic_qblade.generator_efficiency')
-                self.connect('nacelle.gearbox_efficiency',              'aeroelastic_qblade.gearbox_efficiency')
+                self.connect('drivetrain.gearbox_efficiency',              'aeroelastic_qblade.gearbox_efficiency')
                 # drtdof
                 self.connect('drivese.generator_rotor_I',               'aeroelastic_qblade.GenIner', src_indices=[0])
                 self.connect('drivese.drivetrain_spring_constant',      'aeroelastic_qblade.drivetrain_spring_constant')
                 self.connect('drivese.drivetrain_damping_coefficient',  'aeroelastic_qblade.drivetrain_damping_coefficient')
-                self.connect('blade.outer_shape_bem.pitch_axis',        'aeroelastic_qblade.le_location')
+                self.connect('blade.pa.section_offset_y_param',       'aeroelastic_qblade.le_location')
 
                 # Blade file connections
                 self.connect('blade.pa.chord_param',                        'aeroelastic_qblade.chord')
                 self.connect('blade.pa.twist_param',                        'aeroelastic_qblade.theta')
-                self.connect('blade.outer_shape_bem.ref_axis',              'aeroelastic_qblade.ref_axis_blade')
+                self.connect('blade.high_level_blade_props.blade_ref_axis', 'aeroelastic_qblade.ref_axis_blade')
                 self.connect('blade.high_level_blade_props.r_blade',        'aeroelastic_qblade.r')
                 self.connect('hub.radius',                                  'aeroelastic_qblade.Rhub')
-                self.connect('blade.high_level_blade_props.rotor_radius',   'aeroelastic_qblade.Rtip')
+                self.connect('blade.high_level_blade_props.Rtip',   'aeroelastic_qblade.Rtip')
                 self.connect('blade.interp_airfoils.ac_interp',             'aeroelastic_qblade.ac')
 
                 self.connect('blade.interp_airfoils.coord_xy_interp',       'aeroelastic_qblade.coord_xy_interp')
-                self.connect('blade.interp_airfoils.r_thick_interp',        'aeroelastic_qblade.rthick')
+                self.connect('blade.interp_airfoils.rthick_interp',        'aeroelastic_qblade.rthick')
                 self.connect('airfoils.Re',                                 'aeroelastic_qblade.airfoils_Re')
                 self.connect('airfoils.aoa',                                'aeroelastic_qblade.airfoils_aoa')
-                self.connect('xf.cl_interp_flaps',                          'aeroelastic_qblade.airfoils_cl')
-                self.connect('xf.cd_interp_flaps',                          'aeroelastic_qblade.airfoils_cd')
-                self.connect('xf.cm_interp_flaps',                          'aeroelastic_qblade.airfoils_cm')
+                self.connect('af_3d.cl_corrected',                          'aeroelastic_qblade.airfoils_cl')
+                self.connect('af_3d.cd_corrected',                          'aeroelastic_qblade.airfoils_cd')
+                self.connect('af_3d.cm_corrected',                          'aeroelastic_qblade.airfoils_cm')
                 self.connect('rotorse.rp.powercurve.V',                     'aeroelastic_qblade.U')
                 self.connect('rotorse.rp.powercurve.Omega',                 'aeroelastic_qblade.Omega')
                 self.connect('rotorse.rp.powercurve.pitch',                 'aeroelastic_qblade.pitch')
@@ -1116,11 +1116,12 @@ class WindPark(om.Group):
                 # TODO self.connect('rotorse.re.precomp.G',                   'aeroelastic_qblade.beam:G')
                 self.connect('rotorse.re.x_cg',                        'aeroelastic_qblade.beam:x_cg')
                 self.connect('rotorse.re.y_cg',                        'aeroelastic_qblade.beam:y_cg')
-                self.connect('rotorse.x_ec',                           'aeroelastic_qblade.beam:x_ec')
-                self.connect('rotorse.y_ec',                           'aeroelastic_qblade.beam:y_ec')
-                self.connect('rotorse.re.x_sc',                        'aeroelastic_qblade.beam:x_sc')
-                self.connect('rotorse.re.precomp.flap_iner',           'aeroelastic_qblade.beam:flap_iner')
-                self.connect('rotorse.re.precomp.edge_iner',           'aeroelastic_qblade.beam:edge_iner')
+                self.connect('rotorse.re.x_tc',                           'aeroelastic_qblade.beam:x_ec')
+                self.connect('rotorse.re.y_tc',                           'aeroelastic_qblade.beam:y_ec')
+                self.connect('rotorse.re.precomp.x_sc',                        'aeroelastic_qblade.beam:x_sc')
+                self.connect('rotorse.re.precomp.y_sc',                        'aeroelastic_qblade.beam:y_sc')
+                self.connect('rotorse.re.flap_iner',           'aeroelastic_qblade.beam:flap_iner')
+                self.connect('rotorse.re.edge_iner',           'aeroelastic_qblade.beam:edge_iner')
                 # self.connect('rotorse.re.Tw_iner',                     'aeroelastic_qblade.beam:Tw_iner') # TODO: what happened to Tw_iner?
                 self.connect('rotorse.rs.frame.flap_mode_freqs',       'aeroelastic_qblade.flap_freq', src_indices=[0])
                 self.connect('rotorse.rs.frame.edge_mode_freqs',       'aeroelastic_qblade.edge_freq', src_indices=[0])
@@ -1155,7 +1156,7 @@ class WindPark(om.Group):
                 
                 # Required parameters to carry out conversion into QBlade format
                 self.connect('high_level_tower_props.hub_height',   'aeroelastic_qblade.hub_height')
-                self.connect('nacelle.distance_tt_hub',             'aeroelastic_qblade.distance_tt_hub')
+                self.connect('drivetrain.distance_tt_hub',             'aeroelastic_qblade.distance_tt_hub')
                 self.connect('drivese.above_yaw_I_TT',              'aeroelastic_qblade.nacelle_I_TT')
                 self.connect('towerse.tower_I_base',                'aeroelastic_qblade.tower_I_base')
 
@@ -1187,14 +1188,39 @@ class WindPark(om.Group):
                     self.connect('floatingse.platform_elem_n2',                         'aeroelastic_qblade.platform_elem_n2')
                     self.connect('floatingse.platform_elem_memid',                      'aeroelastic_qblade.platform_elem_memid')
                 
+                
                     for k, kname in enumerate(modeling_options["floating"]["members"]["name"]):
                         idx = modeling_options["floating"]["members"]["name2idx"][kname]
-                        #self.connect(f"floating.memgrp{idx}.outer_diameter",                f"aeroelastic_qblade.member{k}.outer_diameter_in")
-                        self.connect(f"floating.memgrp{idx}.s",                             f"aeroelastic_qblade.member{k}:s")
-                        self.connect(f"floatingse.member{k}.outer_diameter",                f"aeroelastic_qblade.member{k}:outer_diameter")
-                        self.connect(f"floatingse.member{k}.wall_thickness",                f"aeroelastic_qblade.member{k}:wall_thickness")
+                        self.connect(f"floating.memgrp{idx}.s", f"aeroelastic_qblade.member{k}_{kname}:s")
+                        self.connect(f"floatingse.member{k}_{kname}.wall_thickness", f"aeroelastic_qblade.member{k}_{kname}:wall_thickness")
+                        self.connect(f"floatingse.member{k}_{kname}.rho", f"aeroelastic_qblade.member{k}_{kname}:rho")
+                        self.connect(f"floatingse.member{k}_{kname}.E", f"aeroelastic_qblade.member{k}_{kname}:E")
+                        self.connect(f"floatingse.member{k}_{kname}.G", f"aeroelastic_qblade.member{k}_{kname}:G")
+                        self.connect(f"floatingse.member{k}_{kname}.ballast_z_cg", f"aeroelastic_qblade.member{k}_{kname}:ballast_z_cg")
+                        self.connect(f"floatingse.member{k}_{kname}.ballast_mass", f"aeroelastic_qblade.member{k}_{kname}:ballast_mass")
+                        self.connect(f"floatingse.member{k}_{kname}.ballast_I_base", f"aeroelastic_qblade.member{k}_{kname}:ballast_I_base")
+                        self.connect(f"floatingse.member{k}_{kname}:variable_ballast_cg", f"aeroelastic_qblade.member{k}_{kname}:variable_ballast_cg")
+                        self.connect(f"floatingse.member{k}_{kname}:variable_ballast_mass", f"aeroelastic_qblade.member{k}_{kname}:variable_ballast_mass")
+                        self.connect(f"floatingse.member{k}_{kname}:variable_ballast_I", f"aeroelastic_qblade.member{k}_{kname}:variable_ballast_I")
+                        self.connect(f"floatingse.member{k}_{kname}.bulkhead_mass", f"aeroelastic_qblade.member{k}_{kname}:bulkhead_mass")
+                        self.connect(f"floatingse.member{k}_{kname}.bulkhead_z_cg", f"aeroelastic_qblade.member{k}_{kname}:bulkhead_z_cg")
+                        self.connect(f"floatingse.member{k}_{kname}.bulkhead_I_base", f"aeroelastic_qblade.member{k}_{kname}:bulkhead_I_base")
+
+                        # Member coefficients
+                        if modeling_options['floating']['members']['outer_shape'][k] == "circular":
+                            self.connect(f"floatingse.member{k}_{kname}.outer_diameter", f"aeroelastic_qblade.member{k}_{kname}:outer_diameter")
+                            self.connect(f"floating.memgrid{idx}.ca_usr_grid", f"aeroelastic_qblade.member{k}_{kname}:Ca")
+                            self.connect(f"floating.memgrid{idx}.cd_usr_grid", f"aeroelastic_qblade.member{k}_{kname}:Cd")
+                        elif modeling_options['floating']['members']['outer_shape'][k] == "rectangular":
+                            self.connect(f"floatingse.member{k}_{kname}.side_length_a", f"aeroelastic_qblade.member{k}_{kname}:side_length_a")
+                            self.connect(f"floatingse.member{k}_{kname}.side_length_b", f"aeroelastic_qblade.member{k}_{kname}:side_length_b")
+                            self.connect(f"floating.memgrid{idx}.ca_usr_grid", f"aeroelastic_qblade.member{k}_{kname}:Ca")
+                            self.connect(f"floating.memgrid{idx}.cd_usr_grid", f"aeroelastic_qblade.member{k}_{kname}:Cd")
+                            self.connect(f"floating.memgrid{idx}.cay_usr_grid", f"aeroelastic_qblade.member{k}_{kname}:Cay")
+                            self.connect(f"floating.memgrid{idx}.cdy_usr_grid", f"aeroelastic_qblade.member{k}_{kname}:Cdy")
+                        
                         for var in ["joint1", "joint2", "s_ghost1", "s_ghost2"]:
-                                self.connect(f"floating.member_{kname}:{var}",              f"aeroelastic_qblade.member{k}:{var}")
+                            self.connect(f"floating.member{k}_{kname}:{var}", f"aeroelastic_qblade.member{k}_{kname}:{var}")
                 
                     if modeling_options['flags']['mooring']:
                         self.connect('mooring.line_diameter',               'aeroelastic_qblade.line_diameter')
@@ -1265,13 +1291,13 @@ class WindPark(om.Group):
                 self.connect('rotorse.xl_te', 'rlds_post.strains.xl_te')
                 self.connect('rotorse.yu_te', 'rlds_post.strains.yu_te')
                 self.connect('rotorse.yl_te', 'rlds_post.strains.yl_te')
-                self.connect('blade.outer_shape_bem.s','rlds_post.constr.s')
-                self.connect("blade.internal_structure_2d_fem.d_f", "rlds_post.brs.d_f")
-                self.connect("blade.internal_structure_2d_fem.sigma_max", "rlds_post.brs.sigma_max")
+                self.connect('blade.outer_shape.s','rlds_post.constr.s')
+                self.connect("blade.structure.d_f", "rlds_post.brs.d_f")
+                self.connect("blade.structure.sigma_max", "rlds_post.brs.sigma_max")
                 self.connect("blade.pa.chord_param", "rlds_post.brs.rootD", src_indices=[0])
                 self.connect("blade.ps.layer_thickness_param", "rlds_post.brs.layer_thickness")
-                self.connect("blade.internal_structure_2d_fem.layer_start_nd", "rlds_post.brs.layer_start_nd")
-                self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rlds_post.brs.layer_end_nd")
+                self.connect("blade.structure.layer_start_nd", "rlds_post.brs.layer_start_nd")
+                self.connect("blade.structure.layer_end_nd", "rlds_post.brs.layer_end_nd")
 
                 if modeling_options["flags"]["monopile"]:
                     # mono_params = ["z_full","d_full","t_full",
@@ -1293,20 +1319,20 @@ class WindPark(om.Group):
                 # Connections to turbine constraints
                 self.connect('aeroelastic_qblade.max_TipDxc',               'tcons_post.tip_deflection')
                 self.connect('configuration.rotor_orientation',             'tcons_post.rotor_orientation')
-                self.connect('blade.high_level_blade_props.rotor_radius',   'tcons_post.Rtip')
-                self.connect('blade.outer_shape_bem.ref_axis',              'tcons_post.ref_axis_blade')
+                self.connect('blade.high_level_blade_props.Rtip',   'tcons_post.Rtip')
+                self.connect('blade.high_level_blade_props.blade_ref_axis',              'tcons_post.ref_axis_blade')
                 self.connect('hub.cone',                                    'tcons_post.precone')
-                self.connect('nacelle.uptilt',                              'tcons_post.tilt')
-                self.connect('nacelle.overhang',                            'tcons_post.overhang')
+                self.connect('drivetrain.uptilt',                              'tcons_post.tilt')
+                self.connect('drivetrain.overhang',                            'tcons_post.overhang')
                 self.connect('tower.ref_axis',                              'tcons_post.ref_axis_tower')
                 self.connect('tower.diameter',                              'tcons_post.outer_diameter_full')
 
                 if modeling_options['SONATA']['flag']:
-                    self.connect('blade.outer_shape_bem.s',                 'sonata.grid')
+                    self.connect('blade.outer_shape.s',                 'sonata.grid')
                     self.connect('blade.pa.chord_param',                    'sonata.chord')
                     self.connect('rotorse.theta',                           'sonata.twist')
-                    self.connect('blade.outer_shape_bem.ref_axis',          'sonata.ref_axis_blade')
-                    self.connect('blade.outer_shape_bem.pitch_axis',        'sonata.pitch_axis')
+                    self.connect('blade.outer_shape.ref_axis',          'sonata.ref_axis_blade')
+                    self.connect('blade.outer_shape.pitch_axis',        'sonata.pitch_axis')
                     self.connect('blade.interp_airfoils.r_thick_interp',    'sonata.r_thick')
                     # self.connect('airfoils.name',                           'sonata.airfoils_name')
                     self.connect('blade.opt_var.af_position',               'sonata.airfoils_position')
@@ -1320,18 +1346,18 @@ class WindPark(om.Group):
                     self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[2],   'sonata.te_ss_opt')
                     self.connect('blade.opt_var.layer_%d_opt'%spars_tereinf[3],   'sonata.te_ps_opt')
                     
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa',     'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_start_nd',        'sonata.2d_fem_web_start_nd')
-                    # self.connect('blade.internal_structure_2d_fem.web_end_nd',          'sonata.2d_fem_web_end_nd')
+                    # self.connect('blade.structure.web_offset_y_pa',     'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_start_nd',        'sonata.2d_fem_web_start_nd')
+                    # self.connect('blade.structure.web_end_nd',          'sonata.2d_fem_web_end_nd')
 
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
-                    # self.connect('blade.internal_structure_2d_fem.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
+                    # self.connect('blade.structure.web_offset_y_pa', 'sonata.2d_fem_web_offset_y_pa')
 
 
             # Inputs to plantfinancese from wt group
@@ -1383,4 +1409,4 @@ class WindPark(om.Group):
                 self.connect('tune_rosco_ivc.flp_tau',        'outputs_2_screen_weis.flp_tau')
                 self.connect('tune_rosco_ivc.IPC_Kp1p',        'outputs_2_screen_weis.IPC_Kp1p')
                 self.connect('tune_rosco_ivc.IPC_Ki1p',        'outputs_2_screen_weis.IPC_Ki1p')
-                self.connect('dac_ivc.te_flap_end',            'outputs_2_screen_weis.te_flap_end')
+                # self.connect('dac_ivc.te_flap_end',            'outputs_2_screen_weis.te_flap_end')

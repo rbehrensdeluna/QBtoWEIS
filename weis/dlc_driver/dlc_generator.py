@@ -160,7 +160,8 @@ qblade_input_map = {
     'aero_mod': ("Turbine","DYNSTALLTYPE"),
     'wake_mod': ("Turbine","WAKETYPE"),
     'tau1_const': ("AeroDyn15","tau1_const"), # No QBlade
-
+    
+    'analysis_time': ("QTurbSim", "AnalysisTime"),
     'wind_seed': ("QTurbSim", "RandSeed1"),
     'direction': ("QTurbSim", "direction_pn"),
     'shear': ("QTurbSim", "shear_hv"),

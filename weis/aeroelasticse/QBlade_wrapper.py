@@ -17,7 +17,7 @@ import os
 import subprocess
 
 # from pCrunch.io import OpenFASTOutput, OpenFASTBinary, OpenFASTAscii
-# from pCrunch import LoadsAnalysis, FatigueParams
+from pCrunch import AeroelasticOutput, Crunch, FatigueParams
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from packaging import version
 import numpy as np  
