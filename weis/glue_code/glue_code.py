@@ -974,6 +974,14 @@ class WindPark(om.Group):
                 self.connect('xf.cm_interp_flaps',             'stall_check_of.airfoils_cm')
                 self.connect('aeroelastic_qblade.max_aoa',     'stall_check_of.aoa_along_span')
             
+            # TODO: FIX NDLC HERE
+            if modeling_options["flags"]["tower"]:
+                # This is needed for some reason because TowerSE isn't already called?  Should probably re-use that
+                n_height = modeling_options['WISDEM']['TowerSE']["n_height"]
+                n_refine = modeling_options['WISDEM']['TowerSE']["n_refine"]
+                n_full = get_nfull(n_height, nref=n_refine)
+                self.add_subsystem('towerse_post',   CylinderPostFrame(modeling_options=modeling_options["WISDEM"]["TowerSE"], n_dlc=1, n_full = n_full))
+            
             if modeling_options["flags"]["monopile"]:
                 n_height = modeling_options['WISDEM']['FixedBottomSE']["n_height"]
                 n_refine = modeling_options['WISDEM']['FixedBottomSE']["n_refine"]
