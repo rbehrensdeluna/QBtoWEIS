@@ -498,9 +498,9 @@ class QBLADELoadCases(ExplicitComponent):
             # Write input QB files and run QB
             if not qb_vt['QSim']['DLCGenerator']:
                 self.write_QBLADE(qb_vt, inputs, discrete_inputs)
-            summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
+            dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
-            self.post_process(summary_stats, extreme_table, DELs, Damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs)
+            self.post_process(chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs)
 
             self.qb_inumber += 1
 
@@ -1629,9 +1629,9 @@ class QBLADELoadCases(ExplicitComponent):
             qblade.fatigue_channels   = fatigue_channels
             qblade.magnitude_channels = magnitude_channels
 
-        summary_stats, extreme_table, DELs, Damage, chan_time = qblade.run_qblade_cases() #till here
+        self.cruncher = qblade.run_qblade_cases()
 
-        return summary_stats, extreme_table, DELs, Damage, chan_time, dlc_generator
+        return dlc_generator
 
     def run_TurbSim(self, qb_vt):
         self.qb_vt = qb_vt

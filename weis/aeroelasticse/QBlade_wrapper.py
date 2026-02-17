@@ -16,8 +16,9 @@ and may not be used without authorization.
 import os
 import subprocess
 
-# from pCrunch.io import OpenFASTOutput, OpenFASTBinary, OpenFASTAscii
-from pCrunch import AeroelasticOutput, Crunch, FatigueParams
+from openfast_io.FAST_reader import InputReader_OpenFAST
+from openfast_io.FAST_writer import InputWriter_OpenFAST
+from pCrunch import AeroelasticOutput, Crunch, FatigueParams, read
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from packaging import version
 import numpy as np  
@@ -84,16 +85,17 @@ class QBladeWrapper:
         self.goodman            = False
         self.magnitude_channels = magnitude_channels_default
         self.fatigue_channels   = fatigue_channels_default
-        self.la                 = None
+        self.cruncher           = None
 
     def init_crunch(self):
-        if self.la is None:
-            self.la = LoadsAnalysis(
+        if self.cruncher is None:
+            self.cruncher = Crunch(
                 outputs=[],
                 magnitude_channels=self.magnitude_channels,
                 fatigue_channels=self.fatigue_channels,
                 #extreme_channels=channel_extremes_default,
             )
+    
     def run_qblade_cases(self):
         start_time = time.time()
         
@@ -104,11 +106,11 @@ class QBladeWrapper:
         print(f"Elapsed time to complete all QBlade simulation: {elapsed_time:.2f} seconds.")
 
         if self.number_of_workers == 1:
-            summary_stats, extreme_table, DELs, Damage, ct =  self.run_serial()	
+            output = self.run_serial()	
         else :
-            summary_stats, extreme_table, DELs, Damage, ct =  self.run_multi()
+            output = self.run_multi()
         
-        return summary_stats, extreme_table, DELs, Damage, ct
+        return output
     
     def run_multi(self,): 
         self.init_crunch()
@@ -163,22 +165,11 @@ class QBladeWrapper:
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".out")])
         elif self.out_file_format == 2: # Binary
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
-        
-        ss = {}
-        et = {}
-        dl = {}
-        dam = {}
-        ct = []
 
         for c in out_files:
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
-
-            _name, _ss, _et, _dl, _dam, _ct = self.analyze_cases(QBLADE_Output_txt)
-            ss[_name] = _ss
-            et[_name] = _et
-            dl[_name] = _dl
-            dam[_name] = _dam
-            ct.append(_ct)
+            output = read(QBLADE_Output_txt, magnitude_channels=self.magnitude_channels)
+            output.fc = self.fatigue_channels
         
         # Delete the .out files after processing
         if self.delete_out_files:
@@ -186,9 +177,11 @@ class QBladeWrapper:
                 os.remove(os.path.join(self.QBLADE_runDirectory, f))
                 print(f"Successfully deleted {f}.")
         
-        summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
+        output.process(goodman_correction=self.goodman)
+        output_dict = None
+        output.data = None
         
-        return summary_stats, extreme_table, DELs, Damage, ct
+        return output
         
     def set_environment(self):
         # Set the environment variables to include the path to the shared libraries
@@ -275,11 +268,13 @@ class QBladeWrapper:
         # Trim Data
         if self.qb_vt['QSim']['STOREFROM'] > 0.0 and not self.qb_vt['QSim']['DLCGenerator']: # in DLCGenerator QBlade never stores the values during the "tansient_time"
             output.trim_data(tmin=self.qb_vt['QSim']['STOREFROM'], tmax=self.qb_vt['QSim']['TMax'])
-        case_name, sum_stats, extremes, dels, damage = self.la._process_output(output,
-                                                                            return_damage=True,
-                                                                            goodman_correction=self.goodman)
         
-        return case_name, sum_stats, extremes, dels, damage, output_dict        
+        if not self.keep_time:
+            output.process(goodman_correction=self.goodman)
+            output_dict = None
+            output.data = None
+
+        return output      
 
     def qblade_version_check(self):
         match = re.search(r'(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll
