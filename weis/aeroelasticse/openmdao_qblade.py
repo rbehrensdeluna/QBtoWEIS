@@ -500,7 +500,7 @@ class QBLADELoadCases(ExplicitComponent):
                 self.write_QBLADE(qb_vt, inputs, discrete_inputs)
             dlc_generator = self.run_QBLADE(inputs, discrete_inputs, qb_vt)
             # post process results
-            self.post_process(chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs)
+            self.post_process(dlc_generator, inputs, discrete_inputs, outputs, discrete_outputs) # Case list??
 
             self.qb_inumber += 1
 
@@ -1924,9 +1924,8 @@ class QBLADELoadCases(ExplicitComponent):
                 qb_vt['QTurbSim'][key] = modeling_options['QBlade']['QTurbSim'][key]
         return qb_vt
 
-    def post_process(self, summary_stats, extreme_table, DELs, damage, chan_time, inputs, outputs, discrete_inputs, dlc_generator, discrete_outputs):
+    def post_process(self, dlc_generator, inputs, discrete_inputs, outputs, discrete_outputs):
         # leaning heavily on equivalent funtion in "openmdao_openfast.py"
-        # TODO do the post-processing acutally for DLCs and not only idealized cases
         modopt = self.options['modeling_options']
         
         failed_sim_ids = self.get_failed_sim_ids()
@@ -1937,12 +1936,12 @@ class QBLADELoadCases(ExplicitComponent):
         
         if not self.qb_vt['Turbine']['NOSTRUCTURE']:
             if self.options['modeling_options']['flags']['blade']:
-                outputs = self.get_blade_loading(summary_stats, extreme_table, inputs, outputs)
+                outputs = self.get_blade_loading(inputs, outputs)
             if self.options['modeling_options']['flags']['tower']:
-                outputs = self.get_tower_loading(summary_stats, extreme_table, inputs, outputs)
+                outputs = self.get_tower_loading(inputs, outputs)
             if modopt['flags']['monopile']:
                 try:
-                    outputs = self.get_monopile_loading(summary_stats, extreme_table, inputs, outputs)
+                    outputs = self.get_monopile_loading(inputs, outputs)
                 except Exception as e:
                     logger.error(f"[MONOPILE LOADING] Error in get_monopile_loading: {e}", exc_info=True)
                     return outputs
@@ -2143,7 +2142,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         return outputs
           	
-    def get_blade_loading(self, sum_stats, extreme_table, inputs, outputs):
+    def get_blade_loading(self, inputs, outputs):
             """
             Find the spanwise loading along the blade span.
 
@@ -2152,7 +2151,9 @@ class QBLADELoadCases(ExplicitComponent):
             sum_stats : pd.DataFrame
             extreme_table : dict
             """
-
+            sum_stats = self.cruncher.summary_stats
+            extreme_table = self.cruncher.extremes
+        
             # Determine maximum deflection magnitudes
             if self.n_blades == 2:
                 defl_mag = [max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_1']['max']), max(sum_stats['X_c Tip Trl.Def. (OOP) BLD_2']['max'])]

@@ -106,11 +106,11 @@ class QBladeWrapper:
         print(f"Elapsed time to complete all QBlade simulation: {elapsed_time:.2f} seconds.")
 
         if self.number_of_workers == 1:
-            output = self.run_serial()	
+            self.cruncher = self.run_serial()	
         else :
-            output = self.run_multi()
+            self.cruncher = self.run_multi()
         
-        return output
+        return self.cruncher
     
     def run_multi(self,): 
         self.init_crunch()
@@ -155,18 +155,20 @@ class QBladeWrapper:
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
             output = read(QBLADE_Output_txt, magnitude_channels=self.magnitude_channels)
             output.fc = self.fatigue_channels
-        
+            
+            output.process(goodman_correction=self.goodman)
+            output_dict = None
+            output.data = None
+
+            self.cruncher.add_output(output)
+                
         # Delete the .out files after processing
         if self.delete_out_files:
             for f in out_files:
                 os.remove(os.path.join(self.QBLADE_runDirectory, f))
                 print(f"Successfully deleted {f}.")
         
-        output.process(goodman_correction=self.goodman)
-        output_dict = None
-        output.data = None
-        
-        return output
+        return self.cruncher
         
     def set_environment(self):
         # Set the environment variables to include the path to the shared libraries
@@ -255,7 +257,9 @@ class QBladeWrapper:
         output_dict = None
         output.data = None
 
-        return output      
+        self.cruncher.add_output(output)
+
+        return self.cruncher      
 
     def qblade_version_check(self):
         match = re.search(r'(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll
