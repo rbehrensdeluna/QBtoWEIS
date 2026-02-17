@@ -124,23 +124,10 @@ class QBladeWrapper:
 
         if sys.platform == "linux": # ProcessPoolExecutor is a bit quicker but doesn't work under windows
             with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
-                results = list(executor.map(self.parallel_analyze_cases, out_files))
+                output = list(executor.map(self.parallel_analyze_cases, out_files))
         else:
             with ThreadPoolExecutor(max_workers=self.number_of_workers) as executor:
-                results = list(executor.map(self.parallel_analyze_cases, out_files))
-
-        ss = {}
-        et = {}
-        dl = {}
-        dam = {}
-        ct = []
-
-        for (_name, _ss, _et, _dl, _dam, _ct) in results:
-            ss[_name] = _ss
-            et[_name] = _et
-            dl[_name] = _dl
-            dam[_name] = _dam
-            ct.append(_ct)
+                output = list(executor.map(self.parallel_analyze_cases, out_files))
             
         # Delete the .out files after processing
         if self.delete_out_files:
@@ -148,9 +135,7 @@ class QBladeWrapper:
                 os.remove(os.path.join(self.QBLADE_runDirectory, f))
                 print(f"Successfully deleted {f}.")
 
-        summary_stats, extreme_table, DELs, Damage = self.la.post_process(ss, et, dl, dam)
-
-        return summary_stats, extreme_table, DELs, Damage, ct
+        return output
 
     def parallel_analyze_cases(self,file_name):
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, file_name)
@@ -226,13 +211,9 @@ class QBladeWrapper:
 
 
     def analyze_cases(self, case):
-        if self.out_file_format == 1 and os.path.exists(case):
-            output_init = OpenFASTAscii(case, magnitude_channels=self.magnitude_channels)
-        if self.out_file_format == 2 and  os.path.exists(case):
-            output_init = OpenFASTBinary(case, magnitude_channels=self.magnitude_channels)
-
-        output_init.read()
-
+        output_init = read(case, magnitude_channels=self.magnitude_channels)
+        output_init.fc = self.fatigue_channels
+        
         # Make output dict
         output_dict = {}
         filename = os.path.basename(case)
@@ -263,16 +244,16 @@ class QBladeWrapper:
             output_dict[channel] = scaled_data
 
         # Re-make output
-        output = OpenFASTOutput.from_dict(output_dict, filename)
-
+        output = AeroelasticOutput(output_dict, dlc=self.QBLADE_namingOut, name=filename,
+                                       magnitude_channels=self.magnitude_channels, fatigue_channels=self.fatigue_channels)
+        
         # Trim Data
         if self.qb_vt['QSim']['STOREFROM'] > 0.0 and not self.qb_vt['QSim']['DLCGenerator']: # in DLCGenerator QBlade never stores the values during the "tansient_time"
             output.trim_data(tmin=self.qb_vt['QSim']['STOREFROM'], tmax=self.qb_vt['QSim']['TMax'])
         
-        if not self.keep_time:
-            output.process(goodman_correction=self.goodman)
-            output_dict = None
-            output.data = None
+        output.process(goodman_correction=self.goodman)
+        output_dict = None
+        output.data = None
 
         return output      
 
