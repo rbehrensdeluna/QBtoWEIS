@@ -81,6 +81,7 @@ class QBladeWrapper:
         self.turbsim_params     = {}
         self.out_file_format    = 2
         self.delete_out_files   = True
+        self.keep_time          = False
 
         self.goodman            = False
         self.magnitude_channels = magnitude_channels_default
@@ -124,18 +125,22 @@ class QBladeWrapper:
 
         if sys.platform == "linux": # ProcessPoolExecutor is a bit quicker but doesn't work under windows
             with ProcessPoolExecutor(max_workers=self.number_of_workers) as executor:
-                output = list(executor.map(self.parallel_analyze_cases, out_files))
+                results = list(executor.map(self.parallel_analyze_cases, out_files))
         else:
             with ThreadPoolExecutor(max_workers=self.number_of_workers) as executor:
-                output = list(executor.map(self.parallel_analyze_cases, out_files))
-            
+                results = list(executor.map(self.parallel_analyze_cases, out_files))
+        
+        # Feed the results into the cruncher object
+        for output in results:
+            self.cruncher.add_output(output)
+
         # Delete the .out files after processing
         if self.delete_out_files:
             for f in out_files:
                 os.remove(os.path.join(self.QBLADE_runDirectory, f))
                 print(f"Successfully deleted {f}.")
 
-        return output
+        return self.cruncher
 
     def parallel_analyze_cases(self,file_name):
             QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, file_name)
@@ -151,15 +156,9 @@ class QBladeWrapper:
         elif self.out_file_format == 2: # Binary
             out_files = sorted([f for f in all_files_in_dir if f.endswith(".outb")])
 
-        for c in out_files:
-            QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, c)
-            output = read(QBLADE_Output_txt, magnitude_channels=self.magnitude_channels)
-            output.fc = self.fatigue_channels
-            
-            output.process(goodman_correction=self.goodman)
-            output_dict = None
-            output.data = None
-
+        for f in out_files:
+            QBLADE_Output_txt = os.path.join(self.QBLADE_runDirectory, f)
+            output = self.analyze_cases(QBLADE_Output_txt)
             self.cruncher.add_output(output)
                 
         # Delete the .out files after processing
@@ -245,7 +244,7 @@ class QBladeWrapper:
             # Store the scaled data
             output_dict[channel] = scaled_data
 
-        # Re-make output
+        # # Re-make output
         output = AeroelasticOutput(output_dict, dlc=self.QBLADE_namingOut, name=filename,
                                        magnitude_channels=self.magnitude_channels, fatigue_channels=self.fatigue_channels)
         
@@ -253,13 +252,12 @@ class QBladeWrapper:
         if self.qb_vt['QSim']['STOREFROM'] > 0.0 and not self.qb_vt['QSim']['DLCGenerator']: # in DLCGenerator QBlade never stores the values during the "tansient_time"
             output.trim_data(tmin=self.qb_vt['QSim']['STOREFROM'], tmax=self.qb_vt['QSim']['TMax'])
         
-        output.process(goodman_correction=self.goodman)
-        output_dict = None
-        output.data = None
+        if not self.keep_time:
+            output.process(goodman_correction=self.goodman)
+            output_dict = None
+            output.data = None
 
-        self.cruncher.add_output(output)
-
-        return self.cruncher      
+        return output    
 
     def qblade_version_check(self):
         match = re.search(r'(\d+\.\d+\.\d+(\.\d+)?)', self.QBlade_dll) # Extract the version from self.QBlade_dll

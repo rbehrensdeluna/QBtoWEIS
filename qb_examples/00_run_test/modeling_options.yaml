@@ -11,7 +11,7 @@ General:
         QB_run_mod: nrel5mw_oc3
         delete_out_files: True          # .out/.outb files are deleted after processing if True, default setting is True and does not specifically need to be set
         model_only: False
-        number_of_workers: 1
+        number_of_workers: 5
 
 WISDEM:
     RotorSE:

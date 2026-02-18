@@ -1033,6 +1033,9 @@ class WindPark(om.Group):
                 self.connect("af_3d.cd_corrected",             "stall_check_of.airfoils_cd")
                 self.connect("af_3d.cm_corrected",             "stall_check_of.airfoils_cm")
                 self.connect('aeroelastic_qblade.max_aoa',     'stall_check_of.aoa_along_span')
+
+            if modeling_options["flags"]["drivetrain"]:
+                self.add_subsystem("drivese_post",   DrivetrainSE(modeling_options=modeling_options))
             
             if modeling_options["flags"]["monopile"]:
                 n_height = modeling_options['WISDEM']['FixedBottomSE']["n_height"]
@@ -1298,6 +1301,48 @@ class WindPark(om.Group):
                 self.connect("blade.ps.layer_thickness_param", "rlds_post.brs.layer_thickness")
                 self.connect("blade.structure.layer_start_nd", "rlds_post.brs.layer_start_nd")
                 self.connect("blade.structure.layer_end_nd", "rlds_post.brs.layer_end_nd")
+
+                # Connections to DriveSE
+                if modeling_options["flags"]["drivetrain"]:
+                    self.connect("hub.diameter"                    , "drivese_post.hub_diameter")
+                    self.connect("hub.hub_in2out_circ"             , "drivese_post.hub_in2out_circ")
+                    self.connect("hub.flange_t2shell_t"            , "drivese_post.flange_t2shell_t")
+                    self.connect("hub.flange_OD2hub_D"             , "drivese_post.flange_OD2hub_D")
+                    self.connect("hub.flange_ID2flange_OD"         , "drivese_post.flange_ID2flange_OD")
+                    self.connect("hub.hub_stress_concentration"    , "drivese_post.hub_stress_concentration")
+                    self.connect("hub.n_front_brackets"            , "drivese_post.n_front_brackets")
+                    self.connect("hub.n_rear_brackets"             , "drivese_post.n_rear_brackets")
+                    self.connect("hub.clearance_hub_spinner"       , "drivese_post.clearance_hub_spinner")
+                    self.connect("hub.spin_hole_incr"              , "drivese_post.spin_hole_incr")
+                    self.connect("hub.pitch_system_scaling_factor" , "drivese_post.pitch_system_scaling_factor")
+                    self.connect("rotorse.wt_class.V_extreme50", "drivese.spinner_gust_ws")
+                    self.connect("configuration.n_blades",          "drivese_post.n_blades")
+                    self.connect("blade.high_level_blade_props.rotor_diameter", "drivese_post.rotor_diameter")
+                    self.connect("configuration.upwind",       "drivese_post.upwind")
+                    self.connect("control.minOmega" ,          "drivese_post.minimum_rpm")
+                    self.connect("rotorse.rp.powercurve.rated_Omega",  "drivese_post.rated_rpm")
+                    self.connect("rotorse.rp.powercurve.rated_Q",      "drivese_post.rated_torque")
+                    self.connect("configuration.rated_power",  "drivese_post.machine_rating")
+                    self.connect("tower.diameter",             "drivese_post.D_top", src_indices=[-1])
+                    self.connect("aeroelastic_qblade.hub_Fxyz_aero",       "drivese_post.F_aero_hub")
+                    self.connect("aeroelastic_qblade.hub_Mxyz_aero",       "drivese_post.M_aero_hub")
+                    self.connect("aeroelastic_qblade.max_RootMyb",     "drivese_post.pitch_system.BRFM")
+                    self.connect("blade.pa.chord_param",        "drivese_post.blade_root_diameter", src_indices=[0])
+                    self.connect("rotorse.blade_mass",          "drivese_post.blade_mass")
+                    self.connect("rotorse.mass_all_blades",     "drivese_post.blades_mass")
+                    self.connect("rotorse.I_all_blades",        "drivese_post.blades_I")
+
+                    self.connect("drivetrain.distance_hub_mb",           "drivese_post.L_h1")
+                    self.connect("drivetrain.distance_mb_mb",            "drivese_post.L_12")
+                    self.connect("generator.L_generator",             "drivese_post.L_generator")
+                    self.connect("drivetrain.overhang",                  "drivese_post.overhang")
+                    self.connect("drivetrain.distance_tt_hub",           "drivese_post.drive_height")
+                    self.connect("drivetrain.uptilt",                    "drivese_post.tilt")
+                    self.connect("drivetrain.gear_ratio",                "drivese_post.gear_ratio")
+                    self.connect("drivetrain.mb1Type",                   "drivese_post.bear1.bearing_type")
+                    self.connect("drivetrain.mb2Type",                   "drivese_post.bear2.bearing_type")
+                    self.connect("drivetrain.lss_diameter",              "drivese_post.lss_diameter")
+                    self.connect("drivetrain.lss_wall_thickness",        "drivese_post.lss_wall_thickness")
 
                 if modeling_options["flags"]["monopile"]:
                     # mono_params = ["z_full","d_full","t_full",
