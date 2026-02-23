@@ -38,10 +38,10 @@ magnitude_channels_default = {
     'TipDc1':  ['X_c Tip Trl.Def. (OOP) BLD_1', 'Y_c Tip Trl.Def. (IP) BLD_1', 'Z_c Tip Trl.Def. BLD_1'],
     'TipDc2':  ['X_c Tip Trl.Def. (OOP) BLD_2', 'Y_c Tip Trl.Def. (IP) BLD_2', 'Z_c Tip Trl.Def. BLD_2'],
     'TipDc3':  ['X_c Tip Trl.Def. (OOP) BLD_3', 'Y_c Tip Trl.Def. (IP) BLD_3', 'Z_c Tip Trl.Def. BLD_3'],
-    'TwrBsM':  ['X_tb Mom. TWR Bot. Constr.', 'Y_tb Mom. TWR Bot. Constr.', 'Z_tb Mom. TWR Bot. Constr.'],
-    'XtbMom':  ['X_tb Mom. TWR Bot. Constr.'],
-    'YtbMom':  ['Y_tb Mom. TWR Bot. Constr.'],
-    'ZtbMom':  ['Z_tb Mom. TWR Bot. Constr.'],
+    'TwrBsM':  ['X_tb Mom. TWR Bot. Const.', 'Y_tb Mom. TWR Bot. Const.', 'Z_tb Mom. TWR Bot. Const.'],
+    'XtbMom':  ['X_tb Mom. TWR Bot. Const.'],
+    'YtbMom':  ['Y_tb Mom. TWR Bot. Const.'],
+    'ZtbMom':  ['Z_tb Mom. TWR Bot. Const.'],
     'NcIMUTA': ['X_n Nac. Acc.','Y_n Nac. Acc.','Z_n Nac. Acc.']
 }
 

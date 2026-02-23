@@ -56,7 +56,7 @@ import random
 import base64
 
 
-_encoded_version = 'MS4xLjA='
+_encoded_version = 'MS4yLjA='
 __version__ = base64.b64decode(_encoded_version).decode('utf-8')
 
 logger = logging.getLogger("wisdem/weis") 
@@ -1589,8 +1589,8 @@ class QBLADELoadCases(ExplicitComponent):
                             magnitude_channels[f'LSShft{s}{k}{x}a'] = ['Y_h For. Hub Const.', 'Z_h For. Hub Const.'] if ik==0 else ['Y_h Mom. Hub Const.', 'Z_h Mom. Hub Const.'] # TODO: Equivalent sensors in QBlade are required
 
             # Aero-only hub loads
-            magnitude_channels["RtFldF"] = ["Aerodynamic Thrust", "Aerodynamic Force in Hub Y_g Direction", "Aerodynamic Force in Hub Z_g Direction"]
-            magnitude_channels["RtFldM"] = ["Aerodynamic Moment in Hub X_g Direction", "Aerodynamic Moment in Hub Y_g Direction", "Aerodynamic Moment in Hub Z_g Direction"]
+            magnitude_channels["RtFldF"] = ["Aerodynamic Thrust", "Aerodynamic Force in Hub Y_h Direction", "Aerodynamic Force in Hub Z_h Direction"]
+            magnitude_channels["RtFldM"] = ["Aerodynamic Moment in Hub X_h Direction", "Aerodynamic Moment in Hub Y_h Direction", "Aerodynamic Moment in Hub Z_h Direction"]
 
 
             # Fatigue at the tower base
@@ -1610,7 +1610,7 @@ class QBLADELoadCases(ExplicitComponent):
                         tower_fatigue_ii.load2stress = inputs[f'tower_{sstr}_load2stress'][0,idx]
                         fatigue_channels[f'TwrBs{s}{k}{x}t'] = tower_fatigue_ii
                         # magnitude_channels[f'TwrBs{s}{k}{x}t'] = [f'TwrBs{k}{x}t'] if x=='Z' else [f'TwrBs{k}xt', f'TwrBs{k}yt']
-                        magnitude_channels[f'TwrBs{s}{k}{x}t'] = [f'{x}_tb {k}. TWR Bot. Constr.'] if x=='Z' else [f'X_tb {k}. TWR Bot. Constr.', f'Y_tb {k}. TWR Bot. Constr.']
+                        magnitude_channels[f'TwrBs{s}{k}{x}t'] = [f'{x}_tb {k}. TWR Bot. Const.'] if x=='Z' else [f'X_tb {k}. TWR Bot. Const.', f'Y_tb {k}. TWR Bot. Const.']
 
             # Fatigue at monopile base (mudline)
             if modopt['flags']['monopile']:
@@ -1736,18 +1736,18 @@ class QBLADELoadCases(ExplicitComponent):
             channels_out += ["X_c Root For. BLD_1 [N]","Y_c Root For. BLD_1 [N]","Z_c Root For. BLD_1 [N]", "X_c Root For. BLD_2 [N]","Y_c Root For. BLD_2 [N]","Z_c Root For. BLD_2 [N]"]
             channels_out += ["X_b Root For. BLD_1 [N]",  "Y_b Root For. BLD_1 [N]", "Z_b Root For. BLD_1 [N]", "X_b Root For. BLD_2 [N]",  "Y_b Root For. BLD_2 [N]", "Z_b Root For. BLD_2 [N]"]
             channels_out += ["Aero. Power Coefficient [-]", "Thrust Coefficient [-]"]
-            channels_out += ["Aerodynamic Thrust [N]", "Aerodynamic Force in Hub Y_g Direction [N]", "Aerodynamic Force in Hub Z_g Direction [N]", "Aerodynamic Moment in Hub X_g Direction [Nm]", "Aerodynamic Moment in Hub Y_g Direction [Nm]", "Aerodynamic Moment in Hub Z_g Direction [Nm]"]
+            channels_out += ["Aerodynamic Thrust [N]", "Aerodynamic Force in Hub Y_h Direction [N]", "Aerodynamic Force in Hub Z_h Direction [N]", "Aerodynamic Moment in Hub X_h Direction [Nm]", "Aerodynamic Moment in Hub Y_h Direction [Nm]", "Aerodynamic Moment in Hub Z_h Direction [Nm]"]
             channels_out += ["Rotational Speed [rpm]", "HSS Rpm [rpm]", "Yaw Angle [deg]", "LSS Azimuthal Pos. [deg]"]
             channels_out += ["Gen. Elec. Power [W]", "Gen. HSS Torque [Nm]", "Pitch Angle BLD_1 [deg]", "Pitch Angle BLD_2 [deg]"]
             channels_out += ["Abs Inflow Vel. at Hub [m/s]", "X_g Inflow Vel. at Hub [m/s]", "Y_g Inflow Vel. at Hub [m/s]", "Z_g Inflow Vel. at Hub [m/s]"]
             channels_out += ["X_g Inflow Vel. Rotor Avg. [m/s]", "Y_g Inflow Vel. Rotor Avg. [m/s]", "Z_g Inflow Vel. Rotor Avg. [m/s]"]
-            channels_out += ["X_tb For. TWR Bot. Constr. [N]", "Y_tb For. TWR Bot. Constr. [N]", "Z_tb For. TWR Bot. Constr. [N]", "X_tb Mom. TWR Bot. Constr. [Nm]", "Y_tb Mom. TWR Bot. Constr. [Nm]", "Z_tb Mom. TWR Bot. Constr. [Nm]"]
-            channels_out += ["X_tt For. TWR Top Constr. [N]", "Y_tt For. TWR Top Constr. [N]", "Z_tt For. TWR Top Constr. [N]", "X_tt Mom. TWR Top Constr. [Nm]", "Y_tt Mom. TWR Top Constr. [Nm]", "Z_tt Mom. TWR Top Constr. [Nm]"]
+            channels_out += ["X_tb For. TWR Bot. Const. [N]", "Y_tb For. TWR Bot. Const. [N]", "Z_tb For. TWR Bot. Const. [N]", "X_tb Mom. TWR Bot. Const. [Nm]", "Y_tb Mom. TWR Bot. Const. [Nm]", "Z_tb Mom. TWR Bot. Const. [Nm]"]
+            channels_out += ["X_tt For. TWR Top Const. [N]", "Y_tt For. TWR Top Const. [N]", "Z_tt For. TWR Top Const. [N]", "X_tt Mom. TWR Top Const. [Nm]", "Y_tt Mom. TWR Top Const. [Nm]", "Z_tt Mom. TWR Top Const. [Nm]"]
             channels_out += ["X_h For. Hub Const. [N]", "Y_h For. Hub Const. [N]", "Z_h For. Hub Const. [N]"] # equivalent to "LSShftFxa", "LSShftFya", "LSShftFza"] rotating 
             channels_out += ["X_s For. Shaft Const. [N]", "Y_s For. Shaft Const. [N]", "Z_s For. Shaft Const. [N]"]  # ["LSShftFxs", "LSShftFys", "LSShftFzs" non-rotating
             channels_out += ["Aero. LSS Torque [Nm]", "X_s Mom. Shaft Const. [Nm]", "Y_s Mom. Shaft Const. [Nm]", "Z_s Mom. Shaft Const. [Nm]", "Y_h Mom. Hub Const. [Nm]", "Z_h Mom. Hub Const. [Nm]"]
             channels_out += ["X_n Nac. Acc. [m^2/s]", "Y_n Nac. Acc. [m^2/s]", "Z_n Nac. Acc. [m^2/s]"]
-            channels_out += ["Aero. Power [W]", "Wave Elevation at Global Pos. [m]", "HYDRO WavekinEval. Wave Elevation [m]"]
+            channels_out += ["Aero. Power [W]", "Wave Elevation at Global Pos. [m]", "HYDRO Eval. Lag. Wave Elevation [m]"]
             channels_out += ["Pitch Vel. BLD_1 [deg/s]", "Pitch Vel. BLD_2 [deg/s]"]
 
             if self.n_blades == 3:
@@ -2255,11 +2255,11 @@ class QBLADELoadCases(ExplicitComponent):
 
             # Aero-only for WISDEM (outputs are in N and N-m)
             outputs['hub_Fxyz_aero'] = np.array([extreme_table['RtFldF'][np.argmax(sum_stats['RtFldF']['max'])]['Aerodynamic Thrust']* 1e03,
-                                                extreme_table['RtFldF'][np.argmax(sum_stats['RtFldF']['max'])]['Aerodynamic Force in Hub Y_g Direction']* 1e03,
-                                                extreme_table['RtFldF'][np.argmax(sum_stats['RtFldF']['max'])]['Aerodynamic Force in Hub Z_g Direction']* 1e03])
-            outputs['hub_Mxyz_aero'] = np.array([extreme_table['RtFldM'][np.argmax(sum_stats['RtFldM']['max'])]['Aerodynamic Moment in Hub X_g Direction']* 1e03,
-                                                extreme_table['RtFldM'][np.argmax(sum_stats['RtFldM']['max'])]['Aerodynamic Moment in Hub Y_g Direction']* 1e03,
-                                                extreme_table['RtFldM'][np.argmax(sum_stats['RtFldM']['max'])]['Aerodynamic Moment in Hub Z_g Direction']* 1e03])
+                                                extreme_table['RtFldF'][np.argmax(sum_stats['RtFldF']['max'])]['Aerodynamic Force in Hub Y_h Direction']* 1e03,
+                                                extreme_table['RtFldF'][np.argmax(sum_stats['RtFldF']['max'])]['Aerodynamic Force in Hub Z_h Direction']* 1e03])
+            outputs['hub_Mxyz_aero'] = np.array([extreme_table['RtFldM'][np.argmax(sum_stats['RtFldM']['max'])]['Aerodynamic Moment in Hub X_h Direction']* 1e03,
+                                                extreme_table['RtFldM'][np.argmax(sum_stats['RtFldM']['max'])]['Aerodynamic Moment in Hub Y_h Direction']* 1e03,
+                                                extreme_table['RtFldM'][np.argmax(sum_stats['RtFldM']['max'])]['Aerodynamic Moment in Hub Z_h Direction']* 1e03])
             ## Post process aerodynamic data
             # Angles of attack - max, std, mean
             blade1_chans_aoa = ["Angle of Attack BLD_1 pos 0.100", "Angle of Attack BLD_1 pos 0.200", "Angle of Attack BLD_1 pos 0.300", "Angle of Attack BLD_1 pos 0.400", "Angle of Attack BLD_1 pos 0.500", "Angle of Attack BLD_1 pos 0.600", "Angle of Attack BLD_1 pos 0.700", "Angle of Attack BLD_1 pos 0.800", "Angle of Attack BLD_1 pos 0.900"]
@@ -2302,23 +2302,23 @@ class QBLADELoadCases(ExplicitComponent):
         sum_stats = self.cruncher.summary_stats
         extreme_table = self.cruncher.extremes
 
-        tower_chans_Fx = ["X_tb For. TWR Bot. Constr.", "X_l For. TWR pos 0.100", "X_l For. TWR pos 0.200", "X_l For. TWR pos 0.300", "X_l For. TWR pos 0.400", "X_l For. TWR pos 0.500", "X_l For. TWR pos 0.600", "X_l For. TWR pos 0.700", "X_l For. TWR pos 0.800", "X_l For. TWR pos 0.900", "X_tt For. TWR Top Constr."]
-        tower_chans_Fy = ["Y_tb For. TWR Bot. Constr.", "Y_l For. TWR pos 0.100", "Y_l For. TWR pos 0.200", "Y_l For. TWR pos 0.300", "Y_l For. TWR pos 0.400", "Y_l For. TWR pos 0.500", "Y_l For. TWR pos 0.600", "Y_l For. TWR pos 0.700", "Y_l For. TWR pos 0.800", "Y_l For. TWR pos 0.900", "Y_tt For. TWR Top Constr."]
-        tower_chans_Fz = ["Z_tb For. TWR Bot. Constr.", "Z_l For. TWR pos 0.100", "Z_l For. TWR pos 0.200", "Z_l For. TWR pos 0.300", "Z_l For. TWR pos 0.400", "Z_l For. TWR pos 0.500", "Z_l For. TWR pos 0.600", "Z_l For. TWR pos 0.700", "Z_l For. TWR pos 0.800", "Z_l For. TWR pos 0.900", "Z_tt For. TWR Top Constr."]
-        tower_chans_Mx = ["X_tb Mom. TWR Bot. Constr.", "X_l Mom. TWR pos 0.100", "X_l Mom. TWR pos 0.200", "X_l Mom. TWR pos 0.300", "X_l Mom. TWR pos 0.400", "X_l Mom. TWR pos 0.500", "X_l Mom. TWR pos 0.600", "X_l Mom. TWR pos 0.700", "X_l Mom. TWR pos 0.800", "X_l Mom. TWR pos 0.900", "X_tt Mom. TWR Top Constr."]
-        tower_chans_My = ["Y_tb Mom. TWR Bot. Constr.", "Y_l Mom. TWR pos 0.100", "Y_l Mom. TWR pos 0.200", "Y_l Mom. TWR pos 0.300", "Y_l Mom. TWR pos 0.400", "Y_l Mom. TWR pos 0.500", "Y_l Mom. TWR pos 0.600", "Y_l Mom. TWR pos 0.700", "Y_l Mom. TWR pos 0.800", "Y_l Mom. TWR pos 0.900", "Y_tt Mom. TWR Top Constr."]
-        tower_chans_Mz = ["Z_tb Mom. TWR Bot. Constr.", "Z_l Mom. TWR pos 0.100", "Z_l Mom. TWR pos 0.200", "Z_l Mom. TWR pos 0.300", "Z_l Mom. TWR pos 0.400", "Z_l Mom. TWR pos 0.500", "Z_l Mom. TWR pos 0.600", "Z_l Mom. TWR pos 0.700", "Z_l Mom. TWR pos 0.800", "Z_l Mom. TWR pos 0.900", "Z_tt Mom. TWR Top Constr."]
+        tower_chans_Fx = ["X_tb For. TWR Bot. Const.", "X_l For. TWR pos 0.100", "X_l For. TWR pos 0.200", "X_l For. TWR pos 0.300", "X_l For. TWR pos 0.400", "X_l For. TWR pos 0.500", "X_l For. TWR pos 0.600", "X_l For. TWR pos 0.700", "X_l For. TWR pos 0.800", "X_l For. TWR pos 0.900", "X_tt For. TWR Top Const."]
+        tower_chans_Fy = ["Y_tb For. TWR Bot. Const.", "Y_l For. TWR pos 0.100", "Y_l For. TWR pos 0.200", "Y_l For. TWR pos 0.300", "Y_l For. TWR pos 0.400", "Y_l For. TWR pos 0.500", "Y_l For. TWR pos 0.600", "Y_l For. TWR pos 0.700", "Y_l For. TWR pos 0.800", "Y_l For. TWR pos 0.900", "Y_tt For. TWR Top Const."]
+        tower_chans_Fz = ["Z_tb For. TWR Bot. Const.", "Z_l For. TWR pos 0.100", "Z_l For. TWR pos 0.200", "Z_l For. TWR pos 0.300", "Z_l For. TWR pos 0.400", "Z_l For. TWR pos 0.500", "Z_l For. TWR pos 0.600", "Z_l For. TWR pos 0.700", "Z_l For. TWR pos 0.800", "Z_l For. TWR pos 0.900", "Z_tt For. TWR Top Const."]
+        tower_chans_Mx = ["X_tb Mom. TWR Bot. Const.", "X_l Mom. TWR pos 0.100", "X_l Mom. TWR pos 0.200", "X_l Mom. TWR pos 0.300", "X_l Mom. TWR pos 0.400", "X_l Mom. TWR pos 0.500", "X_l Mom. TWR pos 0.600", "X_l Mom. TWR pos 0.700", "X_l Mom. TWR pos 0.800", "X_l Mom. TWR pos 0.900", "X_tt Mom. TWR Top Const."]
+        tower_chans_My = ["Y_tb Mom. TWR Bot. Const.", "Y_l Mom. TWR pos 0.100", "Y_l Mom. TWR pos 0.200", "Y_l Mom. TWR pos 0.300", "Y_l Mom. TWR pos 0.400", "Y_l Mom. TWR pos 0.500", "Y_l Mom. TWR pos 0.600", "Y_l Mom. TWR pos 0.700", "Y_l Mom. TWR pos 0.800", "Y_l Mom. TWR pos 0.900", "Y_tt Mom. TWR Top Const."]
+        tower_chans_Mz = ["Z_tb Mom. TWR Bot. Const.", "Z_l Mom. TWR pos 0.100", "Z_l Mom. TWR pos 0.200", "Z_l Mom. TWR pos 0.300", "Z_l Mom. TWR pos 0.400", "Z_l Mom. TWR pos 0.500", "Z_l Mom. TWR pos 0.600", "Z_l Mom. TWR pos 0.700", "Z_l Mom. TWR pos 0.800", "Z_l Mom. TWR pos 0.900", "Z_tt Mom. TWR Top Const."]
 
-        fatb_max_chan   = "Y_tb Mom. TWR Bot. Constr."
+        fatb_max_chan   = "Y_tb Mom. TWR Bot. Const."
         fatb_max        = np.max(sum_stats[fatb_max_chan]['max'])
         idx             = np.argmax(sum_stats[fatb_max_chan]['max'])       
         # Get the maximum fore-aft moment at tower base, 
         # We use OF channel naming convention from here on out to be able to use the standard constraint convetnions
         outputs["max_TwrBsMyt"] = fatb_max
         outputs["max_TwrBsMyt_ratio"] = fatb_max / self.options['opt_options']['constraints']['control']['Max_TwrBsMyt']['max']
-        outputs["max_XtbMom"] = np.max(sum_stats["X_tb Mom. TWR Bot. Constr."]['max'])
-        outputs["max_YtbMom"] = np.max(sum_stats["Y_tb Mom. TWR Bot. Constr."]['max'])
-        outputs["max_ZtbMom"] = np.max(sum_stats["Z_tb Mom. TWR Bot. Constr."]['max'])
+        outputs["max_XtbMom"] = np.max(sum_stats["X_tb Mom. TWR Bot. Const."]['max'])
+        outputs["max_YtbMom"] = np.max(sum_stats["Y_tb Mom. TWR Bot. Const."]['max'])
+        outputs["max_ZtbMom"] = np.max(sum_stats["Z_tb Mom. TWR Bot. Const."]['max'])
 
         # Return forces and moments along tower height at instance of largest fore-aft tower base moment
         Fx = [extreme_table[fatb_max_chan][idx][var] for var in tower_chans_Fx]

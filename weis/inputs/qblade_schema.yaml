@@ -454,7 +454,7 @@ properties:
                         description: store (local) moments at all chosen locations
                     DEF_OUT:
                         type: boolean
-                        default: false
+                        default: True
                         description: store (local) deflections at all chosen locations
                     POS_OUT:
                         type: boolean
