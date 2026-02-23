@@ -565,11 +565,12 @@ class QBLADELoadCases(ExplicitComponent):
          # qb_vt['Aero']['BlPos']          = r # --> BlSpn in OpenFast
         qb_vt['Aero']['BlPos']          = inputs['ref_axis_blade'][:,2] + inputs['Rhub'][0]
         qb_vt['Aero']['NumBlNds']       = self.n_span
+        BlCrvAC, BlSwpAC = self.get_ac_axis(inputs)
         qb_vt['Aero']['BlTwist']        = inputs['theta']
         qb_vt['Aero']['BlChord']        = inputs['chord']
         qb_vt['Aero']['XOffset']        =  inputs['ref_axis_blade'][:,1]
         qb_vt['Aero']['YOffset']        =  inputs['ref_axis_blade'][:,0]
-        qb_vt['Aero']['Paxis']          =  inputs['le_location']
+        qb_vt['Aero']['Paxis']          =  inputs['le_location']/inputs['chord']
         qb_vt['Aero']['af_data']        = []
         
         # Set the Aero flag AFTabMod, deciding whether we use more Re per airfoil or user-defined tables (used for example in distributed aerodynamic control)
