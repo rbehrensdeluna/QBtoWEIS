@@ -667,12 +667,18 @@ class DLCGenerator(object):
             
         # Generate generic case list
         generic_case_list, _ = CaseGen_General(gen_case_inputs,save_matrix=False)
-
+        
         case_inputs_openfast = self.map_generic_to_openfast(generic_case_inputs, comb_options)
-        case_inputs_qblade = self.map_generic_to_qblade(generic_case_inputs, comb_options)
-
         self.openfast_case_inputs.append(case_inputs_openfast)
-        self.qblade_case_inputs.append(case_inputs_qblade)
+        
+        try:
+            case_inputs_qblade = self.map_generic_to_qblade(generic_case_inputs, comb_options)
+            self.qblade_case_inputs.append(case_inputs_qblade)
+        except Exception as e:
+            print(f"Error mapping generic inputs to qblade inputs: {e}")
+            case_inputs_qblade = {}
+        
+        
 
         return generic_case_list
 
