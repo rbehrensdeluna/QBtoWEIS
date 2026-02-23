@@ -1409,6 +1409,7 @@ class QBLADELoadCases(ExplicitComponent):
                     if dlc_generator.cases[i_case].IECturbc > 0:    # use custom TI for DLC case
                         dlc_generator.cases[i_case].IECturbc = str(dlc_generator.cases[i_case].IECturbc)
                         dlc_generator.cases[i_case].IEC_WindType = 'NTM'        # must use NTM for custom TI
+                        dlc_generator.cases[i_case].ScaleIEC = 1   # Ensures that the specified TI is used
                     else:
                         dlc_generator.cases[i_case].IECturbc = wt_class
                     # Reference height for wind speed
@@ -1434,20 +1435,21 @@ class QBLADELoadCases(ExplicitComponent):
                 WindFile_type[i_case], WindFile_plexp[i_case], WindFile_name[i_case] = generate_wind_files(
                         dlc_generator, self.QBLADE_namingOut, self.wind_directory, rotorD, hub_height, self.turbsim_exe, i_case, generate_for_qblade=True)
             
-            script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script      
-            wind_directory = self.wind_directory    
-            number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
+            if 1 in WindFile_type: # if at least one case has turbulent wind, we need to run TurbSim to generate the wind files
+                script_path = os.path.join(weis_dir, 'weis', 'aeroelasticse', 'QTurbSim.py')  # Path to the TurbSim runner script      
+                wind_directory = self.wind_directory    
+                number_of_workers = modopt['General']['qblade_configuration']['number_of_workers']
 
-            # Prepare command
-            turbsim_params = [
-                wind_directory,
-                str(number_of_workers),
-            ]
+                # Prepare command
+                turbsim_params = [
+                    wind_directory,
+                    str(number_of_workers),
+                ]
 
-            cmd = ['python', script_path] + turbsim_params
+                cmd = ['python', script_path] + turbsim_params
 
-            # Run TurbSim
-            subprocess.run(cmd, check=True)
+                # Run TurbSim
+                subprocess.run(cmd, check=True)
 
             # Parameteric inputs
             case_name = []
@@ -1466,7 +1468,7 @@ class QBLADELoadCases(ExplicitComponent):
             # Apply wind files to case_list (this info will be in combined case matrix, but not individual DLCs)
             for case_i, wt, wf in zip(case_list,WindFile_type,WindFile_name):
                 # TODO: not sure if we need this in QBlade but is helpful to define the wind type
-                case_i[('QSim','WNDTYPE')] = wt
+                case_i[('QSim','WNDTYPE')] = int(wt)
                 case_i[('QTurbSim','TurbSimInp')] = wf
                 
                 # case_i[('QTurbSim','FileName_BTS')] = wf
@@ -1868,7 +1870,7 @@ class QBLADELoadCases(ExplicitComponent):
             i_qb_vt['QSim']['INITIAL_AZIMUTH'] = 0
                 
             i_qb_vt['QTurbSim']['URef']         = case_list[idx][('QSim', 'MEANINF')]
-            i_qb_vt['QSim']['MEANINF']          = 0
+            i_qb_vt['QSim']['MEANINF']          = case_list[idx][('QSim', 'MEANINF')]
             i_qb_vt['QSim']['WNDTYPE']          = case_list[idx][('QSim', 'WNDTYPE')]
             i_qb_vt['QTurbSim']['TurbSimInp']   = case_list[idx][('QTurbSim', 'TurbSimInp')]
             i_qb_vt['QSim']['TMax']             = case_list[idx][('QSim', 'TMax')]
@@ -2588,8 +2590,10 @@ class QBLADELoadCases(ExplicitComponent):
 
             # Only save the original timeseries if no filter is applied
             if not channels_no_unit:
-                output = AeroelasticOutput(timeseries, dlc=self.QBLADE_namingOut)
-                output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
+                # output = AeroelasticOutput(timeseries, dlc=self.QBLADE_namingOut)
+                # output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
+                for i_ts in range(self.cruncher.noutputs):
+                    self.cruncher.outputs[i_ts].save( os.path.join(save_dir,self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
     
     def read_failure_log(self):
         status_file = os.path.join(self.QBLADE_runDirectory, "qblade_run_failure_log.yaml")

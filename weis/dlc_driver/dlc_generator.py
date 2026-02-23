@@ -142,6 +142,7 @@ qblade_input_map = {
     # TODO: Check if required in QBalde
     # 'WindFile_name': ("InflowWind","Filename_Uni"),
     # 'rotorD': ("InflowWind","RefLength"),
+    'wind_heading': ("QSim","VERTANGLE"),   # This should be opposite of yaw_misalign
     # 'hub_height': ("InflowWind","RefHt_Uni"),
     
     'rot_speed_initial': ("QSim","RPMPRESCRIBED"),
@@ -670,7 +671,7 @@ class DLCGenerator(object):
         
         case_inputs_openfast = self.map_generic_to_openfast(generic_case_inputs, comb_options)
         self.openfast_case_inputs.append(case_inputs_openfast)
-        
+
         try:
             case_inputs_qblade = self.map_generic_to_qblade(generic_case_inputs, comb_options)
             self.qblade_case_inputs.append(case_inputs_qblade)

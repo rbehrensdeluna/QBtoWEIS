@@ -598,6 +598,9 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
         if dlc_generator.cases[i_case].IEC_WindType.split('-')[-1] in ('NWP','Steady'):
             wind_file_type = 1
             wind_file_path_InflowWind = 'unused'
+            if generate_for_qblade:
+                wind_file_type = 0
+                wind_file_path_InflowWind = 'unused'
         else:
             gusts = IEC_CoherentGusts()
             gusts.D = rotorD

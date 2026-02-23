@@ -29,22 +29,61 @@ WISDEM:
         flag: True
     FloatingSE:
         flag: True
+    BOS:
+        flag: True
+        plant_turbine_spacing: 7
+        plant_row_spacing: 7
+        commissioning_cost_kW: 44.0
+        decommissioning_cost_kW: 58.0
+        distance_to_substation: 1.0
+        distance_to_interconnection: 8.5
+        interconnect_voltage: 130.
+        distance_to_site: 115.
+        distance_to_landfall: 50.
+        port_cost_per_month: 2e6
+        construction_insurance: 44.0
+        construction_financing: 183.0
+        contingency: 316.0
+        site_auction_price: 100e6
+        site_assessment_cost: 50e6
+        construction_plan_cost: 2.5e5
+        installation_plan_cost: 1e6
+    LCOE:
+        flag: True
+        wake_loss_factor: 0.15
+        fixed_charge_rate: 0.056
+        bos_per_kW: 4053.
+        opex_per_kW: 137.
+        turbine_number: 40.
+        labor_rate: 58.8
+        painting_rate: 30.0
+
+Environment:
+    air_density: 1.225
+    air_dyn_viscosity: 1.81e-5
+    weib_shape_parameter: 2.
+    air_speed_sound: 340.
+    shear_exp: 0.12
+    water_density: 1025.0
+    water_dyn_viscosity: 1.3351e-3
+    soil_shear_modulus: 140.e+6
+    soil_poisson: 0.4
+    water_depth: 200.0
+    significant_wave_height: 4.52
+    significant_wave_period: 9.45
+
     
 QBlade:                         # Options for WEIS fidelity, nonlinear time domain with QBlade
     flag: True
     simulation:
         Simulate: True
-        wave_flag: True
-        TMax: 120
         TIMESTEP: 0.05
         ISOFFSHORE: 1
-        STOREFROM: 00.0 
-        PRESCRIBETYPE: 0        # should be 0 if Controllertype > 1
-        MEANINF: [6,10,14]
-        RPMPRESCRIBED: [4, 7, 7]
-        INITIAL_PITCH: [0, 0, 5]
+        DLCGenerator: True
+        # MEANINF: [6,10,14]
+        # RPMPRESCRIBED: [4, 7, 7]
+        # INITIAL_PITCH: [0, 0, 5]
         RAMPUP: 30
-        WNDTYPE: 1              # 1 - To use Turbsim, 0 - for steady wind
     Aero:
         ROTORTYPE: HAWT         # only option for now
     Main:
@@ -71,8 +110,6 @@ QBlade:                         # Options for WEIS fidelity, nonlinear time doma
         ADVANCEDBUOYANCY: 50.0
         override_morison_coefficients: True # use the morison coefficients defined in this file like "HydroCdN" etc.
         override_wave: False                # override Hs and Tp from windIO with "SIGHEIGHT" and "PEAKPERIOD"
-        SIGHEIGHT:  [3,4,5]
-        PEAKPERIOD: [10,10.5,11]
         POTFLOW: False                      # To deactivate potential flow, override_morison_coefficients should be true if set to 0
         DIFF_EVAL_TYPE: 0   
         HydroCdN: 1.0
@@ -89,30 +126,15 @@ QBlade:                         # Options for WEIS fidelity, nonlinear time doma
         SUB_HYDROSTIFFNESS4: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         SUB_HYDROSTIFFNESS5: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         SUB_HYDROSTIFFNESS6: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    QTurbSim:                               # TurbSim settings 
-        TimeStep: 0.05
-        AnalysisTime: 100
-        HubHt: 150
-        RefHt: 150
-        GridHeight: 290
-        GridWidth: 290
-        URef: [6,10,14]
-        RandSeed1: [10, 10, 10]
+
 ROSCO:
     flag: True
-    # SD_Mode: 0
-    # PS_Mode: 1
-    # ps_percent: 0.85
-    # F_LPFType: 2
-    # F_NotchType: 2
-    # Fl_Mode: 2 
-    # zeta_pc: [1,1]
-    # omega_pc: [0.2,0.2]
-    # U_pc: [12,18]
-    # zeta_vs: 0.85
-    # omega_vs: 0.12  
-    # twr_freq: 3.2
-    # ptfm_freq: 0.2
-    # Kp_float: -10
     
-
+DLC_driver:
+    DLCs:
+         - DLC: steady
+           wind_speed: [6,10,17]
+           analysis_time: 10.
+           transient_time: 10.
+           turbulent_wind:
+               flag: False
