@@ -4,14 +4,15 @@ General:
     qblade_configuration:
         flag: True
         # Linux
-        # path2qb_dll: # enter path to "libQBladeCE_2.0.8.5.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.5.so.1.0.0>  
+        # path2qb_dll: # enter path to "libQBladeCE_2.0.7.8.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.1.so.1.0.0>  
         # Windows
-        # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.5\QBladeEE_2.0.8.5.dll
+        # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.1\QBladeEE_2.0.8.1.dll
         QB_run_mod: IEA-15-240-RWT_VolturnUS-S
         out_file_format: 2              # 1 = ASCII (.out), 2 = Binary (.outb), default setting is 2 and does not specifically need to be set
         delete_out_files: True          # .out/.outb files are deleted after processing if True, default setting is True and does not specifically need to be set
         number_of_workers: 3
         model_only: False
+        store_qprs: False
         
 WISDEM:
     RotorSE:
@@ -28,6 +29,48 @@ WISDEM:
         flag: True
     FloatingSE:
         flag: True
+    BOS:
+        flag: True
+        plant_turbine_spacing: 7
+        plant_row_spacing: 7
+        commissioning_cost_kW: 44.0
+        decommissioning_cost_kW: 58.0
+        distance_to_substation: 1.0
+        distance_to_interconnection: 8.5
+        interconnect_voltage: 130.
+        distance_to_site: 115.
+        distance_to_landfall: 50.
+        port_cost_per_month: 2e6
+        construction_insurance: 44.0
+        construction_financing: 183.0
+        contingency: 316.0
+        site_auction_price: 100e6
+        site_assessment_cost: 50e6
+        construction_plan_cost: 2.5e5
+        installation_plan_cost: 1e6
+    LCOE:
+        flag: True
+        wake_loss_factor: 0.15
+        fixed_charge_rate: 0.056
+        bos_per_kW: 4053.
+        opex_per_kW: 137.
+        turbine_number: 40.
+        labor_rate: 58.8
+        painting_rate: 30.0
+
+Environment:
+    air_density: 1.225
+    air_dyn_viscosity: 1.81e-5
+    weib_shape_parameter: 2.
+    air_speed_sound: 340.
+    shear_exp: 0.12
+    water_density: 1025.0
+    water_dyn_viscosity: 1.3351e-3
+    soil_shear_modulus: 140.e+6
+    soil_poisson: 0.4
+    water_depth: 200.0
+    significant_wave_height: 4.52
+    significant_wave_period: 9.45
 
 RAFT:
     flag: True
@@ -41,16 +84,11 @@ QBlade: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
     flag: True
     simulation:
         Simulate: True
-        wave_flag: True
-        TMax: 120
         TIMESTEP: 0.05
         ISOFFSHORE: 1
-        STOREFROM: 60.0
-        PRESCRIBETYPE: 0 # must be 0 if Controllertype > 1
-        RPMPRESCRIBED: [4, 7, 7]
-        INITIAL_PITCH: [0, 0, 5]
+        DLCGenerator: True
         RAMPUP: 30
-        WNDTYPE: 1
+
     Aero:
         ROTORTYPE: HAWT         # only option for now
     Main:
@@ -76,9 +114,6 @@ QBlade: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
         USEADVANCEDBUOYANCY: True
         ADVANCEDBUOYANCY: 50.0
         override_morison_coefficients: True
-        override_wave: False # override Hs and Tp from windIO with "SIGHEIGHT" and "PEAKPERIOD"
-        SIGHEIGHT: [3,4,5]
-        PEAKPERIOD: [10,10.5,11]
         POTFLOW: True
         DIFF_EVAL_TYPE: 0
         USE_RAD_ADDMASS: True
@@ -105,21 +140,18 @@ QBlade: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
         GridWidth: 290
         URef: [6,10,14]
         RandSeed1: [1234, 11234, 1234]
+
 ROSCO:
     flag: True
-    # SD_Mode: 0
-    # PS_Mode: 1
-    # ps_percent: 0.85
-    # F_LPFType: 2
-    # F_NotchType: 2
-    # Fl_Mode: 2 
-    # zeta_pc: [1,1]
-    # omega_pc: [0.2,0.2]
-    # U_pc: [12,18]
-    # zeta_vs: 0.85
-    # omega_vs: 0.12  
-    # twr_freq: 3.2
-    # ptfm_freq: 0.2
-    # Kp_float: -10
+    
+DLC_driver:
+    DLCs:
+         - DLC: steady
+           wind_speed: [6,10,17]
+           analysis_time: 10.
+           transient_time: 10.
+           turbulent_wind:
+               flag: False
+
     
 

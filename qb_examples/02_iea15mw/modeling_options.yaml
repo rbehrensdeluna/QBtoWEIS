@@ -80,9 +80,6 @@ QBlade:                         # Options for WEIS fidelity, nonlinear time doma
         TIMESTEP: 0.05
         ISOFFSHORE: 1
         DLCGenerator: True
-        # MEANINF: [6,10,14]
-        # RPMPRESCRIBED: [4, 7, 7]
-        # INITIAL_PITCH: [0, 0, 5]
         RAMPUP: 30
     Aero:
         ROTORTYPE: HAWT         # only option for now
