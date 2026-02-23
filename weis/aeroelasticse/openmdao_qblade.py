@@ -1984,10 +1984,10 @@ class QBLADELoadCases(ExplicitComponent):
             
             # Save Data
             if modopt['General']['qblade_configuration']['save_timeseries']:
-                self.save_timeseries(chan_time, dlc_generator, failed_sim_ids)
+                self.save_timeseries(dlc_generator, failed_sim_ids)
 
             if modopt['General']['qblade_configuration']['save_iterations']:
-                self.save_iterations(summary_stats,DELs,discrete_outputs)
+                self.save_iterations(discrete_outputs)
 
             if modopt['General']['qblade_configuration']['store_turbines']:
                 self.store_turbines()
@@ -2518,14 +2518,17 @@ class QBLADELoadCases(ExplicitComponent):
         if missing_stations:
             raise ValueError(f"{component} is missing the following required stations: {missing_stations}, please modify the modeling file accordingly")
         
-    def save_iterations(self,summ_stats,DELs,discrete_outputs):
+    def save_iterations(self,discrete_outputs):
+
+        sum_stats = self.cruncher.summary_stats
+        DELs = self.cruncher.dels
 
         # Make iteration directory
         save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber))
         os.makedirs(save_dir, exist_ok=True)
 
         # Save dataframes as pickles
-        summ_stats.to_pickle(os.path.join(save_dir,'summary_stats.p'))
+        sum_stats.to_pickle(os.path.join(save_dir,'summary_stats.p'))
         DELs.to_pickle(os.path.join(save_dir,'DELs.p'))
 
         # Save qb_vt as pickle
@@ -2534,7 +2537,7 @@ class QBLADELoadCases(ExplicitComponent):
 
         discrete_outputs['ts_out_dir'] = save_dir
 
-    def save_timeseries(self,chan_time, dlc_generator, failed_sim_ids):
+    def save_timeseries(self,dlc_generator, failed_sim_ids):
 
         # Make iteration directory
         save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber),'timeseries')
@@ -2561,6 +2564,7 @@ class QBLADELoadCases(ExplicitComponent):
             if "Time" not in channels_no_unit:
                 channels_no_unit.insert(0, "Time")
 
+        # TODO: longterm all cases should be set up using the DLC generator.
         if self.qb_vt['QSim']['DLCGenerator']:
             n_cases = dlc_generator.n_cases
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
@@ -2569,24 +2573,22 @@ class QBLADELoadCases(ExplicitComponent):
             n_cases = len(self.qb_vt['QSim']['MEANINF'])
             
         succesful_cases = np.delete(range(n_cases), failed_sim_ids)
-        for i_ts, timeseries in enumerate(chan_time):
-            
+        for i_ts in range(self.cruncher.noutputs):
+            timeseries = self.cruncher.outputs[i_ts].copy()
             # If filter is provided, filter the timeseries
             if channels_no_unit:
                 filtered_timeseries = {}
                 # Iterate over each key-value pair in the timeseries
-                for key, value in timeseries.items():
-                    # Check if the channel is in channels_no_unit
-                    if key in channels_no_unit:
-                        filtered_timeseries[key] = value  # Add matching channels to filtered_timeseries
+                for chan in channels_no_unit:
+                    filtered_timeseries[chan] = timeseries[chan]
                 # If filtered_timeseries is not empty, save it
                 if filtered_timeseries:
-                    output = OpenFASTOutput.from_dict(filtered_timeseries, self.QBLADE_namingOut)
+                    output = AeroelasticOutput(filtered_timeseries, dlc=self.QBLADE_namingOut)
                     output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
 
             # Only save the original timeseries if no filter is applied
             if not channels_no_unit:
-                output = OpenFASTOutput.from_dict(timeseries, self.QBLADE_namingOut)
+                output = AeroelasticOutput(timeseries, dlc=self.QBLADE_namingOut)
                 output.df.to_pickle(os.path.join(save_dir, self.QBLADE_namingOut + '_' + str(succesful_cases[i_ts]) + '.p'))
     
     def read_failure_log(self):
