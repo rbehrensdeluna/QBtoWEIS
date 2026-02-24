@@ -13,6 +13,10 @@ General:
         number_of_workers: 3
         model_only: False
         store_qprs: False
+
+    potential_flow_modeling:
+        bem_method: 0 # hybrid for columns and lower pontoons
+        bem_members: ["main_column", "column1", "column2", "column3", "Y_pontoon_lower1", "Y_pontoon_lower2", "Y_pontoon_lower3"]
         
 WISDEM:
     RotorSE:
@@ -74,11 +78,10 @@ Environment:
 
 RAFT:
     flag: True
-    potential_model_override: 0
-    potential_bem_members: [main_column,column1,column2,column3,Y_pontoon_lower1,Y_pontoon_lower2,Y_pontoon_lower3]
-    min_freq_BEM: 0.25
-    min_freq: 0.1
-    max_freq: 1.0
+    characteristic_length_min: 1
+    characteristic_length_max: 5
+    intersection_mesh: 0
+
     
 QBlade: # Options for WEIS fidelity level 4 = nonlinear time domain with QBlade
     flag: True

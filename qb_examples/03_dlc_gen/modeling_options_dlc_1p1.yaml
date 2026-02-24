@@ -29,28 +29,70 @@ WISDEM:
         flag: True
     FloatingSE:
         flag: True
-        rank_and_file: True
+    BOS:
+        flag: True
+        plant_turbine_spacing: 7
+        plant_row_spacing: 7
+        commissioning_cost_kW: 44.0
+        decommissioning_cost_kW: 58.0
+        distance_to_substation: 50.0
+        distance_to_interconnection: 8.
+        interconnect_voltage: 130
+    LCOE:
+        flag: True
+        wake_loss_factor: 0.15
+        fixed_charge_rate: 0.075
+        bos_per_kW: 2979.
+        opex_per_kW: 144.
+        turbine_number: 120
+        labor_rate: 58.8
+        painting_rate: 30.0
+        blade_mass_cost_coeff: 14.6
+        hub_mass_cost_coeff: 3.9
+        pitch_system_mass_cost_coeff: 22.1
+        spinner_mass_cost_coeff: 11.1
+        lss_mass_cost_coeff: 11.9
+        bearing_mass_cost_coeff: 4.5
+        gearbox_torque_cost: 50.
+        hss_mass_cost_coeff: 6.8
+        generator_mass_cost_coeff: 12.4
+        bedplate_mass_cost_coeff: 2.9
+        yaw_mass_cost_coeff: 8.3
+        converter_mass_cost_coeff: 18.8
+        transformer_mass_cost_coeff: 18.8
+        hvac_mass_cost_coeff: 124.0
+        cover_mass_cost_coeff: 5.7
+        elec_connec_machine_rating_cost_coeff: 41.85
+        platforms_mass_cost_coeff: 17.1
+        tower_mass_cost_coeff: 2.9
+        controls_machine_rating_cost_coeff: 21.15
+        crane_cost: 12e3  
     
+Environment:
+    air_density: 1.225
+    air_dyn_viscosity: 1.81e-5
+    weib_shape_parameter: 2.
+    air_speed_sound: 340.
+    shear_exp: 0.11
+    water_density: 1025.0
+    water_dyn_viscosity: 1.3351e-3
+    water_depth: 320.0
+    significant_wave_height: 6.0
+    significant_wave_period: 10.0
+    soil_shear_modulus: 140.e+6
+    soil_poisson: 0.4
+
 QBlade: # Options for WEIS fidelity level, nonlinear time domain with QBlade
     flag: True
     simulation:
         Simulate: True
-        DLCGenerator: True
         ISOFFSHORE: 1
-        PRESCRIBETYPE: 0
     Aero:
         ROTORTYPE: HAWT         # only option for now
         INVERTEDFOILS: False    # dummy variable, only used for VAWTs
     Main:
         GLBGEOEPS: 0.2
         DRTRDOF: True
-        BRKTORQUE: 0.0
-        BRKDEPLOY: 0.0
-        BRKDELAY: 0.0
-        ERRORYAW: 0.0   
-        ERRORPITCH_1: 0.0
-        ERRORPITCH_2: 0.0
-        ERRORPITCH_3: 0.0
     Tower:
         RAYLEIGHDMP: 0.0127
         STIFFTUNER: 1.0
@@ -95,8 +137,8 @@ DLC_driver:
         - DLC: "1.1"
           wind_speed: [6, 8, 10, 12, 14, 16] #[5.8, 9.4732, 13.009,16.866,19.9968,15.6765] 
           n_seeds: 2
-          analysis_time: 60.
-          transient_time: 20.
+          analysis_time: 1.
+          transient_time: 1.
           turbulent_wind:
               HubHt: 90.0
               GridHeight: 178.0

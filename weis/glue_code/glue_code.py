@@ -1033,6 +1033,14 @@ class WindPark(om.Group):
                 self.connect("af_3d.cd_corrected",             "stall_check_of.airfoils_cd")
                 self.connect("af_3d.cm_corrected",             "stall_check_of.airfoils_cm")
                 self.connect('aeroelastic_qblade.max_aoa',     'stall_check_of.aoa_along_span')
+            
+            # TODO: FIX NDLC HERE
+            if modeling_options["flags"]["tower"]:
+                # This is needed for some reason because TowerSE isn't already called?  Should probably re-use that
+                n_height = modeling_options['WISDEM']['TowerSE']["n_height"]
+                n_refine = modeling_options['WISDEM']['TowerSE']["n_refine"]
+                n_full = get_nfull(n_height, nref=n_refine)
+                self.add_subsystem('towerse_post',   CylinderPostFrame(modeling_options=modeling_options["WISDEM"]["TowerSE"], n_dlc=1, n_full = n_full))
 
             if modeling_options["flags"]["drivetrain"]:
                 self.add_subsystem("drivese_post",   DrivetrainSE(modeling_options=modeling_options))
@@ -1105,10 +1113,10 @@ class WindPark(om.Group):
                 self.connect('af_3d.cl_corrected',                          'aeroelastic_qblade.airfoils_cl')
                 self.connect('af_3d.cd_corrected',                          'aeroelastic_qblade.airfoils_cd')
                 self.connect('af_3d.cm_corrected',                          'aeroelastic_qblade.airfoils_cm')
-                self.connect('rotorse.rp.powercurve.V',                     'aeroelastic_qblade.U')
-                self.connect('rotorse.rp.powercurve.Omega',                 'aeroelastic_qblade.Omega')
-                self.connect('rotorse.rp.powercurve.pitch',                 'aeroelastic_qblade.pitch')
-                self.connect('rotorse.rp.powercurve.Ct_aero',               'aeroelastic_qblade.Ct_aero')
+                self.connect('rotorse.rp.powercurve.V',                     'aeroelastic_qblade.U_init')
+                self.connect('rotorse.rp.powercurve.Omega',                 'aeroelastic_qblade.Omega_init')
+                self.connect('rotorse.rp.powercurve.pitch',                 'aeroelastic_qblade.pitch_init')
+                self.connect('rotorse.rp.powercurve.Ct_aero',               'aeroelastic_qblade.Ct_aero_init')
 
                 # Chrono blade structural definition
                 self.connect('rotorse.rhoA',                           'aeroelastic_qblade.beam:rhoA')
@@ -1483,6 +1491,34 @@ class WindPark(om.Group):
                         self.connect("generator.generator_mass_user", "drivese_post.generator_mass_user")
                         self.connect("generator.generator_efficiency_user", "drivese_post.generator_efficiency_user")
 
+                # Connections to TowerSE
+                if modeling_options["flags"]["tower"]:
+                    tow_params = ["z_full","outer_diameter_full","t_full",
+                                  "E_full","G_full","rho_full","sigma_y_full",
+                                  "section_A", "section_Asx","section_Asy",
+                                  "section_Ixx", "section_Iyy", "section_J0",
+                                  "section_rho", "section_E", "section_G", "section_L",
+                                  ]
+                    for k in tow_params:
+                        self.connect(f'towerse.{k}', f'towerse_post.{k}')
+                    self.connect("towerse.env.qdyn", "towerse_post.qdyn")
+                    self.connect("tower_grid.height", "towerse_post.bending_height")
+
+                    self.connect("aeroelastic_qblade.tower_maxMy_Fz", "towerse_post.cylinder_Fz")
+                    self.connect("aeroelastic_qblade.tower_maxMy_Fx", "towerse_post.cylinder_Vx")
+                    self.connect("aeroelastic_qblade.tower_maxMy_Fy", "towerse_post.cylinder_Vy")
+                    self.connect("aeroelastic_qblade.tower_maxMy_Mx", "towerse_post.cylinder_Mxx")
+                    self.connect("aeroelastic_qblade.tower_maxMy_My", "towerse_post.cylinder_Myy")
+                    self.connect("aeroelastic_qblade.tower_maxMy_Mz", "towerse_post.cylinder_Mzz")
+
+                if modeling_options["flags"]["monopile"]:
+                    mono_params = ["z_full","outer_diameter_full","t_full",
+                                  "E_full","G_full","rho_full","sigma_y_full"]
+                    for k in mono_params:
+                        self.connect(f'fixedse.{k}', f'fixedse_post.{k}')
+                    self.connect("fixedse.env.qdyn", "fixedse_post.qdyn")
+                    self.connect("monopile.height", "fixedse_post.bending_height")
+                    
                 if modeling_options["flags"]["monopile"]:
                     # mono_params = ["z_full","d_full","t_full",
                     #               "E_full","G_full","rho_full","sigma_y_full"]

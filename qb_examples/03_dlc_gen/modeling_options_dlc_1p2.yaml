@@ -1,0 +1,169 @@
+General:
+    verbosity: False  # When set to True, the code prints to screen many infos
+
+    qblade_configuration:
+        flag: True
+        # Linux
+        # path2qb_dll: # enter path to "libQBladeCE_2.0.8.5.so.1.0.0" here, e.g. <.../QBladeCE_2.0.8.1/libQBladeCE_2.0.8.5.so.1.0.0>  
+        # Windows
+        # path2qb_dll: C:\Users\behrensdeluna\Documents\QBlade_versions\QBladeEE_release_versions\QBladeEE_2.0.8.5\QBladeEE_2.0.8.5.dll
+        QB_run_mod: nrel5mw
+        out_file_format: 2              # 1 = ASCII (.out), 2 = Binary (.outb), default setting is 2 and does not specifically need to be set
+        delete_out_files: True          # .out/.outb files are deleted after processing if True, default setting is True and does not specifically need to be set
+        model_only: False
+        number_of_workers: 3
+
+WISDEM:
+    RotorSE:
+        flag: True
+        n_pitch_perf_surfaces: 10
+        n_tsr_perf_surfaces: 10
+        spar_cap_ss: Spar_Cap_SS
+        spar_cap_ps: Spar_Cap_PS
+        te_ss: TE_reinforcement_SS
+        te_ps: TE_reinforcement_PS
+    TowerSE:
+        flag: True
+    DriveSE:
+        flag: True
+    FloatingSE:
+        flag: True
+        rank_and_file: True
+    BOS:
+        flag: True
+        plant_turbine_spacing: 7
+        plant_row_spacing: 7
+        commissioning_cost_kW: 44.0
+        decommissioning_cost_kW: 58.0
+        distance_to_substation: 50.0
+        distance_to_interconnection: 8.
+        interconnect_voltage: 130
+    LCOE:
+        flag: True
+        wake_loss_factor: 0.15
+        fixed_charge_rate: 0.075
+        bos_per_kW: 2979.
+        opex_per_kW: 144.
+        turbine_number: 120
+        labor_rate: 58.8
+        painting_rate: 30.0
+        blade_mass_cost_coeff: 14.6
+        hub_mass_cost_coeff: 3.9
+        pitch_system_mass_cost_coeff: 22.1
+        spinner_mass_cost_coeff: 11.1
+        lss_mass_cost_coeff: 11.9
+        bearing_mass_cost_coeff: 4.5
+        gearbox_torque_cost: 50.
+        hss_mass_cost_coeff: 6.8
+        generator_mass_cost_coeff: 12.4
+        bedplate_mass_cost_coeff: 2.9
+        yaw_mass_cost_coeff: 8.3
+        converter_mass_cost_coeff: 18.8
+        transformer_mass_cost_coeff: 18.8
+        hvac_mass_cost_coeff: 124.0
+        cover_mass_cost_coeff: 5.7
+        elec_connec_machine_rating_cost_coeff: 41.85
+        platforms_mass_cost_coeff: 17.1
+        tower_mass_cost_coeff: 2.9
+        controls_machine_rating_cost_coeff: 21.15
+        crane_cost: 12e3  
+
+Environment:
+    air_density: 1.225
+    air_dyn_viscosity: 1.81e-5
+    weib_shape_parameter: 2.
+    air_speed_sound: 340.
+    shear_exp: 0.11
+    water_density: 1025.0
+    water_dyn_viscosity: 1.3351e-3
+    water_depth: 320.0
+    significant_wave_height: 6.0
+    significant_wave_period: 10.0
+    soil_shear_modulus: 140.e+6
+    soil_poisson: 0.4
+    
+QBlade: # Options for WEIS fidelity level, nonlinear time domain with QBlade
+    flag: True
+    simulation:
+        Simulate: True
+        DLCGenerator: True
+        ISOFFSHORE: 1
+    Aero:
+        ROTORTYPE: HAWT         # only option for now
+        INVERTEDFOILS: False    # dummy variable, only used for VAWTs
+    Main:
+        GLBGEOEPS: 0.2
+        DRTRDOF: True
+    Tower:
+        RAYLEIGHDMP: 0.0127
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISCTYPE: 0         # (0 = linear, 1 = cosine, 2 = struct, 3= aero)  
+        DISC: 10
+        CD: 0.5
+    Blade:
+        RAYLEIGHDMP: 0.0024
+        STIFFTUNER: 1.0
+        MASSTUNER: 1.0
+        DISCTYPE: 0         # (0 = linear, 1 = cosine, 2 = struct, 3= aero)  
+        DISC: 18
+    Turbine:
+        CONTROLLERTYPE: 1
+        CONTROLLERFILE: 'libdiscon_ROSCO-2.9.0' # must be set for CONTROLLERTYPE: 1, Rosco 2.9.0 or higher
+        DISCTYPE: 2         # (0=from blade table; 1=linear; 2=cosine)
+        NUMPANELS: 25
+        WAKETYPE: 1
+        BEMSPEEDUP: 30
+    QBladeOcean:
+        USEADVANCEDBUOYANCY: True
+        IsBuoy: 1
+        override_morison_coefficients: True
+        HydroCdN: 1.0
+        HydroCaN: 0.0
+        HydroCpN: 0.0
+        HydroCdA: 1.6
+        HydroCaA: 0.0
+        HydroCpA: 0.0
+        MCFC: 0
+        POTFLOW: True
+        POT_RAD_FILE: ../../../../POTFLOW_files/spar.1
+        POT_EXC_FILE: ../../../../POTFLOW_files/spar.3
+        USE_RAD_ADDMASS: True
+
+ROSCO:
+    flag: True
+
+DLC_driver:
+
+    metocean_conditions:
+        wind_speed: [1., 3., 5., 7., 9., 11., 13., 15., 17., 19., 21., 23., 25., 27., 29.]
+        wave_height_NSS: [0.84, 0.84, 0.87, 0.99, 1.15, 1.34, 1.58, 1.82, 2.08, 2.34, 2.66, 2.98, 3.28, 3.77, 3.94]
+        wave_period_NSS: [8.3, 8.3, 8.3, 7.7, 7.1, 6.3, 6.1, 6.2, 6.2, 6.7, 7.1, 7.1, 7.7, 7.7, 7.7]
+        wave_height_SSS: [9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7]
+        wave_period_SSS: [13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6, 13.6]
+        wave_height1: 5.9
+        wave_period1: 11.2
+        wave_height50: 9.7
+        wave_period50: 13.6
+        # fatigue bins
+        probability: [0.0721575, 0.0662317, 0.0586440, 0.0367738, 0.0367117, 0.0360826, 0.0348322, 0.0305607, 0.0288366, 0.0261494]
+        wave_height_fatigue: [1.93014, 2.86339, 1.48861, 2.44239, 2.00784, 2.46889, 1.44362, 1.72633, 1.28708, 3.52561]
+        wave_period_fatigue: [7.44086, 8.92557, 7.81407, 11.2402, 13.0567, 11.5244, 8.43307, 11.2183, 9.40580, 8.93552]
+        wind_direction_fatigue: [354.390, 355.816, 354.287, 352.366, 1.13005, 356.901, 351.408, 340.028, 356.371, 351.312]
+        wave_direction_fatigue: [334.359, 333.178, 312.166, 295.182, 287.033, 319.190, 324.634, 291.644, 284.024, 331.980]
+        wind_speed_fatigue: [11.1524, 13.4155, 9.81267, 12.5141, 7.14479, 8.37364, 4.87918, 4.74585, 7.99299, 19.4352]
+
+    DLCs:
+        - DLC: "1.2"
+          wind_speed: [14,15,16] #[5.8, 9.4732, 13.009,16.866,19.9968,15.6765] 
+          n_seeds: 1
+          analysis_time: 60.
+          transient_time: 10.
+          turbulent_wind:
+              HubHt: 90.0
+              GridHeight: 178.0
+              GridWidth: 178.0
+              Clockwise: True
+              RefHt: 90.0
+              PLExp: 0.11
+

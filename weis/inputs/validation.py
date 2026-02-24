@@ -99,7 +99,8 @@ def load_analysis_yaml(finput):
 
 def write_analysis_yaml(instance, foutput):
     merged_schema = get_analysis_schema()
-
+    ## Temporary fix to handle the fact that merit_figure is a list in the schema but a scalar in the instance. This should be resolved by updating the schema to allow for both cases.
+    instance['merit_figure'] = instance['merit_figure'][0]
     wisval._validate(instance, merged_schema, restrictive=True, removal=True, defaults=False, rank_0=True)
 
     # Ensure the output filename does not end with .yaml or .yml

@@ -332,10 +332,10 @@ class QBLADELoadCases(ExplicitComponent):
             self.add_input('Tsig_wave',     val=0.0, units='s', desc='Peak-spectral period of incident waves')
 
             # Initial conditions
-            self.add_input('U',             val=np.zeros(n_pc), units='m/s', desc='wind speeds')
-            self.add_input('Omega',         val=np.zeros(n_pc), units='rpm', desc='rotation speeds to run')
-            self.add_input('pitch',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
-            self.add_input("Ct_aero",       val=np.zeros(n_pc), desc="rotor aerodynamic thrust coefficient")
+            self.add_input('U_init',             val=np.zeros(n_pc), units='m/s', desc='wind speeds')
+            self.add_input('Omega_init',         val=np.zeros(n_pc), units='rpm', desc='rotation speeds to run')
+            self.add_input('pitch_init',         val=np.zeros(n_pc), units='deg', desc='pitch angles to run')
+            self.add_input("Ct_aero_init",       val=np.zeros(n_pc), desc="rotor aerodynamic thrust coefficient")
 
         if modopt['QBlade']['simulation']['DLCGenerator']:
             n_ws = np.max([1,modopt['DLC_driver']['n_ws_aep']])
@@ -368,13 +368,18 @@ class QBLADELoadCases(ExplicitComponent):
         # Outpus
 
         # Rotor power outputs
-        self.add_output('V_out',        val=np.zeros(n_ws),   units='m/s',    desc='wind speed vector from the OF simulations')
-        self.add_output('P_out',        val=np.zeros(n_ws),   units='W',      desc='rotor electrical power')
-        self.add_output('Cp_out',       val=np.zeros(n_ws),                   desc='rotor aero power coefficient')
-        self.add_output('Ct_out',       val=np.zeros(n_ws),                   desc='rotor aero thrust coefficient')
-        self.add_output('Omega_out',    val=np.zeros(n_ws),   units='rpm',    desc='rotation speeds to run')
-        self.add_output('pitch_out',    val=np.zeros(n_ws),   units='deg',    desc='pitch angles to run')
-        self.add_output('AEP',          val=0.0,                    units='kW*h',   desc='annual energy production reconstructed from the openfast simulations')
+        self.add_output('V',        val=np.zeros(n_ws),   units='m/s',    desc='wind speed vector from the QB simulations')
+        self.add_output('P',        val=np.zeros(n_ws),   units='W',      desc='rotor electrical power')
+        self.add_output('P_std',    val=np.zeros(n_ws),   units='W',      desc='standard deviation of rotor electrical power')
+        self.add_output('Cp',       val=np.zeros(n_ws),                   desc='rotor aero power coefficient')
+        self.add_output('Ct',       val=np.zeros(n_ws),                   desc='rotor aero thrust coefficient')
+        self.add_output('Omega',    val=np.zeros(n_ws),         units='rpm',    desc='rotation speeds to run')
+        self.add_output('Omega_std',    val=np.zeros(n_ws),     units='deg',    desc='pitch angles to run')
+        self.add_output('pitch',        val=np.zeros(n_ws_aep), units='deg',    desc='pitch angles')
+        self.add_output('pitch_std',    val=np.zeros(n_ws_aep), units='deg',    desc='standard deviation of pitch angles')
+        self.add_output('Thrust',       val=np.zeros(n_ws_aep), units='N',      desc='rotor thrust')
+        self.add_output('Thrust_std',   val=np.zeros(n_ws_aep), units='N',      desc='standard deviation of rotor thrust')
+        self.add_output('AEP',          val=0.0,                units='kW*h',   desc='annual energy production reconstructed from the openfast simulations')
 
 
         # Control outputs
@@ -1354,10 +1359,10 @@ class QBLADELoadCases(ExplicitComponent):
             fix_wave_seeds = modopt['DLC_driver']['fix_wave_seeds']
             metocean = modopt['DLC_driver']['metocean_conditions']
 
-            U_interp = inputs['U']
-            pitch_interp = inputs['pitch']
-            rot_speed_interp = inputs['Omega']
-            Ct_aero_interp = inputs['Ct_aero']
+            U_interp = inputs['U_init']
+            pitch_interp = inputs['pitch_init']
+            rot_speed_interp = inputs['Omega_init']
+            Ct_aero_interp = inputs['Ct_aero_init']
 
             # Makes life easier in post-processing
             self.qb_vt['QTurbSim']['URef']  = DLCs[0]['wind_speed']
