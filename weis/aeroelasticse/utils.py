@@ -534,8 +534,8 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
             turbsim_input_file_name = FAST_namingOut + '_' + dlc_generator.cases[i_case].IEC_WindType + (
                                     dlc_generator.cases[i_case].IECturbc + 
                                     '_U%1.6f'%dlc_generator.cases[i_case].URef +
-                                    '_Seed%1.1f'%dlc_generator.cases[i_case].RandSeed1) + '.in'
-            wind_file_path_InflowWind = os.path.join(wind_directory, turbsim_input_file_name[:-3] + '.bts')
+                                    '_Seed%1.1f'%dlc_generator.cases[i_case].RandSeed1) + '.inp'
+            wind_file_path_InflowWind = os.path.join(wind_directory, turbsim_input_file_name[:-4] + '.bts')
             turbsim_input_file_path = os.path.join(wind_directory, turbsim_input_file_name)
             wind_file_name = turbsim_input_file_path[:-3] + '.bts'
 
@@ -586,8 +586,8 @@ def generate_wind_files(dlc_generator, FAST_namingOut, wind_directory, rotorD, h
             if Turbulent_Gust:
                 dlc_generator.cases[i_case].IEC_WindType = actualwindtype
 
-        # Pass data to CaseGen_General to call OpenFAST
-        wind_file_type = 3
+            # Pass data to CaseGen_General to call OpenFAST
+            wind_file_type = 3
         
         # If IEC_WindType is Turbulent-<Gust>, switch IEC_WindType variable back to original wind type
         if Turbulent_Gust:

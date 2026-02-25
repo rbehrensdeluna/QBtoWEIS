@@ -1983,9 +1983,15 @@ class QBLADELoadCases(ExplicitComponent):
             except Exception as e:
                 logger.error(f"[AEP] Unexpected error in calculate_AEP: {e}", exc_info=True)
 
-            self.get_weighted_DELs(dlc_generator, inputs, discrete_inputs, outputs, failed_sim_ids)
+            try:
+                self.get_weighted_DELs(dlc_generator, inputs, discrete_inputs, outputs, failed_sim_ids)
+            except Exception as e:
+                logger.error(f"[WEIGHTED DELS] Unexpected error in get_weighted_DELs: {e}", exc_info=True)
             
-            self.get_control_measures(inputs, outputs)
+            try:
+                self.get_control_measures(inputs, outputs)
+            except Exception as e:
+                logger.error(f"[CONTROL MEASURES] Unexpected error in get_control_measures: {e}", exc_info=True)
 
             if modopt['flags']['floating']: # TODO: or (modopt['QBlade']['from_qblade'] and self.qb_vt['Fst']['CompMooring']>0):
                 self.get_floating_measures(inputs, outputs)

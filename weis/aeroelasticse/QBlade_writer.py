@@ -1163,6 +1163,7 @@ class InputWriter_QBlade(object):
             turbsim_file = ''
         elif self.qb_vt['QSim']['DLCGenerator'] and self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = self.qb_vt['QTurbSim']['TurbSimInp']
+            turbsim_file = turbsim_file.split('qblade_runs/')[-1] # #TODO somehow absolute path doesn't war anymore --> changes in QBladeEE 2.0.9.6
             if self.store_turbines: # manipulate path to point the store simulation to the correct wind field
                 turbsim_file = os.path.join('..',turbsim_file)
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:
