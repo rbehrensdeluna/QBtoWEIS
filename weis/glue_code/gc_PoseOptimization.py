@@ -42,10 +42,10 @@ class PoseOptimizationWEIS(PoseOptimization):
             wt_opt.model.add_objective('tcons_post.tip_deflection_ratio')
             
         elif merit_figure.lower() == 'del_rootmyb':   # for DAC optimization on root-flap-bending moments
-            wt_opt.model.add_objective('aeroelastic.DEL_RootMyb', ref = 1.e3)
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.DEL_RootMyb', ref = 1.e3)
             
         elif merit_figure.lower() == 'del_twrbsmyt':   # for pitch controller optimization
-            wt_opt.model.add_objective('aeroelastic.DEL_TwrBsMyt', ref=1.e4)
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.DEL_TwrBsMyt', ref=1.e4)
             
         elif merit_figure.lower() == 'rotor_overspeed':
             if not any(self.level_flags):
@@ -53,19 +53,19 @@ class PoseOptimizationWEIS(PoseOptimization):
             wt_opt.model.add_objective(f'{self.floating_solve_component}.rotor_overspeed')
 
         elif merit_figure.lower() == 'std_ptfmpitch':
-            wt_opt.model.add_objective('aeroelastic.Std_PtfmPitch')
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.Std_PtfmPitch')
 
         elif merit_figure.lower() == 'max_ptfmpitch':
-            wt_opt.model.add_objective('aeroelastic.Max_PtfmPitch')
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.Max_PtfmPitch')
 
         elif merit_figure.lower() == 'cp':
-            wt_opt.model.add_objective('aeroelastic.Cp_out', ref=-1.)
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.Cp_out', ref=-1.)
 
         elif merit_figure.lower() == 'weis_lcoe' or merit_figure.lower() == 'lcoe':
             wt_opt.model.add_objective('financese_post.lcoe')
 
         elif merit_figure.lower() == 'ol2cl_pitch':
-            wt_opt.model.add_objective('aeroelastic.OL2CL_pitch')
+            wt_opt.model.add_objective(f'{self.ae_solve_component}.OL2CL_pitch')
         
         else:
             super(PoseOptimizationWEIS, self).set_merit_figure(wt_opt, merit_figure)

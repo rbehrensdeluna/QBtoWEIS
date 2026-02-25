@@ -120,7 +120,7 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options,
             wt_opt = om.Problem(model=WindPark(modeling_options = modeling_options, opt_options = opt_options, wt_init = wt_init), reports=False)
 
             restart_file = opt_options['driver']['optimization'].get('restart_file', None)
-            restart_optimization = opt_options['driver']['optimization'].get('restart_optimization', False)
+            restart_optimization = modeling_options['General']['qblade_configuration'].get('restart_optimization', False)
 
             if restart_optimization:
                 recorder_file = myopt.opt["recorder"]["file_name"]

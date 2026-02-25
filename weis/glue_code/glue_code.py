@@ -1510,14 +1510,6 @@ class WindPark(om.Group):
                     self.connect("aeroelastic_qblade.tower_maxMy_Mx", "towerse_post.cylinder_Mxx")
                     self.connect("aeroelastic_qblade.tower_maxMy_My", "towerse_post.cylinder_Myy")
                     self.connect("aeroelastic_qblade.tower_maxMy_Mz", "towerse_post.cylinder_Mzz")
-
-                if modeling_options["flags"]["monopile"]:
-                    mono_params = ["z_full","outer_diameter_full","t_full",
-                                  "E_full","G_full","rho_full","sigma_y_full"]
-                    for k in mono_params:
-                        self.connect(f'fixedse.{k}', f'fixedse_post.{k}')
-                    self.connect("fixedse.env.qdyn", "fixedse_post.qdyn")
-                    self.connect("monopile.height", "fixedse_post.bending_height")
                     
                 if modeling_options["flags"]["monopile"]:
                     # mono_params = ["z_full","d_full","t_full",

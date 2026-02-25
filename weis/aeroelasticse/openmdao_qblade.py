@@ -149,7 +149,7 @@ class QBLADELoadCases(ExplicitComponent):
                 of locations can be specified between these in ascending order.')
             self.add_input('Rhub',                  val=0.0,                     units='m',     desc='dimensional radius of hub')
             self.add_input('Rtip',                  val=0.0,                     units='m',     desc='dimensional radius of tip')
-            self.add_input('le_location',           val=np.zeros(n_span),                       desc='Leading-edge positions from a reference blade axis (usually blade pitch axis). Locations are normalized by the local chord length. Positive in -x direction for airfoil-aligned coordinate system')
+            self.add_input('le_location',           val=np.zeros(n_span),        units='m',     desc='Leading-edge positions from a reference blade axis (usually blade pitch axis). Locations are normalized by the local chord length. Positive in -x direction for airfoil-aligned coordinate system')
 
             # Blade Aero Definition Inputs
             self.add_input('ref_axis_blade',        val=np.zeros((n_span,3)),   units='m',      desc='2D array of the coordinates (x,y,z) of the blade reference axis, defined along blade span. The coordinate system is the one of BeamDyn: it is placed at blade root with x pointing the suction side of the blade, y pointing the trailing edge and z along the blade span. A standard configuration will have negative x values (prebend), if swept positive y values, and positive z values.')
@@ -2068,8 +2068,8 @@ class QBLADELoadCases(ExplicitComponent):
             damage_total['TowerBaseAxial'] = damage_total['TwrBsAxForZt'] + damage_total['TwrBsAxMomXYt']
             damage_total['TowerBaseShear'] = damage_total['TwrBsAxForXYt'] + damage_total['TwrBsAxMomZt']
             if modopt['flags']['monopile']:
-                damage_total['MonopileBaseAxial'] = damage_total['M1N1AxFKze'] + damage_total['M1N1AxMKxye']
-                damage_total['MonopileBaseShear'] = damage_total['M1N1AxFKxye'] + damage_total['M1N1AxMKze']
+                damage_total['MonopileBaseAxial'] = damage_total['M1N1AxForKZe'] + damage_total['M1N1AxMomKXYe']
+                damage_total['MonopileBaseShear'] = damage_total['M1N1AxForKXYe'] + damage_total['M1N1AxMomKZe']
             else:
                 damage_total['MonopileBaseAxial'] = damage_total['MonopileBaseShear'] = 0.0
             
@@ -2588,7 +2588,10 @@ class QBLADELoadCases(ExplicitComponent):
                 filtered_timeseries = {}
                 # Iterate over each key-value pair in the timeseries
                 for chan in channels_no_unit:
-                    filtered_timeseries[chan] = timeseries[chan]
+                    if chan in timeseries.channels:
+                        filtered_timeseries[chan] = timeseries[chan]
+                    else:   
+                        logger.warning(f"Channel {chan} specified in filter file not found in timeseries, skipping this channel.")
                 # If filtered_timeseries is not empty, save it
                 if filtered_timeseries:
                     output = AeroelasticOutput(filtered_timeseries, dlc=self.QBLADE_namingOut)

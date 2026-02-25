@@ -1,6 +1,8 @@
 import os
 from weis import weis_main
 
+# TEST_RUN will reduce the number and duration of simulations
+TEST_RUN = False
 
 # This example shows how to restart a QBtoWEIS run from the last iteration of a provided sql file. 
 # This code will load the entire sql file and use the inputs/outputs stored in the sql file to fast-track the optimization process. As COBYLA does not store the simplex we re-run the optimization process by prescribing the inputs and outputs from the previou sql file instead of calling QBlade.
@@ -18,4 +20,5 @@ fname_analysis_options = os.path.join(run_dir, "analysis_options_opt.yaml")
 
 wt_opt, modeling_options, opt_options = weis_main(fname_wt_input, 
                                                  fname_modeling_options, 
-                                                 fname_analysis_options)
+                                                 fname_analysis_options,
+                                                 test_run=TEST_RUN)

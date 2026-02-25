@@ -172,6 +172,10 @@ properties:
                         type: string
                         default: none
                         description: absolute path to the sql file to restart from
+                    restart_optimization:
+                        type: boolean
+                        default: False
+                        description: whether or not to restart an optimization from a previous sql file (if True, restart_file must be provided). Will run through the already calculated iterations and continue the optimization from the last succesful iteration. Useful for HPC environments with wall time limits.
             goodman_correction:
                 type: boolean
                 default: False
