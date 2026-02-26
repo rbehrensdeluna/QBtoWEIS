@@ -98,10 +98,12 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options,
     if color_i == 0: # the top layer of cores enters, the others sit and wait to run openfast simulations
         # if MPI and opt_options['driver']['optimization']['flag']:
         if MPI:
-            if modeling_options['OpenFAST']['flag'] or modeling_options['OpenFAST_Linear']['flag']:
+            if modeling_options['OpenFAST']['flag'] or modeling_options['OpenFAST_Linear']['flag'] or modeling_options['QBlade']['flag']:
                 # Parallel settings for OpenFAST
                 modeling_options['General']['openfast_configuration']['mpi_run'] = True
                 modeling_options['General']['openfast_configuration']['mpi_comm_map_down'] = comm_map_down
+                modeling_options['General']['qblade_configuration']['mpi_run'] = True
+                modeling_options['General']['qblade_configuration']['mpi_comm_map_down'] = comm_map_down
                 if opt_options['driver']['design_of_experiments']['flag']:
                     modeling_options['General']['openfast_configuration']['cores'] = 1
                 else:
@@ -112,7 +114,8 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options,
                 wt_opt = om.Problem(model=WindPark(modeling_options = modeling_options, opt_options = opt_options, wt_init = wt_init), reports=False)
             else:
                 wt_opt = om.Problem(model=om.Group(num_par_fd=nFD), comm=comm_i, reports=False)
-                wt_opt.model.add_subsystem('comp', WindPark(modeling_options = modeling_options, opt_options = opt_options), promotes=['*'])
+                # wt_opt.model.add_subscdystem('comp', WindPark(modeling_options = modeling_options, opt_options = opt_options), promotes=['*'])-
+                wt_opt.model.add_subsystem('comp', WindPark(modeling_options=modeling_options, opt_options=opt_options, wt_init=wt_init), promotes=['*'])
         else:
             # Sequential finite differencing and openfast simulations
             modeling_options['General']['openfast_configuration']['mpi_run'] = False

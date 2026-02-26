@@ -54,6 +54,7 @@ from weis.aeroelasticse.QBlade_writer         import InputWriter_QBlade
 import weis.aeroelasticse.QBlade_wrapper as qbwrap
 import random
 import base64
+from openmdao.utils.mpi import MPI
 
 
 _encoded_version = 'MS4yLjA='
@@ -365,6 +366,13 @@ class QBLADELoadCases(ExplicitComponent):
             
         self.turbsim_exe = shutil.which('turbsim')
 
+        self.mpi_run = False
+        if 'mpi_run' in QBmgmt.keys():
+            self.mpi_run         = QBmgmt['mpi_run']
+            if self.mpi_run:
+                self.mpi_comm_map_down   = QBmgmt['mpi_comm_map_down']
+
+
         # Outpus
 
         # Rotor power outputs
@@ -468,6 +476,16 @@ class QBLADELoadCases(ExplicitComponent):
         print("############################################################")
         
         cache = self.options['cache']
+
+        # Inside compute(self, inputs, outputs, ...)
+        rank = MPI.COMM_WORLD.Get_rank() if MPI else 0
+
+        # Create a rank-specific subdirectory
+        base_dir = self.options['modeling_options']['General']['qblade_configuration']['QB_run_dir']
+        self.QBLADE_runDirectory = os.path.join(base_dir, f"rank_{rank}")
+
+        if not os.path.exists(self.QBLADE_runDirectory):
+            os.makedirs(self.QBLADE_runDirectory, exist_ok=True)
 
         # This block is used to skip the QBlade run if the cache is enabled and the current iteration has been cached
         # It will load the constraints, DVs and merit figures from the cached sql file and write them to the outputs
@@ -1849,6 +1867,7 @@ class QBLADELoadCases(ExplicitComponent):
 
             # add apendix based on wind speed to the file name
             QBLADE_namingOut_appendix = f'_{idx}'
+            writer.modopt = modopt
             writer.qb_vt = i_qb_vt
             writer.QBLADE_runDirectory  = self.QBLADE_runDirectory
             writer.QBLADE_namingOut     = self.QBLADE_namingOut + QBLADE_namingOut_appendix
@@ -1895,6 +1914,7 @@ class QBLADELoadCases(ExplicitComponent):
             i_qb_vt['QBladeOcean']['RANDSEED']     = case_list[idx][('QBladeOcean', 'RANDSEED')] % 65535 # 65535 is the maximum rand seed QBladeOcean allows
 
             # add apendix based on wind speed to the file name
+            writer.modopt = modopt
             writer.qb_vt = i_qb_vt
             writer.QBLADE_runDirectory  = self.QBLADE_runDirectory
             writer.QBLADE_namingOut     = case_name[idx] # +'_U'+str(case_list[idx][('QSim', 'MEANINF')])+'_WindSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])+'_WaveSeed'+str(case_list[idx][('QBladeOcean', 'RANDSEED')])
@@ -2532,22 +2552,35 @@ class QBLADELoadCases(ExplicitComponent):
         if missing_stations:
             raise ValueError(f"{component} is missing the following required stations: {missing_stations}, please modify the modeling file accordingly")
         
-    def save_iterations(self,discrete_outputs):
-
+    def save_iterations(self, discrete_outputs):
         sum_stats = self.cruncher.summary_stats
         DELs = self.cruncher.dels
+        
+        # Check if we should only store the first and last iteration
+        # This logic deletes the 'middle' iterations as the simulation progresses
+        store_last_only = self.options['modeling_options']['General']['qblade_configuration'].get('store_last_iteration_only', False)
+        
+        if store_last_only and self.qb_inumber > 1:
+            # We want to keep iteration_0. 
+            # If we are at iteration 2, we delete iteration 1. 
+            # If we are at iteration 3, we delete iteration 2, and so on.
+            prev_iteration_dir = os.path.join(self.QBLADE_runDirectory, 'iteration_' + str(self.qb_inumber - 1))
+            if os.path.exists(prev_iteration_dir):
+                import shutil
+                shutil.rmtree(prev_iteration_dir)
+                logger.info(f"Deleted previous iteration directory: {prev_iteration_dir}")
 
-        # Make iteration directory
-        save_dir = os.path.join(self.QBLADE_runDirectory,'iteration_'+str(self.qb_inumber))
+        # Make current iteration directory
+        save_dir = os.path.join(self.QBLADE_runDirectory, 'iteration_' + str(self.qb_inumber))
         os.makedirs(save_dir, exist_ok=True)
 
         # Save dataframes as pickles
-        sum_stats.to_pickle(os.path.join(save_dir,'summary_stats.p'))
-        DELs.to_pickle(os.path.join(save_dir,'DELs.p'))
+        sum_stats.to_pickle(os.path.join(save_dir, 'summary_stats.p'))
+        DELs.to_pickle(os.path.join(save_dir, 'DELs.p'))
 
         # Save qb_vt as pickle
-        with open(os.path.join(save_dir,'qb_vt.p'), 'wb') as f:
-            pickle.dump(self.qb_vt,f)
+        with open(os.path.join(save_dir, 'qb_vt.p'), 'wb') as f:
+            pickle.dump(self.qb_vt, f)
 
         discrete_outputs['ts_out_dir'] = save_dir
 

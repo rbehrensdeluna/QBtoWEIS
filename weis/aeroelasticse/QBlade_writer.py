@@ -38,6 +38,7 @@ class InputWriter_QBlade(object):
         
         self.QBLADE_namingOut = None    #Master QBlade file
         self.QBLADE_runDirectory = None #Output directory
+        self.modopt = {}
         self.qb_vt = {}
         self.qb_update = {}
         self.turbsim_params = None
@@ -1164,6 +1165,9 @@ class InputWriter_QBlade(object):
         elif self.qb_vt['QSim']['DLCGenerator'] and self.qb_vt['QSim']['WNDTYPE'] == 1:
             turbsim_file = self.qb_vt['QTurbSim']['TurbSimInp']
             turbsim_file = turbsim_file.split('qblade_runs/')[-1] # #TODO somehow absolute path doesn't war anymore --> changes in QBladeEE 2.0.9.6
+            if self.modopt['General']['qblade_configuration']['mpi_run']:
+                print("WARNING: MPI run detected. Manipulating TurbSim file path to point to the correct wind field file for each turbine.")
+                turbsim_file = os.path.join('..',turbsim_file)
             if self.store_turbines: # manipulate path to point the store simulation to the correct wind field
                 turbsim_file = os.path.join('..',turbsim_file)
         elif self.qb_vt['QSim']['WNDTYPE'] == 1:

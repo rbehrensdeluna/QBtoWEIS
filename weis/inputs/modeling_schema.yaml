@@ -176,6 +176,10 @@ properties:
                         type: boolean
                         default: False
                         description: whether or not to restart an optimization from a previous sql file (if True, restart_file must be provided). Will run through the already calculated iterations and continue the optimization from the last succesful iteration. Useful for HPC environments with wall time limits.
+                    store_last_iteration_only:
+                        type: boolean
+                        default: False
+                        description: Only store the last iteration of an optimization (overrides save_iterations and save_timeseries) to address memory limits.
             goodman_correction:
                 type: boolean
                 default: False
