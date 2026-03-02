@@ -180,6 +180,10 @@ properties:
                         type: boolean
                         default: False
                         description: Only store the last iteration of an optimization (overrides save_iterations and save_timeseries) to address memory limits.
+                    mpi_run:
+                        type: boolean
+                        default: False
+                        description: Whether or not to run QBlade in parallel using MPI.  If True, number_of_workers specifies the total number of parallel QBlade simulations across all MPI ranks, and WEIS will distribute the simulations across the available ranks.  If False, number_of_workers specifies the number of parallel simulations on each rank (e.g. with multiprocessing).    
             goodman_correction:
                 type: boolean
                 default: False

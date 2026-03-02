@@ -70,6 +70,18 @@ def run_weis(fname_wt_input, fname_modeling_options, fname_opt_options,
             for r in range(MPI.COMM_WORLD.Get_size()):
                 comm_map_up[r] = [r]
             color_i = 0
+
+        elif modeling_options['QBlade']['flag']:
+            # Tell MPI that EVERY rank is a primary driver (color 0)
+            nFD = MPI.COMM_WORLD.Get_size()
+            nOFp = 1 
+            rank = MPI.COMM_WORLD.Get_rank()
+            color_i = 0
+            comm_i = MPI.COMM_WORLD # No splitting needed
+            comm_map_up = comm_map_down = {} 
+            for r in range(MPI.COMM_WORLD.Get_size()):
+                comm_map_up[r] = [r]
+
         else:
             nFD = max([nFD, 1])
             comm_map_down, comm_map_up, color_map = map_comm_heirarchical(nFD, nOFp)

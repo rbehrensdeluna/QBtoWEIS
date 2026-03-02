@@ -27,6 +27,7 @@ import subprocess
 from pathlib import Path
 from scipy.interpolate                      import PchipInterpolator
 from openmdao.api                           import ExplicitComponent
+from openmdao.utils.mpi import MPI
 from wisdem.commonse import NFREQ
 from wisdem.commonse.cylinder_member import get_nfull
 import wisdem.commonse.utilities              as util
@@ -353,8 +354,15 @@ class QBLADELoadCases(ExplicitComponent):
         # Flag to clear QBlade run folder. Use it only if disk space is an issue
         self.clean_QBLADE_directory = False
         self.QBLADE_InputFile = QBmgmt['QB_run_mod']
-        self.QBLADE_runDirectory = QBLADE_directory_base
-        self.QBLADE_namingOut = self.QBLADE_InputFile
+
+        if MPI:
+            rank    = MPI.COMM_WORLD.Get_rank()
+            self.QBLADE_runDirectory = os.path.join(QBLADE_directory_base,'rank_%000d'%int(rank))
+            self.QBLADE_namingOut = self.QBLADE_InputFile+'_%000d'%int(rank)
+        else:
+            self.QBLADE_runDirectory = QBLADE_directory_base
+            self.QBLADE_namingOut = self.QBLADE_InputFile
+        
         
         if modopt['QBlade']['simulation']['DLCGenerator'] or modopt['QBlade']['simulation']['WNDTYPE']== 1:
             self.wind_directory = os.path.join(self.QBLADE_runDirectory, 'wind')
@@ -478,11 +486,12 @@ class QBLADELoadCases(ExplicitComponent):
         cache = self.options['cache']
 
         # Inside compute(self, inputs, outputs, ...)
-        rank = MPI.COMM_WORLD.Get_rank() if MPI else 0
+        if MPI:
+            rank = MPI.COMM_WORLD.Get_rank() if MPI else 0
 
-        # Create a rank-specific subdirectory
-        base_dir = self.options['modeling_options']['General']['qblade_configuration']['QB_run_dir']
-        self.QBLADE_runDirectory = os.path.join(base_dir, f"rank_{rank}")
+            # Create a rank-specific subdirectory
+            base_dir = self.options['modeling_options']['General']['qblade_configuration']['QB_run_dir']
+            self.QBLADE_runDirectory = os.path.join(base_dir, f"rank_{rank}")
 
         if not os.path.exists(self.QBLADE_runDirectory):
             os.makedirs(self.QBLADE_runDirectory, exist_ok=True)
