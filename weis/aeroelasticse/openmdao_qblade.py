@@ -1554,6 +1554,7 @@ class QBLADELoadCases(ExplicitComponent):
         qblade.out_file_format      = modopt['General']['qblade_configuration']['out_file_format']
         qblade.delete_out_files     = modopt['General']['qblade_configuration']['delete_out_files']
         qblade.keep_time            = modopt['General']['qblade_configuration']['keep_time']
+        qblade.delete_simulation_artifacts = modopt['General']['qblade_configuration']['delete_simulation_artifacts']
         
         qblade.channels = self.output_channels()
         magnitude_channels = dict( qbwrap.magnitude_channels_default )

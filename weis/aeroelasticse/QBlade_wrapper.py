@@ -26,6 +26,7 @@ import logging
 import re
 import sys
 import time
+import shutil
 
 weis_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -82,6 +83,7 @@ class QBladeWrapper:
         self.out_file_format    = 2
         self.delete_out_files   = True
         self.keep_time          = False
+        self.delete_simulation_artifacts = False
 
         self.goodman            = False
         self.magnitude_channels = magnitude_channels_default
@@ -134,11 +136,34 @@ class QBladeWrapper:
         for output in results:
             self.cruncher.add_output(output)
 
+        if self.delete_simulation_artifacts:
+            # Safety check: Ensure the prefix isn't empty to avoid deleting everything
+            if self.QBLADE_namingOut:
+                all_items = os.listdir(self.QBLADE_runDirectory)
+                
+                base_name = self.QBLADE_namingOut.rsplit('_', 1)[0]
+                # Filter items that start with the simulation prefix
+                artifacts = [item for item in all_items if base_name in item]
+                
+                for item in artifacts:
+                    item_path = os.path.join(self.QBLADE_runDirectory, item)
+                    
+                    try:
+                        if os.path.isdir(item_path):
+                            shutil.rmtree(item_path)
+                            print(f"Deleted Folder: {item}")
+                        else:
+                            os.remove(item_path)
+                            print(f"Deleted File:   {item}")
+                    except Exception as e:
+                        print(f"Could not delete {item}: {e}")
+
         # Delete the .out files after processing
-        if self.delete_out_files:
+        elif self.delete_out_files:
             for f in out_files:
                 os.remove(os.path.join(self.QBLADE_runDirectory, f))
                 print(f"Successfully deleted {f}.")
+
 
         return self.cruncher
 

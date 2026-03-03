@@ -164,6 +164,10 @@ properties:
                         type: boolean
                         default: True
                         description: delete .out file of a of a simulation after it was interpreted for (should not be used for optimizations)
+                    delete_simulation_artifacts:
+                        type: boolean
+                        default: False
+                        description: delete QBlade simulation artifacts such as .sim folders and .lwa files after a simulation (should not be used for optimizations)
                     restart_from_sql:
                         type: boolean
                         default: False
