@@ -2460,6 +2460,20 @@ class QBLADELoadCases(ExplicitComponent):
         summ_stats.to_pickle(os.path.join(save_dir,'summary_stats.p'))
         DELs.to_pickle(os.path.join(save_dir,'DELs.p'))
 
+        # Check if we should only store the first and last iteration
+        # This logic deletes the 'middle' iterations as the simulation progresses
+        # store_last_only = self.options['modeling_options']['General']['qblade_configuration'].get('store_last_iteration_only', False)
+        
+        # if store_last_only and self.qb_inumber > 1:
+        # We want to keep iteration_0. 
+        # If we are at iteration 2, we delete iteration 1. 
+        # If we are at iteration 3, we delete iteration 2, and so on.
+        prev_iteration_dir = os.path.join(self.QBLADE_runDirectory, 'iteration_' + str(self.qb_inumber - 1))
+        if os.path.exists(prev_iteration_dir):
+            import shutil
+            shutil.rmtree(prev_iteration_dir)
+            logger.info(f"Deleted previous iteration directory: {prev_iteration_dir}")
+
         # Save qb_vt as pickle
         with open(os.path.join(save_dir,'qb_vt.p'), 'wb') as f:
             pickle.dump(self.qb_vt,f)
