@@ -2469,7 +2469,7 @@ class QBLADELoadCases(ExplicitComponent):
         # If we are at iteration 2, we delete iteration 1. 
         # If we are at iteration 3, we delete iteration 2, and so on.
         prev_iteration_dir = os.path.join(self.QBLADE_runDirectory, 'iteration_' + str(self.qb_inumber - 1))
-        if os.path.exists(prev_iteration_dir):
+        if self.qb_inumber > 1 and os.path.exists(prev_iteration_dir):
             import shutil
             shutil.rmtree(prev_iteration_dir)
             logger.info(f"Deleted previous iteration directory: {prev_iteration_dir}")

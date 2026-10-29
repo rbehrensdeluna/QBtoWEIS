@@ -19,7 +19,7 @@ dependencies:
   - pyhams==1.3.0
   #- pyoptsparse
   - rosco==2.9.7
-  - smt
+  - smt==2.13.0 # smt>=2.14 on conda-forge needs a pydoe build that is not yet available (ModuleNotFoundError: pydoe)
   - wisdem==3.19.0
   - pip:
     - jenn
