@@ -1,6 +1,6 @@
 general:
     folder_output: opt_output
-    fname_output: iea22mw_umaine_output
+    fname_output: iea15mw_umaine_output
 
 
 design_variables:
